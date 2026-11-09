@@ -222,6 +222,12 @@ Esta funcionalidad fue validada mediante pruebas con inventarios reales.
 
 ---
 
+## Diagrama Entidad-Relación
+
+![Diagrama ER](docs/diagrama_ER_pgAdmin.png)
+
+---
+
 ## Autor
 
 Luis Carlos Porras
