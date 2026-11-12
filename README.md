@@ -2,234 +2,113 @@
 
 ## Descripción
 
-Proyecto desarrollado durante el servicio social para la gestión e inventario de equipo médico hospitalario.
+Proyecto desarrollado durante el servicio social para la gestión e inventario de equipo médico hospitalario en unidades del IMSS.
 
-El objetivo es centralizar la información de hospitales, inventarios, usuarios participantes, equipos médicos, proveedores, mantenimientos y documentación asociada, permitiendo un control más eficiente de los recursos biomédicos.
+El objetivo es centralizar la información de hospitales, inventarios, usuarios participantes, equipos médicos, proveedores, mantenimientos y documentación asociada, permitiendo un control eficiente, trazable y concurrente de los recursos biomédicos.
 
 ---
 
 ## Objetivos
 
-- Registrar hospitales y sus inventarios.
-- Asociar usuarios participantes a cada inventario.
-- Gestionar equipos médicos mediante NNI y número de serie.
-- Registrar mantenimientos preventivos y correctivos.
-- Gestionar proveedores externos.
-- Asociar documentación a equipos, mantenimientos e inventarios.
+- Registrar hospitales y sus levantamientos de inventario.
+- Asociar usuarios participantes y sus roles a cada inventario.
+- Gestionar equipos médicos mediante Número Nacional de Inventario (NNI) y número de serie (SN).
+- Registrar mantenimientos preventivos, correctivos y otros.
+- Gestionar el catálogo de proveedores externos y su contacto.
+- Asociar documentación única a equipos, mantenimientos o inventarios.
 - Implementar alertas para garantías y mantenimientos próximos.
-- Servir como base para una futura aplicación web.
+- Proveer una API REST con FastAPI para el manejo seguro de sesiones y transacciones concurrentes.
 
 ---
 
 ## Tecnologías utilizadas
 
+### Base de datos y control de versiones
 - PostgreSQL
-- pgAdmin
-- Git
-- GitHub
+- pgAdmin 4 / pgModeler
+- Git & GitHub
 
-Tecnologías planeadas:
-
-- FastAPI (Backend)
-- HTML/CSS/Bootstrap o React (Frontend)
-- OneDrive o almacenamiento externo para documentos
+### En integración (Backend y Frontend)
+- Python 3 + FastAPI (API REST y lógica de negocio)
+- SQLAlchemy & Pydantic (ORM y validación de esquemas)
+- HTML/CSS/Bootstrap o React (Frontend planeado)
+- Almacenamiento local/externo para gestión documental
 
 ---
 
 ## Modelo de datos
 
-Actualmente el sistema está compuesto por las siguientes entidades principales:
+El sistema está compuesto por las siguientes entidades principales y tablas asociativas:
 
-### Hospitales
+### 1. Hospitales (`hospital`)
+Permite registrar las unidades médicas (nombre, ciudad, estado) donde se realizan los inventarios.
 
-Permite registrar los hospitales donde se realizan los inventarios.
+### 2. Inventarios (`inventarios`)
+Representa cada proceso de levantamiento de inventario realizado en un hospital determinado y en una fecha específica.
 
-### Inventarios
+### 3. Usuarios (`usuarios`)
+Personal registrado en el sistema (nombre completo, correo único y contraseña encriptada mediante `password_hash`).
 
-Representa cada proceso de inventario realizado en un hospital determinado.
+### 4. Relación Inventario - Usuarios (`inventario_usuario`)
+Tabla intermedia que vincula a los usuarios con cada inventario realizado, definiendo su rol mediante el tipo `rol_enum` (`ENCARGADO`, `PARTICIPANTE`).
 
-### Usuarios
-
-Personal participante en la realización de inventarios.
-
-### Equipos
-
-Registro maestro de equipo médico que incluye:
-
+### 5. Equipos (`equipos`)
+Registro maestro de equipo médico vinculado a su hospital y proveedor, que incluye:
 - Nombre del equipo
-- Área
-- Subárea
-- Marca
-- Modelo
-- Número de serie (SN)
-- Número Nacional de Inventario (NNI)
-- Garantía
-- Estado funcional
+- Área y Subárea
+- Marca y Modelo
+- Número de serie (`sn`, único)
+- Número Nacional de Inventario (`nni`, único)
+- Vigencia de garantía (`garantia` y `fecha_expgarantia`)
+- Estado funcional (`estatusfuncional`) y observaciones
 
-### Proveedores
+### 6. Relación Inventario - Equipos (`inventario_equipo`)
+Tabla intermedia que mantiene el historial de qué equipos fueron censados en cada proceso de inventario.
 
-Empresas externas encargadas de servicios y mantenimientos.
+### 7. Proveedores (`proveedor`)
+Empresas externas encargadas de suministros y mantenimientos (incluye validación por expresión regular para formato telefónico y datos de contacto).
 
-### Mantenimientos
+### 8. Mantenimientos (`mantenimientos`)
+Registro histórico de intervenciones asociadas a un equipo y un proveedor, clasificadas mediante `mantenimiento_enum` (`PREVENTIVO`, `CORRECTIVO`, `OTRO`), fecha de realización y próxima fecha programada.
 
-Registro histórico de mantenimientos preventivos y correctivos.
-
-### Documentos
-
-Permite asociar documentos a:
-
+### 9. Documentos (`documentos`)
+Permite asociar archivos (minutas, manuales, reportes, garantías) mediante su nombre y ruta de almacenamiento a una entidad específica:
 - Equipos
 - Mantenimientos
 - Inventarios
 
 ---
 
-## Flujo de inventario
+## Integridad de datos y arquitectura
 
-### 1. Registro de hospital
+Para garantizar la consistencia de la información y permitir que múltiples usuarios trabajen de manera simultánea desde la aplicación web sin condiciones de carrera (*race conditions*), el sistema implementa:
 
-Se registra el hospital donde se realizará el inventario.
+- **Control transaccional desde el Backend:** La asociación entre el hospital activo, el inventario en curso, los usuarios participantes y los equipos registrados se gestiona de forma explícita mediante transacciones en los *endpoints* de FastAPI, prescindiendo de tablas de estado global o *triggers* de sesión única.
+- **Validación de Garantías (`CHECK`):** Restricción a nivel base de datos y esquema que exige una fecha de expiración (`fecha_expgarantia`) sí y solo sí el campo booleano `garantia` es verdadero.
+- **Exclusividad Documental (`CHECK`):** Restricción `documentos_check` que asegura que cada documento subido pertenezca estrictamente a una sola entidad a la vez (`id_equipo`, `id_mantenimiento` o `id_inventario`).
+- **Unicidad de Identificadores:** Restricciones `UNIQUE` en números de serie (`sn`), `nni` y correos electrónicos.
 
-### 2. Creación de inventario
+---
 
-Se crea un nuevo inventario asociado automáticamente al hospital activo.
+## Flujo de inventario (Arquitectura API)
 
-### 3. Registro de participantes
+### 1. Selección o registro de hospital
+Se identifica o da de alta la unidad médica donde se llevará a cabo el levantamiento.
 
-Los usuarios son asociados al inventario mediante la tabla intermedia:
+### 2. Apertura de inventario
+Se crea un registro en `inventarios` vinculando explícitamente el `id_hospital` y la fecha de ejecución.
+
+### 3. Asignación de participantes
+Se vinculan los usuarios participantes al `id_inventario` correspondiente dentro de `inventario_usuario` especificando su rol (`ENCARGADO` o `PARTICIPANTE`).
+
+### 4. Registro o importación masiva de equipos
+Los equipos pueden registrarse individualmente o importarse de forma masiva mediante archivos CSV:
 
 ```text
-inventario_usuario
-```
-
-### 4. Importación de equipos
-
-Los equipos se importan desde un archivo CSV utilizando una tabla temporal.
-
-```text
-CSV
+Archivo CSV / Petición API
 ↓
-Tabla temporal
+Validación de estructura y duplicados (SN / NNI)
 ↓
-Validación
+Inserción en tabla `equipos` (con `id_hospital` asociado)
 ↓
-Tabla equipos
-```
-
-### 5. Asociación automática
-
-Mediante triggers:
-
-- Se asigna el hospital correspondiente.
-- Se vincula el equipo al inventario actual.
-- Se registran las relaciones necesarias.
-
-### 6. Generación de documentación
-
-Se pueden asociar:
-
-- Minutas
-- Actas
-- Reportes
-- Manuales
-- Garantías
-- Reportes de mantenimiento
-
----
-
-## Triggers implementados
-
-### hospital_activo()
-
-Actualiza automáticamente el hospital activo.
-
-### inventario_hospital_actual()
-
-Asigna el hospital activo al nuevo inventario.
-
-### inventario_activo()
-
-Actualiza el inventario actualmente en proceso.
-
-### usuario_inventario_actual()
-
-Asocia usuarios nuevos al inventario activo.
-
-### equipo_inventario_hospital()
-
-Asocia automáticamente equipos al inventario activo y al hospital correspondiente.
-
----
-
-## Importación masiva de equipos
-
-El sistema soporta la importación de inventarios completos mediante archivos CSV.
-
-Proceso:
-
-```text
-Archivo CSV
-↓
-Tabla temporal
-↓
-Validación de datos
-↓
-Inserción en tabla principal
-↓
-Ejecución automática de triggers
-```
-
-Esta funcionalidad fue validada mediante pruebas con inventarios reales.
-
----
-
-## Funcionalidades futuras
-
-- API REST con FastAPI.
-- Interfaz web para inventarios.
-- Dashboard de indicadores.
-- Alertas de mantenimientos próximos.
-- Alertas de vencimiento de garantía.
-- Exportación de inventarios a Excel.
-- Generación de reportes PDF.
-- Visualización de documentos desde la aplicación.
-
----
-
-## Estado del proyecto
-
-### Completado
-
-- [x] Modelo relacional
-- [x] Relaciones y claves foráneas
-- [x] Triggers automáticos
-- [x] Gestión de inventarios
-- [x] Gestión de equipos
-- [x] Gestión de usuarios
-- [x] Gestión de proveedores
-- [x] Gestión de mantenimientos
-- [x] Gestión documental
-- [x] Importación masiva mediante CSV
-
-### En desarrollo
-
-- [ ] Backend con FastAPI
-- [ ] API REST
-- [ ] Sistema de alertas
-- [ ] Frontend
-- [ ] Reportes PDF
-- [ ] Exportación Excel
-
----
-
-## Diagrama Entidad-Relación
-
-![Diagrama ER](docs/diagrama_ER_pgAdmin.png)
-
----
-
-## Autor
-
-Luis Carlos Porras
-
-Proyecto desarrollado durante el servicio social como propuesta para la gestión de inventarios y equipo médico hospitalario.
+Vinculación transaccional en `inventario_equipo`
