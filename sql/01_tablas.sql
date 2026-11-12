@@ -95,3 +95,15 @@ CREATE TABLE inventario_usuario (
 	id_usuario INT REFERENCES usuarios (id_usuario),
 	PRIMARY KEY (id_inventario, id_usuario)
 );
+
+-- 10. Agregar rol, username y foto_perfil a la tabla usuarios
+ALTER TABLE usuarios
+ADD COLUMN username VARCHAR(50) UNIQUE,
+ADD COLUMN foto_perfil VARCHAR(255),
+ADD COLUMN rol VARCHAR(20) NOT NULL DEFAULT 'EMPLEADO'
+    CHECK (rol IN ('ADMIN', 'EMPLEADO'));
+
+-- 11. Agregar la columna estado a la tabla inventarios
+ALTER TABLE inventarios
+ADD COLUMN estado VARCHAR(20) NOT NULL DEFAULT 'EN_PROCESO'
+    CHECK (estado IN ('EN_PROCESO', 'FINALIZADO'));
