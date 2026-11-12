@@ -95,15 +95,3 @@ CREATE TABLE inventario_usuario (
 	id_usuario INT REFERENCES usuarios (id_usuario),
 	PRIMARY KEY (id_inventario, id_usuario)
 );
-
--- 10. Se crea una tabla para el registro del inventario que se esté realizando en el momento
--- La tabla almacena el id del inventario y mediante triggers se registra de manera automática
-CREATE TABLE inventario_actual (
-	id_inventario INT
-);
-
--- 11. Se crea una tabla para registrar el hospital en donde se esté realizando el inventario
--- Mediante triggers se almacena el valor del id_hospital
-CREATE TABLE hospital_actual (
-	Id_hospital INT
-);
