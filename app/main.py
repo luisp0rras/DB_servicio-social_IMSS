@@ -3,6 +3,8 @@ import io
 import os
 import shutil
 import bcrypt
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, RedirectResponse
 from datetime import date, timedelta
 from fastapi import FastAPI, Depends, HTTPException, status, Query, UploadFile, File, Form
 from fastapi.responses import FileResponse
@@ -45,9 +47,14 @@ def verificar_password(password_plana: str, password_guardada: str) -> bool:
 # 1. RUTAS GENERALES (PRUEBA DE CONEXIÓN)
 # ==========================================================
 
-@app.get("/", tags=["General"])
-def inicio():
-    return {"mensaje": "API del Servicio Social IMSS funcionando correctamente"}
+# Conectar la carpeta 'frontend' para que el servidor muestre las páginas HTML y CSS
+os.makedirs("frontend", exist_ok=True)
+app.mount("/app", StaticFiles(directory="frontend"), name="frontend")
+
+@app.get("/", include_in_schema=False)
+def pagina_principal():
+    """Al entrar a http://127.0.0.1:8000, abre directamente la pantalla de Login."""
+    return RedirectResponse(url="/app/login.html")
 
 @app.get("/health-db", tags=["General"])
 def probar_conexion_bd(db: Session = Depends(get_db)):

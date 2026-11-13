@@ -1,0 +1,311 @@
+/* ==========================================================
+   ESTILOS GENERALES - SISTEMA BIOMÉDICO IMSS (MINIMALISTA)
+   ========================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --bg-fondo: #F8FAFC;
+    --bg-tarjeta: #FFFFFF;
+    --verde-imss: #13322B;
+    --verde-acento: #1F5143;
+    --verde-suave: #EBF3F0;
+    --dorado-sutil: #A68250;
+    --texto-principal: #1E293B;
+    --texto-secundario: #64748B;
+    --borde-fino: #E2E8F0;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--bg-fondo);
+    color: var(--texto-principal);
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Ocultar el ojito nativo defectuoso de Microsoft Edge */
+input::-ms-reveal,
+input::-ms-clear {
+    display: none;
+}
+
+/* Contenedor elegante para campo de contraseña con botón de ojo propio */
+.password-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-box input {
+    padding-right: 2.6rem; /* Espacio reservado para que el texto nunca choque con el icono */
+}
+
+.btn-toggle-pass {
+    position: absolute;
+    right: 10px;
+    background: transparent;
+    border: none;
+    color: var(--texto-secundario);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease;
+}
+
+.btn-toggle-pass:hover {
+    color: var(--verde-imss);
+}
+
+/* --- BARRA LATERAL (SIDEBAR) --- */
+.sidebar {
+    width: 260px;
+    min-height: 100vh;
+    background-color: var(--bg-tarjeta);
+    border-right: 1px solid var(--borde-fino);
+    position: fixed;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+}
+
+.sidebar-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--borde-fino);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-insignia {
+    width: 38px;
+    height: 38px;
+    background-color: var(--verde-imss);
+    color: #FFFFFF;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    border-bottom: 3px solid var(--dorado-sutil);
+}
+
+.nav-menu {
+    padding: 1rem 0.75rem;
+    flex-grow: 1;
+}
+
+.nav-item-btn {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 0.7rem 1rem;
+    border-radius: 8px;
+    color: var(--texto-secundario);
+    font-weight: 500;
+    font-size: 0.92rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.nav-item-btn:hover {
+    background-color: var(--bg-fondo);
+    color: var(--texto-principal);
+}
+
+.nav-item-btn.activo {
+    background-color: var(--verde-suave);
+    color: var(--verde-imss);
+    font-weight: 600;
+}
+
+/* --- CONTENIDO PRINCIPAL --- */
+.main-content {
+    margin-left: 260px;
+    padding: 2rem 2.5rem;
+    min-height: 100vh;
+}
+
+/* --- TARJETAS MINIMALISTAS --- */
+.card-clean {
+    background-color: var(--bg-tarjeta);
+    border: 1px solid var(--borde-fino);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card {
+    background-color: var(--bg-tarjeta);
+    border: 1px solid var(--borde-fino);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+}
+
+/* --- BOTONES Y FORMULARIOS --- */
+.btn-primario {
+    background-color: var(--verde-imss);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 7px;
+    padding: 0.55rem 1.1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background-color 0.15s ease;
+}
+
+.btn-primario:hover {
+    background-color: var(--verde-acento);
+    color: #FFFFFF;
+}
+
+.btn-secundario {
+    background-color: #FFFFFF;
+    color: var(--texto-principal);
+    border: 1px solid var(--borde-fino);
+    border-radius: 7px;
+    padding: 0.55rem 1.1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.btn-secundario:hover {
+    background-color: var(--bg-fondo);
+}
+
+.form-control, .form-select {
+    border: 1px solid var(--borde-fino);
+    border-radius: 7px;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.92rem;
+    color: var(--texto-principal);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--verde-acento);
+    box-shadow: 0 0 0 3px rgba(31, 81, 67, 0.1);
+}
+
+/* --- TABLAS LIMPIAS --- */
+.table-clean {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.table-clean th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    color: var(--texto-secundario);
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--borde-fino);
+}
+
+.table-clean td {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--borde-fino);
+    vertical-align: middle;
+}
+
+.table-clean tr:last-child td {
+    border-bottom: none;
+}
+
+/* --- ETIQUETAS DE ESTADO (BADGES SUTILES) --- */
+.badge-soft-danger {
+    background-color: #FEF2F2;
+    color: #B91C1C;
+    border: 1px solid #FECACA;
+    padding: 0.3rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.badge-soft-warning {
+    background-color: #FFFBEB;
+    color: #B45309;
+    border: 1px solid #FDE68A;
+    padding: 0.3rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.badge-soft-success {
+    background-color: #ECFDF5;
+    color: #047857;
+    border: 1px solid #A7F3D0;
+    padding: 0.3rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.badge-soft-neutral {
+    background-color: #F1F5F9;
+    color: #475569;
+    border: 1px solid #E2E8F0;
+    padding: 0.3rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+/* --- BUSCADOR DESPLEGABLE (COMBOBOX) --- */
+.dropdown-buscador {
+    position: relative;
+}
+
+.lista-resultados-buscador {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #FFFFFF;
+    border: 1px solid var(--borde-fino);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 50;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+}
+
+.item-buscador {
+    padding: 0.65rem 0.9rem;
+    cursor: pointer;
+    border-bottom: 1px solid #F1F5F9;
+    font-size: 0.9rem;
+}
+
+.item-buscador:hover {
+    background-color: var(--verde-suave);
+    color: var(--verde-imss);
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        min-height: auto;
+        position: relative;
+        border-right: none;
+        border-bottom: 1px solid var(--borde-fino);
+    }
+    .main-content {
+        margin-left: 0;
+        padding: 1.25rem;
+    }
+}

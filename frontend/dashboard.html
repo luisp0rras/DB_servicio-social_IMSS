@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Principal - Biomédica IMSS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/app/css/styles.css">
+</head>
+<body>
+
+    <!-- ==========================================================
+         BARRA LATERAL DE NAVEGACIÓN
+         ========================================================== -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-insignia">
+                <i class="bi bi-heart-pulse"></i>
+            </div>
+            <div>
+                <div class="fw-bold" style="font-size: 0.95rem; color: var(--verde-imss);">Biomédica IMSS</div>
+                <small class="text-muted" style="font-size: 0.78rem;">Gestión de Activos</small>
+            </div>
+        </div>
+
+        <nav class="nav-menu">
+            <div class="text-uppercase text-muted fw-semibold px-3 mb-2" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+                Principal
+            </div>
+            <button class="nav-item-btn activo" onclick="cambiarVista('vista-inicio', this)">
+                <i class="bi bi-grid"></i> Resumen y Alertas
+            </button>
+            <button class="nav-item-btn" onclick="cambiarVista('vista-inventarios', this)">
+                <i class="bi bi-clipboard2-check"></i> Inventarios
+            </button>
+            <button class="nav-item-btn" onclick="cambiarVista('vista-equipos', this)">
+                <i class="bi bi-cpu"></i> Equipos Médicos
+            </button>
+
+            <div class="text-uppercase text-muted fw-semibold px-3 mt-4 mb-2" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+                Operación
+            </div>
+            <button class="nav-item-btn" onclick="cambiarVista('vista-mantenimientos', this)">
+                <i class="bi bi-wrench-adjustable"></i> Mantenimientos
+            </button>
+            <button class="nav-item-btn" onclick="cambiarVista('vista-proveedores', this)">
+                <i class="bi bi-building"></i> Proveedores
+            </button>
+            <button class="nav-item-btn" onclick="cambiarVista('vista-documentos', this)">
+                <i class="bi bi-folder2-open"></i> Documentos
+            </button>
+
+            <div class="text-uppercase text-muted fw-semibold px-3 mt-4 mb-2" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+                Cuenta
+            </div>
+            <button class="nav-item-btn" onclick="cambiarVista('vista-perfil', this)">
+                <i class="bi bi-person-circle"></i> Mi Perfil
+            </button>
+        </nav>
+
+        <div class="p-3 border-top" style="border-color: var(--borde-fino) !important;">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <img id="sidebar-avatar" src="https://ui-avatars.com/api/?name=User&background=13322B&color=fff" 
+                     alt="Avatar" class="rounded-circle" width="36" height="36" style="object-fit: cover;">
+                <div class="overflow-hidden">
+                    <div id="sidebar-nombre" class="fw-semibold text-truncate" style="font-size: 0.85rem;">Cargando...</div>
+                    <span id="sidebar-rol" class="badge-soft-neutral" style="font-size: 0.7rem; padding: 0.15rem 0.45rem;">...</span>
+                </div>
+            </div>
+            <button onclick="cerrarSesion()" class="btn btn-secundario w-100 btn-sm text-danger">
+                <i class="bi bi-box-arrow-left me-1"></i> Cerrar Sesión
+            </button>
+        </div>
+    </aside>
+
+    <!-- ==========================================================
+         CONTENIDO PRINCIPAL
+         ========================================================== -->
+    <main class="main-content">
+
+        <!-- ======================================================
+             VISTA 1: RESUMEN Y ALERTAS
+             ====================================================== -->
+        <section id="vista-inicio" class="vista-panel">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4 class="fw-bold mb-1">Panel de Control y Alertas</h4>
+                    <p class="text-muted small mb-0">Monitoreo de garantías y mantenimientos programados en unidades médicas</p>
+                </div>
+                <button class="btn btn-primario solo-admin d-none" onclick="cambiarVista('vista-inventarios', document.querySelectorAll('.nav-item-btn')[1])">
+                    <i class="bi bi-plus-lg me-1"></i> Nuevo Inventario
+                </button>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="text-muted small fw-medium mb-1">Alertas de Garantía (30 días)</div>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <h3 class="fw-bold mb-0" id="kpi-garantias">-</h3>
+                            <span class="badge-soft-warning"><i class="bi bi-shield-exclamation"></i> Revisar</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="text-muted small fw-medium mb-1">Mantenimientos Próximos</div>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <h3 class="fw-bold mb-0" id="kpi-mantenimientos">-</h3>
+                            <span class="badge-soft-danger"><i class="bi bi-calendar-event"></i> Programados</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="text-muted small fw-medium mb-1">Nivel de Acceso Actual</div>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <h4 class="fw-bold mb-0" id="kpi-rol">-</h4>
+                            <span class="badge-soft-success"><i class="bi bi-check-circle"></i> Activo</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-clean">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-shield-exclamation text-warning me-2"></i>Garantías Vencidas o Próximas a Expirar</h6>
+                    <button class="btn btn-secundario btn-sm" onclick="cargarAlertas()">
+                        <i class="bi bi-arrow-clockwise"></i> Actualizar
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table-clean">
+                        <thead>
+                            <tr>
+                                <th>Equipo</th>
+                                <th>NNI</th>
+                                <th>Hospital</th>
+                                <th>Fecha Expiración</th>
+                                <th>Días</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-alertas-garantia">
+                            <tr><td colspan="6" class="text-center text-muted py-3">Cargando alertas...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card-clean">
+                <h6 class="fw-bold mb-3"><i class="bi bi-wrench text-danger me-2"></i>Mantenimientos Próximos o Atrasados</h6>
+                <div class="table-responsive">
+                    <table class="table-clean">
+                        <thead>
+                            <tr>
+                                <th>ID Equipo</th>
+                                <th>Tipo</th>
+                                <th>Próxima Fecha</th>
+                                <th>Días</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-alertas-mantenimiento">
+                            <tr><td colspan="5" class="text-center text-muted py-3">Cargando mantenimientos...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ======================================================
+             VISTA 2: INVENTARIOS (FLUJO DE 5 PASOS + LISTADO)
+             ====================================================== -->
+        <section id="vista-inventarios" class="vista-panel d-none">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4 class="fw-bold mb-1">Levantamiento e Historial de Inventarios</h4>
+                    <p class="text-muted small mb-0">Consulta inventarios realizados o inicia un nuevo censo hospitalario</p>
+                </div>
+                <button class="btn btn-primario solo-admin d-none" onclick="toggleNuevoInventario()">
+                    <i class="bi bi-plus-lg me-1"></i> Iniciar Nuevo Inventario
+                </button>
+            </div>
+
+            <div id="alerta-inventarios" class="alert d-none small py-2"></div>
+
+            <!-- BLOQUE EXCLUSIVO ADMIN: PASOS 1, 2 Y 3 PARA ABRIR INVENTARIO -->
+            <div id="panel-crear-inventario" class="card-clean d-none" style="border-left: 4px solid var(--verde-imss);">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0">Nuevo Levantamiento de Inventario</h6>
+                    <button type="button" class="btn-close" onclick="toggleNuevoInventario()"></button>
+                </div>
+
+                <form id="form-iniciar-inventario">
+                    <div class="row g-3">
+                        <!-- PASO 1: BUSCADOR DESPLEGABLE DE HOSPITALES -->
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">1. Seleccionar Hospital *</label>
+                            <div class="dropdown-buscador">
+                                <input type="text" class="form-control" id="buscador-hospital-input" 
+                                       placeholder="Escribe el nombre o ciudad (ej. UMF 33, Delicias)..." autocomplete="off">
+                                <input type="hidden" id="hospital-seleccionado-id" required>
+                                <div id="lista-hospitales-dropdown" class="lista-resultados-buscador d-none"></div>
+                            </div>
+                            <div id="hospital-elegido-badge" class="mt-2 small text-success fw-medium d-none"></div>
+                            <button type="button" class="btn btn-link btn-sm p-0 mt-1 text-decoration-none" 
+                                    style="color: var(--verde-acento);" onclick="toggleNuevoHospital()">
+                                + ¿No aparece el hospital? Registrarlo aquí
+                            </button>
+                        </div>
+
+                        <!-- PASO 2: FECHA DEL INVENTARIO -->
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">2. Fecha del Inventario *</label>
+                            <input type="date" class="form-control" id="inventario-fecha" required>
+                        </div>
+
+                        <!-- MINI-FORMULARIO DESPLEGABLE SI EL HOSPITAL NO EXISTE -->
+                        <div id="subpanel-nuevo-hospital" class="col-12 d-none">
+                            <div class="p-3 rounded" style="background-color: var(--bg-fondo); border: 1px dashed var(--borde-fino);">
+                                <div class="fw-semibold small mb-2">Registrar Unidad Médica Nueva</div>
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control form-control-sm" id="nuevo-hosp-nombre" placeholder="Nombre (ej. HGR 66)">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control form-control-sm" id="nuevo-hosp-ciudad" placeholder="Ciudad (ej. Ciudad Juárez)">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <input type="text" class="form-control form-control-sm" id="nuevo-hosp-estado" value="Chihuahua">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn btn-primario btn-sm w-100" onclick="guardarNuevoHospital()">Guardar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PASO 3: PARTICIPANTES (EL ADMIN SE AGREGA SOLO) -->
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">3. Participantes Adicionales (Tú ya estás incluido automáticamente como Administrador)</label>
+                            <div id="lista-checkbox-usuarios" class="row g-2 p-2 rounded" style="background-color: var(--bg-fondo); max-height: 140px; overflow-y: auto;">
+                                <!-- Se llena dinámicamente con los usuarios registrados -->
+                            </div>
+                        </div>
+
+                        <div class="col-12 text-end">
+                            <button type="submit" class="btn btn-primario">
+                                Crear Inventario y Comenzar Captura <i class="bi bi-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- BLOQUE PASO 4 Y 5: CAPTURA DE EQUIPOS EN UN INVENTARIO EN_PROCESO -->
+            <div id="panel-captura-inventario" class="card-clean d-none" style="border-left: 4px solid var(--dorado-sutil);">
+                <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                    <div>
+                        <span class="badge-soft-warning me-2">EN PROCESO</span>
+                        <span class="fw-bold" id="titulo-inventario-activo">Inventario #</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primario btn-sm solo-admin d-none" onclick="finalizarInventarioActual()">
+                            <i class="bi bi-check2-circle me-1"></i> 5. Finalizar Inventario
+                        </button>
+                        <button class="btn btn-secundario btn-sm" onclick="cerrarPanelCaptura()">Cerrar vista</button>
+                    </div>
+                </div>
+
+                <!-- Pestañas: Registro Individual vs Importación CSV -->
+                <ul class="nav nav-tabs mb-3 small fw-semibold">
+                    <li class="nav-item">
+                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-eq-manual">4A. Registro Manual (Equipo por Equipo)</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-eq-csv">4B. Importación Masiva (Archivo CSV)</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content mb-4">
+                    <!-- FORMULARIO MANUAL -->
+                    <div class="tab-pane fade show active" id="tab-eq-manual">
+                        <form id="form-agregar-equipo" class="row g-2">
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted">Nombre del Equipo *</label>
+                                <input type="text" class="form-control form-control-sm" id="eq-nombre" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted">Área *</label>
+                                <input type="text" class="form-control form-control-sm" id="eq-area" placeholder="ej. Urgencias" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted">Subárea</label>
+                                <input type="text" class="form-control form-control-sm" id="eq-subarea" placeholder="ej. Choque">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Marca *</label>
+                                <input type="text" class="form-control form-control-sm" id="eq-marca" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Modelo</label>
+                                <input type="text" class="form-control form-control-sm" id="eq-modelo">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Número de Serie (SN) *</label>
+                                <input type="text" class="form-control form-control-sm" id="eq-sn" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">NNI *</label>
+                                <input type="text" class="form-control form-control-sm" id="eq-nni" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">¿Tiene Garantía?</label>
+                                <select class="form-select form-select-sm" id="eq-garantia" onchange="toggleFechaGarantia()">
+                                    <option value="false">No</option>
+                                    <option value="true">Sí</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Expiración Garantía</label>
+                                <input type="date" class="form-control form-control-sm" id="eq-fecha-garantia" disabled>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Estatus Funcional</label>
+                                <select class="form-select form-select-sm" id="eq-estatus">
+                                    <option value="true">Funcional</option>
+                                    <option value="false">Fuera de servicio / Falla</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Observaciones</label>
+                                <input type="text" class="form-control form-control-sm" id="eq-obs">
+                            </div>
+                            <div class="col-12 text-end mt-2">
+                                <button type="submit" class="btn btn-primario btn-sm">+ Agregar Equipo al Inventario</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- FORMULARIO CSV -->
+                    <div class="tab-pane fade" id="tab-eq-csv">
+                        <form id="form-subir-csv" class="row g-2 align-items-end">
+                            <div class="col-md-8">
+                                <label class="form-label small text-muted">Selecciona el archivo CSV con columnas (nombre_equipo, area, subarea, marca, modelo, sn, nni, garantia, fecha_expgarantia, estatusfuncional, observaciones)</label>
+                                <input type="file" class="form-control form-control-sm" id="archivo-csv-input" accept=".csv" required>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primario btn-sm w-100">
+                                    <i class="bi bi-file-earmark-spreadsheet me-1"></i> Importar CSV
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Lista de equipos agregados a este inventario -->
+                <h6 class="fw-bold small text-muted text-uppercase mb-2">Equipos Censados en este Inventario</h6>
+                <div class="table-responsive">
+                    <table class="table-clean">
+                        <thead>
+                            <tr>
+                                <th>Equipo</th>
+                                <th>Área</th>
+                                <th>Marca / Modelo</th>
+                                <th>NNI</th>
+                                <th>SN</th>
+                                <th>Estatus</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-equipos-inventario-activo"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TABLA HISTÓRICA DE INVENTARIOS -->
+            <div class="card-clean">
+                <h6 class="fw-bold mb-3">Inventarios Registrados</h6>
+                <div class="table-responsive">
+                    <table class="table-clean">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Hospital</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-lista-inventarios">
+                            <tr><td colspan="5" class="text-center text-muted py-3">Cargando inventarios...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ======================================================
+             VISTA 3: CATÁLOGO Y FILTROS DE EQUIPOS MÉDICOS
+             ====================================================== -->
+        <section id="vista-equipos" class="vista-panel d-none">
+            <div class="mb-4">
+                <h4 class="fw-bold mb-1">Catálogo Maestro de Equipos Médicos</h4>
+                <p class="text-muted small mb-0">Filtra equipos por hospital, área, estado funcional o vigencia de garantía</p>
+            </div>
+
+            <!-- Barra de Filtros -->
+            <div class="card-clean">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">Buscar (Nombre, NNI o SN)</label>
+                        <input type="text" class="form-control form-control-sm" id="filtro-eq-texto" placeholder="Ej. NNI2016...">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted">Hospital</label>
+                        <select class="form-select form-select-sm" id="filtro-eq-hospital">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted">Área</label>
+                        <input type="text" class="form-control form-control-sm" id="filtro-eq-area" placeholder="Ej. Urgencias">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted">Garantía</label>
+                        <select class="form-select form-select-sm" id="filtro-eq-garantia">
+                            <option value="">Todas</option>
+                            <option value="true">Con garantía</option>
+                            <option value="false">Sin garantía</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted">Estatus</label>
+                        <select class="form-select form-select-sm" id="filtro-eq-estatus">
+                            <option value="">Todos</option>
+                            <option value="true">Funcional</option>
+                            <option value="false">Falla / Inactivo</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <button class="btn btn-primario btn-sm w-100" onclick="cargarEquiposFiltrados()" title="Buscar">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de Resultados -->
+            <div class="card-clean">
+                <div class="table-responsive">
+                    <table class="table-clean">
+                        <thead>
+                            <tr>
+                                <th>Equipo</th>
+                                <th>Hospital</th>
+                                <th>Área / Subárea</th>
+                                <th>Marca / Modelo</th>
+                                <th>NNI / SN</th>
+                                <th>Garantía</th>
+                                <th>Estatus</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-catalogo-equipos">
+                            <tr><td colspan="7" class="text-center text-muted py-3">Cargando equipos...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- VISTAS 4, 5 Y 6 (Las conectaremos en el siguiente paso) -->
+        <section id="vista-mantenimientos" class="vista-panel d-none">
+            <h4 class="fw-bold mb-3">Control de Mantenimientos</h4>
+            <div class="card-clean text-muted">Sección en preparación para el siguiente paso.</div>
+        </section>
+
+        <section id="vista-proveedores" class="vista-panel d-none">
+            <h4 class="fw-bold mb-3">Directorio de Proveedores</h4>
+            <div class="card-clean text-muted">Sección en preparación para el siguiente paso.</div>
+        </section>
+
+        <section id="vista-documentos" class="vista-panel d-none">
+            <h4 class="fw-bold mb-3">Repositorio Documental</h4>
+            <div class="card-clean text-muted">Sección en preparación para el siguiente paso.</div>
+        </section>
+
+        <!-- ======================================================
+             VISTA 7: MI PERFIL
+             ====================================================== -->
+        <section id="vista-perfil" class="vista-panel d-none">
+            <div class="mb-4">
+                <h4 class="fw-bold mb-1">Mi Perfil y Seguridad</h4>
+                <p class="text-muted small mb-0">Administra tu información personal, foto de perfil y contraseña</p>
+            </div>
+
+            <div id="alerta-perfil" class="alert d-none small py-2"></div>
+
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card-clean h-100">
+                        <h6 class="fw-bold mb-3">Información de Usuario</h6>
+                        <form id="form-actualizar-perfil">
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">Nombre completo</label>
+                                <input type="text" class="form-control bg-light" id="perfil-nombre-completo" disabled>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">Correo electrónico</label>
+                                <input type="email" class="form-control bg-light" id="perfil-correo" disabled>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-medium">Nombre de usuario (Username)</label>
+                                <input type="text" class="form-control" id="perfil-username" placeholder="ej. luis_biomedica">
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label small fw-medium">URL de foto de perfil</label>
+                                <input type="text" class="form-control" id="perfil-foto" placeholder="https://...">
+                            </div>
+                            <button type="submit" class="btn btn-primario">Guardar Cambios</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card-clean h-100">
+                        <h6 class="fw-bold mb-3">Cambiar Contraseña</h6>
+                        <form id="form-cambiar-password">
+                            <div class="mb-3">
+                                <label class="form-label small fw-medium">Contraseña actual</label>
+                                <div class="password-box">
+                                    <input type="password" class="form-control" id="pass-actual" required>
+                                    <button type="button" class="btn-toggle-pass" onclick="alternarPassword('pass-actual', this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label small fw-medium">Nueva contraseña</label>
+                                <div class="password-box">
+                                    <input type="password" class="form-control" id="pass-nueva" required>
+                                    <button type="button" class="btn-toggle-pass" onclick="alternarPassword('pass-nueva', this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-secundario">Actualizar Contraseña</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="col-12 solo-admin d-none">
+                    <div class="card-clean">
+                        <h6 class="fw-bold mb-1">Gestión de Permisos (Exclusivo Administradores)</h6>
+                        <p class="text-muted small mb-3">Otorga privilegios de Administrador a otros usuarios registrados.</p>
+                        <div class="table-responsive">
+                            <table class="table-clean">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Nombre</th>
+                                        <th>Correo</th>
+                                        <th>Rol Actual</th>
+                                        <th>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-gestion-usuarios"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bootstrap JS (Necesario para las pestañas de captura manual vs CSV) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ==========================================================
+        // VARIABLES GLOBALES Y CONTROL DE SESIÓN
+        // ==========================================================
+        const usuarioGuardado = localStorage.getItem("usuario_imss");
+        if (!usuarioGuardado) window.location.href = "/app/login.html";
+        let usuarioActual = JSON.parse(usuarioGuardado);
+
+        let mapaHospitales = {};      // Guarda { id_hospital: "Nombre Hospital" } para mostrar nombres en vez de solo IDs
+        let idInventarioActivo = null;
+
+        function alternarPassword(idInput, boton) {
+            const input = document.getElementById(idInput);
+            const icono = boton.querySelector("i");
+            input.type = input.type === "password" ? "text" : "password";
+            icono.className = input.type === "password" ? "bi bi-eye" : "bi bi-eye-slash";
+            input.focus();
+        }
+
+        async function inicializarInterfaz() {
+            const nombreCompleto = `${usuarioActual.primernombre} ${usuarioActual.primerapellido}`;
+            document.getElementById("sidebar-nombre").textContent = usuarioActual.username || nombreCompleto;
+            document.getElementById("sidebar-rol").textContent = usuarioActual.rol;
+            document.getElementById("kpi-rol").textContent = usuarioActual.rol;
+
+            const avatarUrl = usuarioActual.foto_perfil || 
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(nombreCompleto)}&background=13322B&color=fff`;
+            document.getElementById("sidebar-avatar").src = avatarUrl;
+
+            document.getElementById("perfil-nombre-completo").value = nombreCompleto;
+            document.getElementById("perfil-correo").value = usuarioActual.correo;
+            document.getElementById("perfil-username").value = usuarioActual.username || "";
+            document.getElementById("perfil-foto").value = usuarioActual.foto_perfil || "";
+
+            if (usuarioActual.rol === "ADMIN") {
+                document.querySelectorAll(".solo-admin").forEach(el => el.classList.remove("d-none"));
+                cargarListaUsuariosAdmin();
+            }
+
+            await cargarCatalogoHospitales();
+            cargarAlertas();
+        }
+
+        function cambiarVista(idVista, botonPresionado) {
+            document.querySelectorAll(".vista-panel").forEach(sec => sec.classList.add("d-none"));
+            document.getElementById(idVista).classList.remove("d-none");
+
+            document.querySelectorAll(".nav-item-btn").forEach(btn => btn.classList.remove("activo"));
+            if (botonPresionado) botonPresionado.classList.add("activo");
+
+            if (idVista === "vista-inventarios") cargarInventarios();
+            if (idVista === "vista-equipos") cargarEquiposFiltrados();
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem("usuario_imss");
+            window.location.href = "/app/login.html";
+        }
+
+        // ==========================================================
+        // CARGA DE HOSPITALES (PARA FILTROS Y BUSCADOR)
+        // ==========================================================
+        async function cargarCatalogoHospitales() {
+            const res = await fetch("/hospitales/");
+            const hospitales = await res.json();
+            const selectFiltro = document.getElementById("filtro-eq-hospital");
+            selectFiltro.innerHTML = `<option value="">Todos</option>`;
+            
+            hospitales.forEach(h => {
+                mapaHospitales[h.id_hospital] = `${h.nombre} (${h.ciudad})`;
+                selectFiltro.innerHTML += `<option value="${h.id_hospital}">${h.nombre} - ${h.ciudad}</option>`;
+            });
+        }
+
+        // ==========================================================
+        // ALERTAS (RESUMEN)
+        // ==========================================================
+        async function cargarAlertas() {
+            const res = await fetch("/alertas/?dias_anticipacion=30");
+            const data = await res.json();
+
+            document.getElementById("kpi-garantias").textContent = data.total_alertas_garantia;
+            document.getElementById("kpi-mantenimientos").textContent = data.total_alertas_mantenimiento;
+
+            const tbodyGarantia = document.getElementById("tabla-alertas-garantia");
+            tbodyGarantia.innerHTML = data.alertas_garantias.length === 0
+                ? `<tr><td colspan="6" class="text-center text-muted py-3">Sin garantías próximas a vencer.</td></tr>`
+                : data.alertas_garantias.map(eq => {
+                    const badge = eq.semaforo === "VENCIDA" ? `<span class="badge-soft-danger">Vencida</span>` : `<span class="badge-soft-warning">Por vencer</span>`;
+                    return `<tr>
+                        <td class="fw-medium">${eq.nombre_equipo}</td>
+                        <td><code>${eq.nni}</code></td>
+                        <td>${mapaHospitales[eq.id_hospital] || 'Hospital #' + eq.id_hospital}</td>
+                        <td>${eq.fecha_expiracion}</td>
+                        <td>${eq.dias_restantes} días</td>
+                        <td>${badge}</td>
+                    </tr>`;
+                }).join("");
+
+            const tbodyMant = document.getElementById("tabla-alertas-mantenimiento");
+            tbodyMant.innerHTML = data.alertas_mantenimientos.length === 0
+                ? `<tr><td colspan="5" class="text-center text-muted py-3">Sin mantenimientos próximos programados.</td></tr>`
+                : data.alertas_mantenimientos.map(m => {
+                    const badge = m.semaforo === "ATRASADO" ? `<span class="badge-soft-danger">Atrasado</span>` : `<span class="badge-soft-warning">Próximo</span>`;
+                    return `<tr>
+                        <td class="fw-medium">Equipo #${m.id_equipo}</td>
+                        <td>${m.tipo_mantenimiento}</td>
+                        <td>${m.proxima_fecha}</td>
+                        <td>${m.dias_restantes} días</td>
+                        <td>${badge}</td>
+                    </tr>`;
+                }).join("");
+        }
+
+        // ==========================================================
+        // FLUJO DE INVENTARIOS (5 PASOS)
+        // ==========================================================
+        function toggleNuevoInventario() {
+            const panel = document.getElementById("panel-crear-inventario");
+            panel.classList.toggle("d-none");
+            if (!panel.classList.contains("d-none")) {
+                document.getElementById("inventario-fecha").valueAsDate = new Date();
+                cargarCheckboxesParticipantes();
+            }
+        }
+
+        // Buscador desplegable de hospitales en vivo
+        const inputBuscadorHosp = document.getElementById("buscador-hospital-input");
+        const dropdownHosp = document.getElementById("lista-hospitales-dropdown");
+
+        inputBuscadorHosp.addEventListener("input", async () => {
+            const texto = inputBuscadorHosp.value.trim();
+            const res = await fetch(`/hospitales/?buscar=${encodeURIComponent(texto)}`);
+            const resultados = await res.json();
+
+            if (resultados.length === 0) {
+                dropdownHosp.innerHTML = `<div class="item-buscador text-muted">No se encontraron hospitales. Usa el botón de abajo para registrarlo.</div>`;
+            } else {
+                dropdownHosp.innerHTML = resultados.map(h => 
+                    `<div class="item-buscador" onclick="seleccionarHospital(${h.id_hospital}, '${h.nombre}', '${h.ciudad}')">
+                        <strong>${h.nombre}</strong> <span class="text-muted small">- ${h.ciudad}, ${h.estado}</span>
+                    </div>`
+                ).join("");
+            }
+            dropdownHosp.classList.remove("d-none");
+        });
+
+        function seleccionarHospital(id, nombre, ciudad) {
+            document.getElementById("hospital-seleccionado-id").value = id;
+            inputBuscadorHosp.value = `${nombre} (${ciudad})`;
+            dropdownHosp.classList.add("d-none");
+            const badge = document.getElementById("hospital-elegido-badge");
+            badge.textContent = `✓ Unidad seleccionada: ${nombre} - ${ciudad}`;
+            badge.classList.remove("d-none");
+        }
+
+        function toggleNuevoHospital() {
+            document.getElementById("subpanel-nuevo-hospital").classList.toggle("d-none");
+        }
+
+        async function guardarNuevoHospital() {
+            const nombre = document.getElementById("nuevo-hosp-nombre").value.trim();
+            const ciudad = document.getElementById("nuevo-hosp-ciudad").value.trim();
+            const estado = document.getElementById("nuevo-hosp-estado").value.trim();
+            if (!nombre || !ciudad) return alert("Escribe el nombre y la ciudad del hospital.");
+
+            const res = await fetch("/hospitales/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ nombre, ciudad, estado })
+            });
+            if (res.ok) {
+                const nuevo = await res.json();
+                await cargarCatalogoHospitales();
+                seleccionarHospital(nuevo.id_hospital, nuevo.nombre, nuevo.ciudad);
+                document.getElementById("subpanel-nuevo-hospital").classList.add("d-none");
+            }
+        }
+
+        async function cargarCheckboxesParticipantes() {
+            const res = await fetch("/usuarios/");
+            const usuarios = await res.json();
+            const contenedor = document.getElementById("lista-checkbox-usuarios");
+            
+            const otros = usuarios.filter(u => u.id_usuario !== usuarioActual.id_usuario);
+            contenedor.innerHTML = otros.length === 0 
+                ? `<div class="col-12 small text-muted">No hay otros usuarios registrados aún.</div>`
+                : otros.map(u => `
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            <input class="form-check-input check-participante" type="checkbox" value="${u.id_usuario}" id="part-${u.id_usuario}">
+                            <label class="form-check-label small" for="part-${u.id_usuario}">
+                                ${u.primernombre} ${u.primerapellido}
+                            </label>
+                        </div>
+                    </div>
+                `).join("");
+        }
+
+        // Crear Inventario (Pasos 2 y 3)
+        document.getElementById("form-iniciar-inventario").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const idHospital = document.getElementById("hospital-seleccionado-id").value;
+            if (!idHospital) return alert("Por favor selecciona un hospital de la lista desplegable.");
+
+            const participantes = Array.from(document.querySelectorAll(".check-participante:checked")).map(cb => parseInt(cb.value));
+            const datos = {
+                id_hospital: parseInt(idHospital),
+                fecha: document.getElementById("inventario-fecha").value,
+                id_admin_creador: usuarioActual.id_usuario,
+                ids_usuarios_participantes: participantes
+            };
+
+            const res = await fetch("/inventarios/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(datos)
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                document.getElementById("panel-crear-inventario").classList.add("d-none");
+                cargarInventarios();
+                abrirCapturaInventario(data.id_inventario, data.id_hospital, data.fecha, data.estado);
+            } else {
+                alert(data.detail || "Error al crear inventario");
+            }
+        });
+
+        async function cargarInventarios() {
+            const res = await fetch(`/inventarios/?id_usuario_consulta=${usuarioActual.id_usuario}`);
+            const lista = await res.json();
+            const tbody = document.getElementById("tabla-lista-inventarios");
+
+            tbody.innerHTML = lista.length === 0
+                ? `<tr><td colspan="5" class="text-center text-muted py-3">No hay inventarios disponibles para tu usuario.</td></tr>`
+                : lista.map(inv => {
+                    const badge = inv.estado === "EN_PROCESO" 
+                        ? `<span class="badge-soft-warning">En Proceso</span>` 
+                        : `<span class="badge-soft-success">Finalizado</span>`;
+                    const textoBoton = (inv.estado === "EN_PROCESO" && usuarioActual.rol === "ADMIN") ? "Continuar Captura" : "Ver Equipos";
+                    return `<tr>
+                        <td class="fw-semibold">#${inv.id_inventario}</td>
+                        <td>${mapaHospitales[inv.id_hospital] || 'Hospital #' + inv.id_hospital}</td>
+                        <td>${inv.fecha}</td>
+                        <td>${badge}</td>
+                        <td>
+                            <button class="btn btn-secundario btn-sm" onclick="abrirCapturaInventario(${inv.id_inventario}, ${inv.id_hospital}, '${inv.fecha}', '${inv.estado}')">
+                                ${textoBoton}
+                            </button>
+                        </td>
+                    </tr>`;
+                }).join("");
+        }
+
+        async function abrirCapturaInventario(idInv, idHosp, fecha, estado) {
+            idInventarioActivo = idInv;
+            const panel = document.getElementById("panel-captura-inventario");
+            panel.classList.remove("d-none");
+            document.getElementById("titulo-inventario-activo").textContent = 
+                `Inventario #${idInv} — ${mapaHospitales[idHosp] || 'Hospital #' + idHosp} (${fecha})`;
+
+            // Si ya está finalizado o el usuario es EMPLEADO, ocultamos los formularios de edición
+            const esEditable = (estado === "EN_PROCESO" && usuarioActual.rol === "ADMIN");
+            document.getElementById("form-agregar-equipo").closest(".tab-content").classList.toggle("d-none", !esEditable);
+            document.querySelector("#panel-captura-inventario .nav-tabs").classList.toggle("d-none", !esEditable);
+
+            cargarEquiposDeInventarioActivo();
+        }
+
+        function cerrarPanelCaptura() {
+            document.getElementById("panel-captura-inventario").classList.add("d-none");
+            idInventarioActivo = null;
+        }
+
+        function toggleFechaGarantia() {
+            const tiene = document.getElementById("eq-garantia").value === "true";
+            const inputFecha = document.getElementById("eq-fecha-garantia");
+            inputFecha.disabled = !tiene;
+            if (!tiene) inputFecha.value = "";
+        }
+
+        // Paso 4A: Agregar equipo manual
+        document.getElementById("form-agregar-equipo").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const tieneGarantia = document.getElementById("eq-garantia").value === "true";
+            const datos = {
+                nombre_equipo: document.getElementById("eq-nombre").value,
+                area: document.getElementById("eq-area").value,
+                subarea: document.getElementById("eq-subarea").value || null,
+                marca: document.getElementById("eq-marca").value,
+                modelo: document.getElementById("eq-modelo").value || null,
+                sn: document.getElementById("eq-sn").value,
+                nni: document.getElementById("eq-nni").value,
+                garantia: tieneGarantia,
+                fecha_expgarantia: tieneGarantia ? document.getElementById("eq-fecha-garantia").value : null,
+                estatusfuncional: document.getElementById("eq-estatus").value === "true",
+                observaciones: document.getElementById("eq-obs").value || null
+            };
+
+            const res = await fetch(`/inventarios/${idInventarioActivo}/equipos/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(datos)
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                document.getElementById("form-agregar-equipo").reset();
+                toggleFechaGarantia();
+                cargarEquiposDeInventarioActivo();
+            } else {
+                alert(data.detail || "No se pudo registrar el equipo.");
+            }
+        });
+
+        // Paso 4B: Subir CSV
+        document.getElementById("form-subir-csv").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const archivo = document.getElementById("archivo-csv-input").files[0];
+            if (!archivo) return;
+
+            const formData = new FormData();
+            formData.append("archivo_csv", archivo);
+
+            const res = await fetch(`/inventarios/${idInventarioActivo}/importar-csv`, {
+                method: "POST",
+                body: formData
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                alert(`Carga completada: ${data.equipos_registrados} equipos registrados, ${data.duplicados_omitidos} duplicados omitidos.`);
+                document.getElementById("form-subir-csv").reset();
+                cargarEquiposDeInventarioActivo();
+            } else {
+                alert(data.detail || "Error al importar el archivo CSV.");
+            }
+        });
+
+        async function cargarEquiposDeInventarioActivo() {
+            const res = await fetch(`/equipos/?id_inventario=${idInventarioActivo}`);
+            const equipos = await res.json();
+            const tbody = document.getElementById("tabla-equipos-inventario-activo");
+
+            tbody.innerHTML = equipos.length === 0
+                ? `<tr><td colspan="6" class="text-center text-muted py-3">Aún no hay equipos registrados en este inventario.</td></tr>`
+                : equipos.map(eq => `<tr>
+                    <td class="fw-medium">${eq.nombre_equipo}</td>
+                    <td>${eq.area}</td>
+                    <td>${eq.marca} ${eq.modelo || ''}</td>
+                    <td><code>${eq.nni}</code></td>
+                    <td>${eq.sn}</td>
+                    <td>${eq.estatusfuncional ? '<span class="badge-soft-success">Funcional</span>' : '<span class="badge-soft-danger">Falla</span>'}</td>
+                </tr>`).join("");
+        }
+
+        // Paso 5: Finalizar Inventario
+        async function finalizarInventarioActual() {
+            if (!confirm("¿Seguro que deseas FINALIZAR este inventario? Una vez cerrado no se podrán agregar más equipos.")) return;
+
+            const res = await fetch(`/inventarios/${idInventarioActivo}/finalizar?id_admin=${usuarioActual.id_usuario}`, {
+                method: "PUT"
+            });
+            if (res.ok) {
+                alert("Inventario finalizado con éxito.");
+                cerrarPanelCaptura();
+                cargarInventarios();
+            }
+        }
+
+        // ==========================================================
+        // FILTROS DE CATÁLOGO DE EQUIPOS
+        // ==========================================================
+        async function cargarEquiposFiltrados() {
+            const params = new URLSearchParams();
+            const texto = document.getElementById("filtro-eq-texto").value.trim();
+            const hosp = document.getElementById("filtro-eq-hospital").value;
+            const area = document.getElementById("filtro-eq-area").value.trim();
+            const gar = document.getElementById("filtro-eq-garantia").value;
+            const est = document.getElementById("filtro-eq-estatus").value;
+
+            if (texto) params.append("buscar_texto", texto);
+            if (hosp) params.append("id_hospital", hosp);
+            if (area) params.append("area", area);
+            if (gar) params.append("garantia", gar);
+            if (est) params.append("estatusfuncional", est);
+
+            const res = await fetch(`/equipos/?${params.toString()}`);
+            const equipos = await res.json();
+            const tbody = document.getElementById("tabla-catalogo-equipos");
+
+            tbody.innerHTML = equipos.length === 0
+                ? `<tr><td colspan="7" class="text-center text-muted py-3">No se encontraron equipos con esos filtros.</td></tr>`
+                : equipos.map(eq => `<tr>
+                    <td class="fw-medium">${eq.nombre_equipo}</td>
+                    <td>${mapaHospitales[eq.id_hospital] || 'Hospital #' + eq.id_hospital}</td>
+                    <td>${eq.area} ${eq.subarea ? '/ ' + eq.subarea : ''}</td>
+                    <td>${eq.marca} ${eq.modelo || ''}</td>
+                    <td><code>${eq.nni}</code><br><small class="text-muted">SN: ${eq.sn}</small></td>
+                    <td>${eq.garantia ? `<span class="badge-soft-success">Vence: ${eq.fecha_expgarantia}</span>` : '<span class="badge-soft-neutral">Sin garantía</span>'}</td>
+                    <td>${eq.estatusfuncional ? '<span class="badge-soft-success">Funcional</span>' : '<span class="badge-soft-danger">Inactivo</span>'}</td>
+                </tr>`).join("");
+        }
+
+        // ==========================================================
+        // PERFIL Y PERMISOS ADMIN
+        // ==========================================================
+        document.getElementById("form-actualizar-perfil").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const alerta = document.getElementById("alerta-perfil");
+            const datos = {
+                username: document.getElementById("perfil-username").value || null,
+                foto_perfil: document.getElementById("perfil-foto").value || null
+            };
+
+            const res = await fetch(`/usuarios/${usuarioActual.id_usuario}/perfil`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(datos)
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                usuarioActual = data;
+                localStorage.setItem("usuario_imss", JSON.stringify(usuarioActual));
+                inicializarInterfaz();
+                alerta.textContent = "Perfil actualizado correctamente.";
+                alerta.className = "alert alert-success small py-2";
+            } else {
+                alerta.textContent = data.detail || "Error al actualizar perfil.";
+                alerta.className = "alert alert-danger small py-2";
+            }
+            alerta.classList.remove("d-none");
+        });
+
+        document.getElementById("form-cambiar-password").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const alerta = document.getElementById("alerta-perfil");
+            const datos = {
+                password_actual: document.getElementById("pass-actual").value,
+                password_nueva: document.getElementById("pass-nueva").value
+            };
+
+            const res = await fetch(`/usuarios/${usuarioActual.id_usuario}/cambiar-password`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(datos)
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                document.getElementById("form-cambiar-password").reset();
+                alerta.textContent = data.mensaje;
+                alerta.className = "alert alert-success small py-2";
+            } else {
+                alerta.textContent = data.detail || "Error al cambiar contraseña.";
+                alerta.className = "alert alert-danger small py-2";
+            }
+            alerta.classList.remove("d-none");
+        });
+
+        async function cargarListaUsuariosAdmin() {
+            const res = await fetch("/usuarios/");
+            const usuarios = await res.json();
+            const tbody = document.getElementById("tabla-gestion-usuarios");
+
+            tbody.innerHTML = usuarios.map(u => {
+                const botonAccion = u.rol === "ADMIN" 
+                    ? `<span class="text-muted small">Ya es Administrador</span>`
+                    : `<button class="btn btn-secundario btn-sm" onclick="hacerAdmin(${u.id_usuario})">Hacer Admin</button>`;
+                return `<tr>
+                    <td>#${u.id_usuario}</td>
+                    <td class="fw-medium">${u.primernombre} ${u.primerapellido}</td>
+                    <td>${u.correo}</td>
+                    <td><span class="${u.rol === 'ADMIN' ? 'badge-soft-success' : 'badge-soft-neutral'}">${u.rol}</span></td>
+                    <td>${botonAccion}</td>
+                </tr>`;
+            }).join("");
+        }
+
+        async function hacerAdmin(idObjetivo) {
+            const res = await fetch(`/usuarios/${idObjetivo}/hacer-admin?id_admin_que_autoriza=${usuarioActual.id_usuario}`, {
+                method: "PUT"
+            });
+            if (res.ok) cargarListaUsuariosAdmin();
+        }
+
+        inicializarInterfaz();
+    </script>
+
+</body>
+</html>
