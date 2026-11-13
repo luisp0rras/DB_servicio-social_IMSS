@@ -171,7 +171,7 @@
         </section>
 
         <!-- ======================================================
-             VISTA 2: INVENTARIOS (FLUJO DE 5 PASOS + LISTADO)
+             VISTA 2: INVENTARIOS
              ====================================================== -->
         <section id="vista-inventarios" class="vista-panel d-none">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -186,7 +186,6 @@
 
             <div id="alerta-inventarios" class="alert d-none small py-2"></div>
 
-            <!-- BLOQUE EXCLUSIVO ADMIN: PASOS 1, 2 Y 3 PARA ABRIR INVENTARIO -->
             <div id="panel-crear-inventario" class="card-clean d-none" style="border-left: 4px solid var(--verde-imss);">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="fw-bold mb-0">Nuevo Levantamiento de Inventario</h6>
@@ -195,7 +194,6 @@
 
                 <form id="form-iniciar-inventario">
                     <div class="row g-3">
-                        <!-- PASO 1: BUSCADOR DESPLEGABLE DE HOSPITALES -->
                         <div class="col-md-6">
                             <label class="form-label small fw-semibold">1. Seleccionar Hospital *</label>
                             <div class="dropdown-buscador">
@@ -211,13 +209,11 @@
                             </button>
                         </div>
 
-                        <!-- PASO 2: FECHA DEL INVENTARIO -->
                         <div class="col-md-6">
                             <label class="form-label small fw-semibold">2. Fecha del Inventario *</label>
                             <input type="date" class="form-control" id="inventario-fecha" required>
                         </div>
 
-                        <!-- MINI-FORMULARIO DESPLEGABLE SI EL HOSPITAL NO EXISTE -->
                         <div id="subpanel-nuevo-hospital" class="col-12 d-none">
                             <div class="p-3 rounded" style="background-color: var(--bg-fondo); border: 1px dashed var(--borde-fino);">
                                 <div class="fw-semibold small mb-2">Registrar Unidad Médica Nueva</div>
@@ -226,7 +222,7 @@
                                         <input type="text" class="form-control form-control-sm" id="nuevo-hosp-nombre" placeholder="Nombre (ej. HGR 66)">
                                     </div>
                                     <div class="col-md-4">
-                                        <input type="text" class="form-control form-control-sm" id="nuevo-hosp-ciudad" placeholder="Ciudad (ej. Ciudad Juárez)">
+                                        <input type="text" class="form-control form-control-sm" id="nuevo-hosp-ciudad" placeholder="Ciudad">
                                     </div>
                                     <div class="col-md-2">
                                         <input type="text" class="form-control form-control-sm" id="nuevo-hosp-estado" value="Chihuahua">
@@ -238,12 +234,9 @@
                             </div>
                         </div>
 
-                        <!-- PASO 3: PARTICIPANTES (EL ADMIN SE AGREGA SOLO) -->
                         <div class="col-12">
-                            <label class="form-label small fw-semibold">3. Participantes Adicionales (Tú ya estás incluido automáticamente como Administrador)</label>
-                            <div id="lista-checkbox-usuarios" class="row g-2 p-2 rounded" style="background-color: var(--bg-fondo); max-height: 140px; overflow-y: auto;">
-                                <!-- Se llena dinámicamente con los usuarios registrados -->
-                            </div>
+                            <label class="form-label small fw-semibold">3. Participantes Adicionales</label>
+                            <div id="lista-checkbox-usuarios" class="row g-2 p-2 rounded" style="background-color: var(--bg-fondo); max-height: 140px; overflow-y: auto;"></div>
                         </div>
 
                         <div class="col-12 text-end">
@@ -255,7 +248,6 @@
                 </form>
             </div>
 
-            <!-- BLOQUE PASO 4 Y 5: CAPTURA DE EQUIPOS EN UN INVENTARIO EN_PROCESO -->
             <div id="panel-captura-inventario" class="card-clean d-none" style="border-left: 4px solid var(--dorado-sutil);">
                 <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
                     <div>
@@ -270,18 +262,12 @@
                     </div>
                 </div>
 
-                <!-- Pestañas: Registro Individual vs Importación CSV -->
                 <ul class="nav nav-tabs mb-3 small fw-semibold">
-                    <li class="nav-item">
-                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-eq-manual">4A. Registro Manual (Equipo por Equipo)</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-eq-csv">4B. Importación Masiva (Archivo CSV)</button>
-                    </li>
+                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-eq-manual">4A. Registro Manual</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-eq-csv">4B. Importación CSV</button></li>
                 </ul>
 
                 <div class="tab-content mb-4">
-                    <!-- FORMULARIO MANUAL -->
                     <div class="tab-pane fade show active" id="tab-eq-manual">
                         <form id="form-agregar-equipo" class="row g-2">
                             <div class="col-md-4">
@@ -290,11 +276,11 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small text-muted">Área *</label>
-                                <input type="text" class="form-control form-control-sm" id="eq-area" placeholder="ej. Urgencias" required>
+                                <input type="text" class="form-control form-control-sm" id="eq-area" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small text-muted">Subárea</label>
-                                <input type="text" class="form-control form-control-sm" id="eq-subarea" placeholder="ej. Choque">
+                                <input type="text" class="form-control form-control-sm" id="eq-subarea">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label small text-muted">Marca *</label>
@@ -327,7 +313,7 @@
                                 <label class="form-label small text-muted">Estatus Funcional</label>
                                 <select class="form-select form-select-sm" id="eq-estatus">
                                     <option value="true">Funcional</option>
-                                    <option value="false">Fuera de servicio / Falla</option>
+                                    <option value="false">Fuera de servicio</option>
                                 </select>
                             </div>
                             <div class="col-md-3">
@@ -335,59 +321,41 @@
                                 <input type="text" class="form-control form-control-sm" id="eq-obs">
                             </div>
                             <div class="col-12 text-end mt-2">
-                                <button type="submit" class="btn btn-primario btn-sm">+ Agregar Equipo al Inventario</button>
+                                <button type="submit" class="btn btn-primario btn-sm">+ Agregar Equipo</button>
                             </div>
                         </form>
                     </div>
 
-                    <!-- FORMULARIO CSV -->
                     <div class="tab-pane fade" id="tab-eq-csv">
                         <form id="form-subir-csv" class="row g-2 align-items-end">
                             <div class="col-md-8">
-                                <label class="form-label small text-muted">Selecciona el archivo CSV con columnas (nombre_equipo, area, subarea, marca, modelo, sn, nni, garantia, fecha_expgarantia, estatusfuncional, observaciones)</label>
+                                <label class="form-label small text-muted">Selecciona tu archivo .csv</label>
                                 <input type="file" class="form-control form-control-sm" id="archivo-csv-input" accept=".csv" required>
                             </div>
                             <div class="col-md-4">
-                                <button type="submit" class="btn btn-primario btn-sm w-100">
-                                    <i class="bi bi-file-earmark-spreadsheet me-1"></i> Importar CSV
-                                </button>
+                                <button type="submit" class="btn btn-primario btn-sm w-100">Importar CSV</button>
                             </div>
                         </form>
                     </div>
                 </div>
 
-                <!-- Lista de equipos agregados a este inventario -->
-                <h6 class="fw-bold small text-muted text-uppercase mb-2">Equipos Censados en este Inventario</h6>
+                <h6 class="fw-bold small text-muted text-uppercase mb-2">Equipos Censados</h6>
                 <div class="table-responsive">
                     <table class="table-clean">
                         <thead>
-                            <tr>
-                                <th>Equipo</th>
-                                <th>Área</th>
-                                <th>Marca / Modelo</th>
-                                <th>NNI</th>
-                                <th>SN</th>
-                                <th>Estatus</th>
-                            </tr>
+                            <tr><th>Equipo</th><th>Área</th><th>Marca / Modelo</th><th>NNI</th><th>SN</th><th>Estatus</th></tr>
                         </thead>
                         <tbody id="tabla-equipos-inventario-activo"></tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- TABLA HISTÓRICA DE INVENTARIOS -->
             <div class="card-clean">
                 <h6 class="fw-bold mb-3">Inventarios Registrados</h6>
                 <div class="table-responsive">
                     <table class="table-clean">
                         <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Hospital</th>
-                                <th>Fecha</th>
-                                <th>Estado</th>
-                                <th>Acciones</th>
-                            </tr>
+                            <tr><th>ID</th><th>Hospital</th><th>Fecha</th><th>Estado</th><th>Acciones</th></tr>
                         </thead>
                         <tbody id="tabla-lista-inventarios">
                             <tr><td colspan="5" class="text-center text-muted py-3">Cargando inventarios...</td></tr>
@@ -398,15 +366,14 @@
         </section>
 
         <!-- ======================================================
-             VISTA 3: CATÁLOGO Y FILTROS DE EQUIPOS MÉDICOS
+             VISTA 3: EQUIPOS MÉDICOS
              ====================================================== -->
         <section id="vista-equipos" class="vista-panel d-none">
             <div class="mb-4">
                 <h4 class="fw-bold mb-1">Catálogo Maestro de Equipos Médicos</h4>
-                <p class="text-muted small mb-0">Filtra equipos por hospital, área, estado funcional o vigencia de garantía</p>
+                <p class="text-muted small mb-0">Filtra equipos por hospital, área, estado funcional o garantía</p>
             </div>
 
-            <!-- Barra de Filtros -->
             <div class="card-clean">
                 <div class="row g-2 align-items-end">
                     <div class="col-md-3">
@@ -415,9 +382,7 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label small text-muted">Hospital</label>
-                        <select class="form-select form-select-sm" id="filtro-eq-hospital">
-                            <option value="">Todos</option>
-                        </select>
+                        <select class="form-select form-select-sm" id="filtro-eq-hospital"><option value="">Todos</option></select>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label small text-muted">Área</label>
@@ -426,41 +391,26 @@
                     <div class="col-md-2">
                         <label class="form-label small text-muted">Garantía</label>
                         <select class="form-select form-select-sm" id="filtro-eq-garantia">
-                            <option value="">Todas</option>
-                            <option value="true">Con garantía</option>
-                            <option value="false">Sin garantía</option>
+                            <option value="">Todas</option><option value="true">Con garantía</option><option value="false">Sin garantía</option>
                         </select>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label small text-muted">Estatus</label>
                         <select class="form-select form-select-sm" id="filtro-eq-estatus">
-                            <option value="">Todos</option>
-                            <option value="true">Funcional</option>
-                            <option value="false">Falla / Inactivo</option>
+                            <option value="">Todos</option><option value="true">Funcional</option><option value="false">Inactivo</option>
                         </select>
                     </div>
                     <div class="col-md-1">
-                        <button class="btn btn-primario btn-sm w-100" onclick="cargarEquiposFiltrados()" title="Buscar">
-                            <i class="bi bi-search"></i>
-                        </button>
+                        <button class="btn btn-primario btn-sm w-100" onclick="cargarEquiposFiltrados()"><i class="bi bi-search"></i></button>
                     </div>
                 </div>
             </div>
 
-            <!-- Tabla de Resultados -->
             <div class="card-clean">
                 <div class="table-responsive">
                     <table class="table-clean">
                         <thead>
-                            <tr>
-                                <th>Equipo</th>
-                                <th>Hospital</th>
-                                <th>Área / Subárea</th>
-                                <th>Marca / Modelo</th>
-                                <th>NNI / SN</th>
-                                <th>Garantía</th>
-                                <th>Estatus</th>
-                            </tr>
+                            <tr><th>Equipo</th><th>Hospital</th><th>Área / Subárea</th><th>Marca / Modelo</th><th>NNI / SN</th><th>Garantía</th><th>Estatus</th></tr>
                         </thead>
                         <tbody id="tabla-catalogo-equipos">
                             <tr><td colspan="7" class="text-center text-muted py-3">Cargando equipos...</td></tr>
@@ -470,20 +420,179 @@
             </div>
         </section>
 
-        <!-- VISTAS 4, 5 Y 6 (Las conectaremos en el siguiente paso) -->
+        <!-- ======================================================
+             VISTA 4: MANTENIMIENTOS
+             ====================================================== -->
         <section id="vista-mantenimientos" class="vista-panel d-none">
-            <h4 class="fw-bold mb-3">Control de Mantenimientos</h4>
-            <div class="card-clean text-muted">Sección en preparación para el siguiente paso.</div>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4 class="fw-bold mb-1">Control de Mantenimientos</h4>
+                    <p class="text-muted small mb-0">Historial y programación de mantenimientos preventivos y correctivos</p>
+                </div>
+                <button class="btn btn-primario solo-admin d-none" onclick="toggleFormMantenimiento()">
+                    <i class="bi bi-plus-lg me-1"></i> Registrar Mantenimiento
+                </button>
+            </div>
+
+            <div id="panel-crear-mant" class="card-clean d-none" style="border-left: 4px solid var(--verde-imss);">
+                <h6 class="fw-bold mb-3">Nuevo Registro de Mantenimiento</h6>
+                <form id="form-registrar-mant" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">ID del Equipo *</label>
+                        <input type="number" class="form-control form-control-sm" id="mant-id-equipo" placeholder="Ej. 1" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">ID del Proveedor *</label>
+                        <input type="number" class="form-control form-control-sm" id="mant-id-proveedor" placeholder="Ej. 1" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Tipo de Mantenimiento *</label>
+                        <select class="form-select form-select-sm" id="mant-tipo">
+                            <option value="PREVENTIVO">PREVENTIVO</option>
+                            <option value="CORRECTIVO">CORRECTIVO</option>
+                            <option value="OTRO">OTRO</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Fecha de Realización *</label>
+                        <input type="date" class="form-control form-control-sm" id="mant-fecha" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Próxima Fecha Programada</label>
+                        <input type="date" class="form-control form-control-sm" id="mant-prox-fecha">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold">Observaciones</label>
+                        <input type="text" class="form-control form-control-sm" id="mant-obs" placeholder="Detalles de la intervención técnica...">
+                    </div>
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-primario btn-sm">Guardar Mantenimiento</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card-clean">
+                <div class="table-responsive">
+                    <table class="table-clean">
+                        <thead>
+                            <tr><th>ID</th><th>Equipo</th><th>Tipo</th><th>Fecha</th><th>Próxima Fecha</th><th>Observaciones</th></tr>
+                        </thead>
+                        <tbody id="tabla-lista-mantenimientos">
+                            <tr><td colspan="6" class="text-center text-muted py-3">Cargando mantenimientos...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </section>
 
+        <!-- ======================================================
+             VISTA 5: PROVEEDORES
+             ====================================================== -->
         <section id="vista-proveedores" class="vista-panel d-none">
-            <h4 class="fw-bold mb-3">Directorio de Proveedores</h4>
-            <div class="card-clean text-muted">Sección en preparación para el siguiente paso.</div>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4 class="fw-bold mb-1">Directorio de Proveedores</h4>
+                    <p class="text-muted small mb-0">Gestión de empresas y contactos externos de soporte biomédico</p>
+                </div>
+                <button class="btn btn-primario solo-admin d-none" onclick="toggleFormProveedor()">
+                    <i class="bi bi-plus-lg me-1"></i> Agregar Proveedor
+                </button>
+            </div>
+
+            <div id="panel-crear-prov" class="card-clean d-none" style="border-left: 4px solid var(--verde-imss);">
+                <h6 class="fw-bold mb-3">Registrar Nuevo Proveedor</h6>
+                <form id="form-registrar-prov" class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Nombre de la Empresa / Proveedor *</label>
+                        <input type="text" class="form-control form-control-sm" id="prov-nombre" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Correo Electrónico</label>
+                        <input type="email" class="form-control form-control-sm" id="prov-correo">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Teléfono</label>
+                        <input type="text" class="form-control form-control-sm" id="prov-tel" placeholder="+52 (614)...">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Nombre del Contacto</label>
+                        <input type="text" class="form-control form-control-sm" id="prov-contacto">
+                    </div>
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-primario btn-sm">Guardar Proveedor</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card-clean">
+                <div class="table-responsive">
+                    <table class="table-clean">
+                        <thead>
+                            <tr><th>ID</th><th>Proveedor</th><th>Contacto</th><th>Correo</th><th>Teléfono</th></tr>
+                        </thead>
+                        <tbody id="tabla-lista-proveedores">
+                            <tr><td colspan="5" class="text-center text-muted py-3">Cargando proveedores...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </section>
 
+        <!-- ======================================================
+             VISTA 6: REPOSITORIO DOCUMENTAL
+             ====================================================== -->
         <section id="vista-documentos" class="vista-panel d-none">
-            <h4 class="fw-bold mb-3">Repositorio Documental</h4>
-            <div class="card-clean text-muted">Sección en preparación para el siguiente paso.</div>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4 class="fw-bold mb-1">Repositorio Documental (PDFs e Imágenes)</h4>
+                    <p class="text-muted small mb-0">Minutas, manuales y minutas de supervisión hospitalaria</p>
+                </div>
+                <button class="btn btn-primario solo-admin d-none" onclick="toggleFormDocumento()">
+                    <i class="bi bi-upload me-1"></i> Subir Documento
+                </button>
+            </div>
+
+            <div id="panel-subir-doc" class="card-clean d-none" style="border-left: 4px solid var(--verde-imss);">
+                <h6 class="fw-bold mb-3">Subir Archivo al Servidor</h6>
+                <form id="form-subir-documento" class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Título del Documento *</label>
+                        <input type="text" class="form-control form-control-sm" id="doc-titulo" placeholder="ej. Minuta Supervisión HGR 66" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold">ID Equipo</label>
+                        <input type="number" class="form-control form-control-sm" id="doc-id-eq" placeholder="Opcional">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold">ID Mantenimiento</label>
+                        <input type="number" class="form-control form-control-sm" id="doc-id-mant" placeholder="Opcional">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold">ID Inventario</label>
+                        <input type="number" class="form-control form-control-sm" id="doc-id-inv" placeholder="Opcional">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold">Seleccionar Archivo (PDF o Imagen) *</label>
+                        <input type="file" class="form-control form-control-sm" id="doc-archivo" required>
+                    </div>
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-primario btn-sm">Subir y Registrar</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card-clean">
+                <div class="table-responsive">
+                    <table class="table-clean">
+                        <thead>
+                            <tr><th>ID</th><th>Nombre del Documento</th><th>Asociado a</th><th>Archivo</th><th>Acción</th></tr>
+                        </thead>
+                        <tbody id="tabla-lista-documentos">
+                            <tr><td colspan="5" class="text-center text-muted py-3">Cargando documentos...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </section>
 
         <!-- ======================================================
@@ -531,18 +640,14 @@
                                 <label class="form-label small fw-medium">Contraseña actual</label>
                                 <div class="password-box">
                                     <input type="password" class="form-control" id="pass-actual" required>
-                                    <button type="button" class="btn-toggle-pass" onclick="alternarPassword('pass-actual', this)">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
+                                    <button type="button" class="btn-toggle-pass" onclick="alternarPassword('pass-actual', this)"><i class="bi bi-eye"></i></button>
                                 </div>
                             </div>
                             <div class="mb-4">
                                 <label class="form-label small fw-medium">Nueva contraseña</label>
                                 <div class="password-box">
                                     <input type="password" class="form-control" id="pass-nueva" required>
-                                    <button type="button" class="btn-toggle-pass" onclick="alternarPassword('pass-nueva', this)">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
+                                    <button type="button" class="btn-toggle-pass" onclick="alternarPassword('pass-nueva', this)"><i class="bi bi-eye"></i></button>
                                 </div>
                             </div>
                             <button type="submit" class="btn btn-secundario">Actualizar Contraseña</button>
@@ -557,13 +662,7 @@
                         <div class="table-responsive">
                             <table class="table-clean">
                                 <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Nombre</th>
-                                        <th>Correo</th>
-                                        <th>Rol Actual</th>
-                                        <th>Acción</th>
-                                    </tr>
+                                    <tr><th>ID</th><th>Nombre</th><th>Correo</th><th>Rol Actual</th><th>Acción</th></tr>
                                 </thead>
                                 <tbody id="tabla-gestion-usuarios"></tbody>
                             </table>
@@ -575,17 +674,13 @@
 
     </main>
 
-    <!-- Bootstrap JS (Necesario para las pestañas de captura manual vs CSV) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // ==========================================================
-        // VARIABLES GLOBALES Y CONTROL DE SESIÓN
-        // ==========================================================
         const usuarioGuardado = localStorage.getItem("usuario_imss");
         if (!usuarioGuardado) window.location.href = "/app/login.html";
         let usuarioActual = JSON.parse(usuarioGuardado);
 
-        let mapaHospitales = {};      // Guarda { id_hospital: "Nombre Hospital" } para mostrar nombres en vez de solo IDs
+        let mapaHospitales = {};
         let idInventarioActivo = null;
 
         function alternarPassword(idInput, boton) {
@@ -629,6 +724,9 @@
 
             if (idVista === "vista-inventarios") cargarInventarios();
             if (idVista === "vista-equipos") cargarEquiposFiltrados();
+            if (idVista === "vista-mantenimientos") cargarMantenimientos();
+            if (idVista === "vista-proveedores") cargarProveedores();
+            if (idVista === "vista-documentos") cargarDocumentos();
         }
 
         function cerrarSesion() {
@@ -636,9 +734,6 @@
             window.location.href = "/app/login.html";
         }
 
-        // ==========================================================
-        // CARGA DE HOSPITALES (PARA FILTROS Y BUSCADOR)
-        // ==========================================================
         async function cargarCatalogoHospitales() {
             const res = await fetch("/hospitales/");
             const hospitales = await res.json();
@@ -651,9 +746,6 @@
             });
         }
 
-        // ==========================================================
-        // ALERTAS (RESUMEN)
-        // ==========================================================
         async function cargarAlertas() {
             const res = await fetch("/alertas/?dias_anticipacion=30");
             const data = await res.json();
@@ -691,9 +783,7 @@
                 }).join("");
         }
 
-        // ==========================================================
-        // FLUJO DE INVENTARIOS (5 PASOS)
-        // ==========================================================
+        // ================= INVENTARIOS =================
         function toggleNuevoInventario() {
             const panel = document.getElementById("panel-crear-inventario");
             panel.classList.toggle("d-none");
@@ -703,7 +793,6 @@
             }
         }
 
-        // Buscador desplegable de hospitales en vivo
         const inputBuscadorHosp = document.getElementById("buscador-hospital-input");
         const dropdownHosp = document.getElementById("lista-hospitales-dropdown");
 
@@ -711,16 +800,8 @@
             const texto = inputBuscadorHosp.value.trim();
             const res = await fetch(`/hospitales/?buscar=${encodeURIComponent(texto)}`);
             const resultados = await res.json();
-
-            if (resultados.length === 0) {
-                dropdownHosp.innerHTML = `<div class="item-buscador text-muted">No se encontraron hospitales. Usa el botón de abajo para registrarlo.</div>`;
-            } else {
-                dropdownHosp.innerHTML = resultados.map(h => 
-                    `<div class="item-buscador" onclick="seleccionarHospital(${h.id_hospital}, '${h.nombre}', '${h.ciudad}')">
-                        <strong>${h.nombre}</strong> <span class="text-muted small">- ${h.ciudad}, ${h.estado}</span>
-                    </div>`
-                ).join("");
-            }
+            dropdownHosp.innerHTML = resultados.length === 0 ? `<div class="item-buscador text-muted">No encontrado. Regístralo abajo.</div>` :
+                resultados.map(h => `<div class="item-buscador" onclick="seleccionarHospital(${h.id_hospital}, '${h.nombre}', '${h.ciudad}')"><strong>${h.nombre}</strong> (${h.ciudad})</div>`).join("");
             dropdownHosp.classList.remove("d-none");
         });
 
@@ -729,25 +810,18 @@
             inputBuscadorHosp.value = `${nombre} (${ciudad})`;
             dropdownHosp.classList.add("d-none");
             const badge = document.getElementById("hospital-elegido-badge");
-            badge.textContent = `✓ Unidad seleccionada: ${nombre} - ${ciudad}`;
+            badge.textContent = `✓ Seleccionado: ${nombre} - ${ciudad}`;
             badge.classList.remove("d-none");
         }
 
-        function toggleNuevoHospital() {
-            document.getElementById("subpanel-nuevo-hospital").classList.toggle("d-none");
-        }
+        function toggleNuevoHospital() { document.getElementById("subpanel-nuevo-hospital").classList.toggle("d-none"); }
 
         async function guardarNuevoHospital() {
             const nombre = document.getElementById("nuevo-hosp-nombre").value.trim();
             const ciudad = document.getElementById("nuevo-hosp-ciudad").value.trim();
             const estado = document.getElementById("nuevo-hosp-estado").value.trim();
-            if (!nombre || !ciudad) return alert("Escribe el nombre y la ciudad del hospital.");
-
-            const res = await fetch("/hospitales/", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ nombre, ciudad, estado })
-            });
+            if (!nombre || !ciudad) return alert("Completa nombre y ciudad.");
+            const res = await fetch("/hospitales/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombre, ciudad, estado }) });
             if (res.ok) {
                 const nuevo = await res.json();
                 await cargarCatalogoHospitales();
@@ -760,197 +834,96 @@
             const res = await fetch("/usuarios/");
             const usuarios = await res.json();
             const contenedor = document.getElementById("lista-checkbox-usuarios");
-            
             const otros = usuarios.filter(u => u.id_usuario !== usuarioActual.id_usuario);
-            contenedor.innerHTML = otros.length === 0 
-                ? `<div class="col-12 small text-muted">No hay otros usuarios registrados aún.</div>`
-                : otros.map(u => `
-                    <div class="col-md-4">
-                        <div class="form-check">
-                            <input class="form-check-input check-participante" type="checkbox" value="${u.id_usuario}" id="part-${u.id_usuario}">
-                            <label class="form-check-label small" for="part-${u.id_usuario}">
-                                ${u.primernombre} ${u.primerapellido}
-                            </label>
-                        </div>
-                    </div>
-                `).join("");
+            contenedor.innerHTML = otros.length === 0 ? `<div class="col-12 small text-muted">No hay más usuarios.</div>` :
+                otros.map(u => `<div class="col-md-4"><div class="form-check"><input class="form-check-input check-participante" type="checkbox" value="${u.id_usuario}" id="part-${u.id_usuario}"><label class="form-check-label small" for="part-${u.id_usuario}">${u.primernombre} ${u.primerapellido}</label></div></div>`).join("");
         }
 
-        // Crear Inventario (Pasos 2 y 3)
         document.getElementById("form-iniciar-inventario").addEventListener("submit", async (e) => {
             e.preventDefault();
             const idHospital = document.getElementById("hospital-seleccionado-id").value;
-            if (!idHospital) return alert("Por favor selecciona un hospital de la lista desplegable.");
-
+            if (!idHospital) return alert("Selecciona un hospital.");
             const participantes = Array.from(document.querySelectorAll(".check-participante:checked")).map(cb => parseInt(cb.value));
-            const datos = {
-                id_hospital: parseInt(idHospital),
-                fecha: document.getElementById("inventario-fecha").value,
-                id_admin_creador: usuarioActual.id_usuario,
-                ids_usuarios_participantes: participantes
-            };
-
             const res = await fetch("/inventarios/", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(datos)
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id_hospital: parseInt(idHospital), fecha: document.getElementById("inventario-fecha").value, id_admin_creador: usuarioActual.id_usuario, ids_usuarios_participantes: participantes })
             });
             const data = await res.json();
-
             if (res.ok) {
                 document.getElementById("panel-crear-inventario").classList.add("d-none");
                 cargarInventarios();
                 abrirCapturaInventario(data.id_inventario, data.id_hospital, data.fecha, data.estado);
-            } else {
-                alert(data.detail || "Error al crear inventario");
-            }
+            } else { alert(data.detail); }
         });
 
         async function cargarInventarios() {
             const res = await fetch(`/inventarios/?id_usuario_consulta=${usuarioActual.id_usuario}`);
             const lista = await res.json();
-            const tbody = document.getElementById("tabla-lista-inventarios");
-
-            tbody.innerHTML = lista.length === 0
-                ? `<tr><td colspan="5" class="text-center text-muted py-3">No hay inventarios disponibles para tu usuario.</td></tr>`
-                : lista.map(inv => {
-                    const badge = inv.estado === "EN_PROCESO" 
-                        ? `<span class="badge-soft-warning">En Proceso</span>` 
-                        : `<span class="badge-soft-success">Finalizado</span>`;
-                    const textoBoton = (inv.estado === "EN_PROCESO" && usuarioActual.rol === "ADMIN") ? "Continuar Captura" : "Ver Equipos";
-                    return `<tr>
-                        <td class="fw-semibold">#${inv.id_inventario}</td>
-                        <td>${mapaHospitales[inv.id_hospital] || 'Hospital #' + inv.id_hospital}</td>
-                        <td>${inv.fecha}</td>
-                        <td>${badge}</td>
-                        <td>
-                            <button class="btn btn-secundario btn-sm" onclick="abrirCapturaInventario(${inv.id_inventario}, ${inv.id_hospital}, '${inv.fecha}', '${inv.estado}')">
-                                ${textoBoton}
-                            </button>
-                        </td>
-                    </tr>`;
-                }).join("");
+            document.getElementById("tabla-lista-inventarios").innerHTML = lista.length === 0 ? `<tr><td colspan="5" class="text-center text-muted py-3">Sin inventarios.</td></tr>` :
+                lista.map(inv => `<tr><td class="fw-semibold">#${inv.id_inventario}</td><td>${mapaHospitales[inv.id_hospital] || 'Hospital #' + inv.id_hospital}</td><td>${inv.fecha}</td><td><span class="${inv.estado === 'EN_PROCESO' ? 'badge-soft-warning' : 'badge-soft-success'}">${inv.estado}</span></td><td><button class="btn btn-secundario btn-sm" onclick="abrirCapturaInventario(${inv.id_inventario}, ${inv.id_hospital}, '${inv.fecha}', '${inv.estado}')">Ver</button></td></tr>`).join("");
         }
 
-        async function abrirCapturaInventario(idInv, idHosp, fecha, estado) {
+        function abrirCapturaInventario(idInv, idHosp, fecha, estado) {
             idInventarioActivo = idInv;
             const panel = document.getElementById("panel-captura-inventario");
             panel.classList.remove("d-none");
-            document.getElementById("titulo-inventario-activo").textContent = 
-                `Inventario #${idInv} — ${mapaHospitales[idHosp] || 'Hospital #' + idHosp} (${fecha})`;
-
-            // Si ya está finalizado o el usuario es EMPLEADO, ocultamos los formularios de edición
+            document.getElementById("titulo-inventario-activo").textContent = `Inventario #${idInv} — ${mapaHospitales[idHosp]} (${fecha})`;
             const esEditable = (estado === "EN_PROCESO" && usuarioActual.rol === "ADMIN");
             document.getElementById("form-agregar-equipo").closest(".tab-content").classList.toggle("d-none", !esEditable);
-            document.querySelector("#panel-captura-inventario .nav-tabs").classList.toggle("d-none", !esEditable);
-
             cargarEquiposDeInventarioActivo();
         }
 
-        function cerrarPanelCaptura() {
-            document.getElementById("panel-captura-inventario").classList.add("d-none");
-            idInventarioActivo = null;
-        }
+        function cerrarPanelCaptura() { document.getElementById("panel-captura-inventario").classList.add("d-none"); idInventarioActivo = null; }
 
         function toggleFechaGarantia() {
             const tiene = document.getElementById("eq-garantia").value === "true";
-            const inputFecha = document.getElementById("eq-fecha-garantia");
-            inputFecha.disabled = !tiene;
-            if (!tiene) inputFecha.value = "";
+            document.getElementById("eq-fecha-garantia").disabled = !tiene;
+            if (!tiene) document.getElementById("eq-fecha-garantia").value = "";
         }
 
-        // Paso 4A: Agregar equipo manual
         document.getElementById("form-agregar-equipo").addEventListener("submit", async (e) => {
             e.preventDefault();
             const tieneGarantia = document.getElementById("eq-garantia").value === "true";
-            const datos = {
-                nombre_equipo: document.getElementById("eq-nombre").value,
-                area: document.getElementById("eq-area").value,
-                subarea: document.getElementById("eq-subarea").value || null,
-                marca: document.getElementById("eq-marca").value,
-                modelo: document.getElementById("eq-modelo").value || null,
-                sn: document.getElementById("eq-sn").value,
-                nni: document.getElementById("eq-nni").value,
-                garantia: tieneGarantia,
-                fecha_expgarantia: tieneGarantia ? document.getElementById("eq-fecha-garantia").value : null,
-                estatusfuncional: document.getElementById("eq-estatus").value === "true",
-                observaciones: document.getElementById("eq-obs").value || null
-            };
-
             const res = await fetch(`/inventarios/${idInventarioActivo}/equipos/`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(datos)
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    nombre_equipo: document.getElementById("eq-nombre").value, area: document.getElementById("eq-area").value,
+                    subarea: document.getElementById("eq-subarea").value || null, marca: document.getElementById("eq-marca").value,
+                    modelo: document.getElementById("eq-modelo").value || null, sn: document.getElementById("eq-sn").value,
+                    nni: document.getElementById("eq-nni").value, garantia: tieneGarantia,
+                    fecha_expgarantia: tieneGarantia ? document.getElementById("eq-fecha-garantia").value : null,
+                    estatusfuncional: document.getElementById("eq-estatus").value === "true", observaciones: document.getElementById("eq-obs").value || null
+                })
             });
-            const data = await res.json();
-
-            if (res.ok) {
-                document.getElementById("form-agregar-equipo").reset();
-                toggleFechaGarantia();
-                cargarEquiposDeInventarioActivo();
-            } else {
-                alert(data.detail || "No se pudo registrar el equipo.");
-            }
+            if (res.ok) { document.getElementById("form-agregar-equipo").reset(); toggleFechaGarantia(); cargarEquiposDeInventarioActivo(); }
+            else { const d = await res.json(); alert(d.detail); }
         });
 
-        // Paso 4B: Subir CSV
         document.getElementById("form-subir-csv").addEventListener("submit", async (e) => {
             e.preventDefault();
             const archivo = document.getElementById("archivo-csv-input").files[0];
             if (!archivo) return;
-
-            const formData = new FormData();
-            formData.append("archivo_csv", archivo);
-
-            const res = await fetch(`/inventarios/${idInventarioActivo}/importar-csv`, {
-                method: "POST",
-                body: formData
-            });
+            const formData = new FormData(); formData.append("archivo_csv", archivo);
+            const res = await fetch(`/inventarios/${idInventarioActivo}/importar-csv`, { method: "POST", body: formData });
             const data = await res.json();
-
-            if (res.ok) {
-                alert(`Carga completada: ${data.equipos_registrados} equipos registrados, ${data.duplicados_omitidos} duplicados omitidos.`);
-                document.getElementById("form-subir-csv").reset();
-                cargarEquiposDeInventarioActivo();
-            } else {
-                alert(data.detail || "Error al importar el archivo CSV.");
-            }
+            if (res.ok) { alert(`Carga completada: ${data.equipos_registrados} agregados.`); document.getElementById("form-subir-csv").reset(); cargarEquiposDeInventarioActivo(); }
+            else { alert(data.detail); }
         });
 
         async function cargarEquiposDeInventarioActivo() {
             const res = await fetch(`/equipos/?id_inventario=${idInventarioActivo}`);
             const equipos = await res.json();
-            const tbody = document.getElementById("tabla-equipos-inventario-activo");
-
-            tbody.innerHTML = equipos.length === 0
-                ? `<tr><td colspan="6" class="text-center text-muted py-3">Aún no hay equipos registrados en este inventario.</td></tr>`
-                : equipos.map(eq => `<tr>
-                    <td class="fw-medium">${eq.nombre_equipo}</td>
-                    <td>${eq.area}</td>
-                    <td>${eq.marca} ${eq.modelo || ''}</td>
-                    <td><code>${eq.nni}</code></td>
-                    <td>${eq.sn}</td>
-                    <td>${eq.estatusfuncional ? '<span class="badge-soft-success">Funcional</span>' : '<span class="badge-soft-danger">Falla</span>'}</td>
-                </tr>`).join("");
+            document.getElementById("tabla-equipos-inventario-activo").innerHTML = equipos.length === 0 ? `<tr><td colspan="6" class="text-center text-muted py-3">Sin equipos.</td></tr>` :
+                equipos.map(eq => `<tr><td class="fw-medium">${eq.nombre_equipo}</td><td>${eq.area}</td><td>${eq.marca}</td><td><code>${eq.nni}</code></td><td>${eq.sn}</td><td><span class="${eq.estatusfuncional ? 'badge-soft-success' : 'badge-soft-danger'}">${eq.estatusfuncional ? 'Funcional' : 'Falla'}</span></td></tr>`).join("");
         }
 
-        // Paso 5: Finalizar Inventario
         async function finalizarInventarioActual() {
-            if (!confirm("¿Seguro que deseas FINALIZAR este inventario? Una vez cerrado no se podrán agregar más equipos.")) return;
-
-            const res = await fetch(`/inventarios/${idInventarioActivo}/finalizar?id_admin=${usuarioActual.id_usuario}`, {
-                method: "PUT"
-            });
-            if (res.ok) {
-                alert("Inventario finalizado con éxito.");
-                cerrarPanelCaptura();
-                cargarInventarios();
-            }
+            if (!confirm("¿Finalizar inventario?")) return;
+            const res = await fetch(`/inventarios/${idInventarioActivo}/finalizar?id_admin=${usuarioActual.id_usuario}`, { method: "PUT" });
+            if (res.ok) { alert("Inventario finalizado."); cerrarPanelCaptura(); cargarInventarios(); }
         }
 
-        // ==========================================================
-        // FILTROS DE CATÁLOGO DE EQUIPOS
-        // ==========================================================
+        // ================= EQUIPOS FILTRADOS =================
         async function cargarEquiposFiltrados() {
             const params = new URLSearchParams();
             const texto = document.getElementById("filtro-eq-texto").value.trim();
@@ -958,115 +931,136 @@
             const area = document.getElementById("filtro-eq-area").value.trim();
             const gar = document.getElementById("filtro-eq-garantia").value;
             const est = document.getElementById("filtro-eq-estatus").value;
-
-            if (texto) params.append("buscar_texto", texto);
-            if (hosp) params.append("id_hospital", hosp);
-            if (area) params.append("area", area);
-            if (gar) params.append("garantia", gar);
-            if (est) params.append("estatusfuncional", est);
+            if (texto) params.append("buscar_texto", texto); if (hosp) params.append("id_hospital", hosp);
+            if (area) params.append("area", area); if (gar) params.append("garantia", gar); if (est) params.append("estatusfuncional", est);
 
             const res = await fetch(`/equipos/?${params.toString()}`);
             const equipos = await res.json();
-            const tbody = document.getElementById("tabla-catalogo-equipos");
-
-            tbody.innerHTML = equipos.length === 0
-                ? `<tr><td colspan="7" class="text-center text-muted py-3">No se encontraron equipos con esos filtros.</td></tr>`
-                : equipos.map(eq => `<tr>
-                    <td class="fw-medium">${eq.nombre_equipo}</td>
-                    <td>${mapaHospitales[eq.id_hospital] || 'Hospital #' + eq.id_hospital}</td>
-                    <td>${eq.area} ${eq.subarea ? '/ ' + eq.subarea : ''}</td>
-                    <td>${eq.marca} ${eq.modelo || ''}</td>
-                    <td><code>${eq.nni}</code><br><small class="text-muted">SN: ${eq.sn}</small></td>
-                    <td>${eq.garantia ? `<span class="badge-soft-success">Vence: ${eq.fecha_expgarantia}</span>` : '<span class="badge-soft-neutral">Sin garantía</span>'}</td>
-                    <td>${eq.estatusfuncional ? '<span class="badge-soft-success">Funcional</span>' : '<span class="badge-soft-danger">Inactivo</span>'}</td>
-                </tr>`).join("");
+            document.getElementById("tabla-catalogo-equipos").innerHTML = equipos.length === 0 ? `<tr><td colspan="7" class="text-center text-muted py-3">Sin resultados.</td></tr>` :
+                equipos.map(eq => `<tr><td class="fw-medium">${eq.nombre_equipo}</td><td>${mapaHospitales[eq.id_hospital] || 'Hosp #' + eq.id_hospital}</td><td>${eq.area}</td><td>${eq.marca}</td><td><code>${eq.nni}</code><br><small class="text-muted">SN: ${eq.sn}</small></td><td>${eq.garantia ? `<span class="badge-soft-success">${eq.fecha_expgarantia}</span>` : '<span class="badge-soft-neutral">Sin garantía</span>'}</td><td><span class="${eq.estatusfuncional ? 'badge-soft-success' : 'badge-soft-danger'}">${eq.estatusfuncional ? 'Funcional' : 'Inactivo'}</span></td></tr>`).join("");
         }
 
-        // ==========================================================
-        // PERFIL Y PERMISOS ADMIN
-        // ==========================================================
+        // ================= MANTENIMIENTOS =================
+        function toggleFormMantenimiento() { document.getElementById("panel-crear-mant").classList.toggle("d-none"); }
+        
+        async function cargarMantenimientos() {
+            const res = await fetch("/mantenimientos/");
+            const lista = await res.json();
+            document.getElementById("tabla-lista-mantenimientos").innerHTML = lista.length === 0 ? `<tr><td colspan="6" class="text-center text-muted py-3">Sin mantenimientos.</td></tr>` :
+                lista.map(m => `<tr><td>#${m.id_mantenimiento}</td><td>Equipo #${m.id_equipo}</td><td><span class="badge-soft-neutral">${m.tipo_mantenimiento}</span></td><td>${m.fecha}</td><td>${m.prox_fecha || 'N/D'}</td><td>${m.observaciones || '-'}</td></tr>`).join("");
+        }
+
+        document.getElementById("form-registrar-mant").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const res = await fetch("/mantenimientos/", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id_equipo: parseInt(document.getElementById("mant-id-equipo").value),
+                    id_proveedor: parseInt(document.getElementById("mant-id-proveedor").value),
+                    tipo_mantenimiento: document.getElementById("mant-tipo").value,
+                    fecha: document.getElementById("mant-fecha").value,
+                    prox_fecha: document.getElementById("mant-prox-fecha").value || null,
+                    observaciones: document.getElementById("mant-obs").value || null
+                })
+            });
+            if (res.ok) { document.getElementById("form-registrar-mant").reset(); toggleFormMantenimiento(); cargarMantenimientos(); }
+            else { const d = await res.json(); alert(d.detail); }
+        });
+
+        // ================= PROVEEDORES =================
+        function toggleFormProveedor() { document.getElementById("panel-crear-prov").classList.toggle("d-none"); }
+
+        async function cargarProveedores() {
+            const res = await fetch("/proveedores/");
+            const lista = await res.json();
+            document.getElementById("tabla-lista-proveedores").innerHTML = lista.length === 0 ? `<tr><td colspan="5" class="text-center text-muted py-3">Sin proveedores.</td></tr>` :
+                lista.map(p => `<tr><td>#${p.id_proveedor}</td><td class="fw-medium">${p.nombre_proveedor}</td><td>${p.nombre_contacto || '-'}</td><td>${p.correo || '-'}</td><td>${p.num_tel || '-'}</td></tr>`).join("");
+        }
+
+        document.getElementById("form-registrar-prov").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const res = await fetch("/proveedores/", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    nombre_proveedor: document.getElementById("prov-nombre").value,
+                    correo: document.getElementById("prov-correo").value || null,
+                    num_tel: document.getElementById("prov-tel").value || null,
+                    nombre_contacto: document.getElementById("prov-contacto").value || null
+                })
+            });
+            if (res.ok) { document.getElementById("form-registrar-prov").reset(); toggleFormProveedor(); cargarProveedores(); }
+            else { const d = await res.json(); alert(d.detail); }
+        });
+
+        // ================= DOCUMENTOS =================
+        function toggleFormDocumento() { document.getElementById("panel-subir-doc").classList.toggle("d-none"); }
+
+        async function cargarDocumentos() {
+            const res = await fetch("/documentos/");
+            const lista = await res.json();
+            document.getElementById("tabla-lista-documentos").innerHTML = lista.length === 0 ? `<tr><td colspan="5" class="text-center text-muted py-3">Sin documentos.</td></tr>` :
+                lista.map(d => {
+                    let asociado = d.id_equipo ? `Equipo #${d.id_equipo}` : (d.id_mantenimiento ? `Mant #${d.id_mantenimiento}` : `Inventario #${d.id_inventario}`);
+                    return `<tr><td>#${d.id_documento}</td><td class="fw-medium">${d.nombredocumento}</td><td>${asociado}</td><td><code class="small">${d.rutaarchivo}</code></td><td><a href="/documentos/${d.id_documento}/ver" target="_blank" class="btn btn-secundario btn-sm"><i class="bi bi-file-earmark-pdf me-1"></i> Abrir PDF</a></td></tr>`;
+                }).join("");
+        }
+
+        document.getElementById("form-subir-documento").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append("nombre_documento", document.getElementById("doc-titulo").value);
+            const eq = document.getElementById("doc-id-eq").value;
+            const mant = document.getElementById("doc-id-mant").value;
+            const inv = document.getElementById("doc-id-inv").value;
+            if (eq) formData.append("id_equipo", eq);
+            if (mant) formData.append("id_mantenimiento", mant);
+            if (inv) formData.append("id_inventario", inv);
+            formData.append("archivo", document.getElementById("doc-archivo").files[0]);
+
+            const res = await fetch("/documentos/subir", { method: "POST", body: formData });
+            if (res.ok) { document.getElementById("form-subir-documento").reset(); toggleFormDocumento(); cargarDocumentos(); alert("Documento subido con éxito."); }
+            else { const d = await res.json(); alert(d.detail); }
+        });
+
+        // ================= PERFIL Y ADMINS =================
         document.getElementById("form-actualizar-perfil").addEventListener("submit", async (e) => {
             e.preventDefault();
             const alerta = document.getElementById("alerta-perfil");
-            const datos = {
-                username: document.getElementById("perfil-username").value || null,
-                foto_perfil: document.getElementById("perfil-foto").value || null
-            };
-
             const res = await fetch(`/usuarios/${usuarioActual.id_usuario}/perfil`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(datos)
+                method: "PUT", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: document.getElementById("perfil-username").value || null, foto_perfil: document.getElementById("perfil-foto").value || null })
             });
             const data = await res.json();
-
-            if (res.ok) {
-                usuarioActual = data;
-                localStorage.setItem("usuario_imss", JSON.stringify(usuarioActual));
-                inicializarInterfaz();
-                alerta.textContent = "Perfil actualizado correctamente.";
-                alerta.className = "alert alert-success small py-2";
-            } else {
-                alerta.textContent = data.detail || "Error al actualizar perfil.";
-                alerta.className = "alert alert-danger small py-2";
-            }
+            if (res.ok) { usuarioActual = data; localStorage.setItem("usuario_imss", JSON.stringify(usuarioActual)); inicializarInterfaz(); alerta.textContent = "Perfil actualizado."; alerta.className = "alert alert-success small py-2"; }
+            else { alerta.textContent = data.detail; alerta.className = "alert alert-danger small py-2"; }
             alerta.classList.remove("d-none");
         });
 
         document.getElementById("form-cambiar-password").addEventListener("submit", async (e) => {
             e.preventDefault();
             const alerta = document.getElementById("alerta-perfil");
-            const datos = {
-                password_actual: document.getElementById("pass-actual").value,
-                password_nueva: document.getElementById("pass-nueva").value
-            };
-
             const res = await fetch(`/usuarios/${usuarioActual.id_usuario}/cambiar-password`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(datos)
+                method: "PUT", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ password_actual: document.getElementById("pass-actual").value, password_nueva: document.getElementById("pass-nueva").value })
             });
             const data = await res.json();
-
-            if (res.ok) {
-                document.getElementById("form-cambiar-password").reset();
-                alerta.textContent = data.mensaje;
-                alerta.className = "alert alert-success small py-2";
-            } else {
-                alerta.textContent = data.detail || "Error al cambiar contraseña.";
-                alerta.className = "alert alert-danger small py-2";
-            }
+            if (res.ok) { document.getElementById("form-cambiar-password").reset(); alerta.textContent = data.mensaje; alerta.className = "alert alert-success small py-2"; }
+            else { alerta.textContent = data.detail; alerta.className = "alert alert-danger small py-2"; }
             alerta.classList.remove("d-none");
         });
 
         async function cargarListaUsuariosAdmin() {
             const res = await fetch("/usuarios/");
             const usuarios = await res.json();
-            const tbody = document.getElementById("tabla-gestion-usuarios");
-
-            tbody.innerHTML = usuarios.map(u => {
-                const botonAccion = u.rol === "ADMIN" 
-                    ? `<span class="text-muted small">Ya es Administrador</span>`
-                    : `<button class="btn btn-secundario btn-sm" onclick="hacerAdmin(${u.id_usuario})">Hacer Admin</button>`;
-                return `<tr>
-                    <td>#${u.id_usuario}</td>
-                    <td class="fw-medium">${u.primernombre} ${u.primerapellido}</td>
-                    <td>${u.correo}</td>
-                    <td><span class="${u.rol === 'ADMIN' ? 'badge-soft-success' : 'badge-soft-neutral'}">${u.rol}</span></td>
-                    <td>${botonAccion}</td>
-                </tr>`;
-            }).join("");
+            document.getElementById("tabla-gestion-usuarios").innerHTML = usuarios.map(u => `<tr><td>#${u.id_usuario}</td><td class="fw-medium">${u.primernombre} ${u.primerapellido}</td><td>${u.correo}</td><td><span class="${u.rol === 'ADMIN' ? 'badge-soft-success' : 'badge-soft-neutral'}">${u.rol}</span></td><td>${u.rol === 'ADMIN' ? '<span class="text-muted small">Es Admin</span>' : `<button class="btn btn-secundario btn-sm" onclick="hacerAdmin(${u.id_usuario})">Hacer Admin</button>`}</td></tr>`).join("");
         }
 
         async function hacerAdmin(idObjetivo) {
-            const res = await fetch(`/usuarios/${idObjetivo}/hacer-admin?id_admin_que_autoriza=${usuarioActual.id_usuario}`, {
-                method: "PUT"
-            });
+            const res = await fetch(`/usuarios/${idObjetivo}/hacer-admin?id_admin_que_autoriza=${usuarioActual.id_usuario}`, { method: "PUT" });
             if (res.ok) cargarListaUsuariosAdmin();
         }
 
         inicializarInterfaz();
     </script>
-
 </body>
 </html>
