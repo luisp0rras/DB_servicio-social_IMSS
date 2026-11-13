@@ -117,20 +117,21 @@ class EquipoCrear(BaseModel):
         return self
 
 # Lo que devuelve el sistema cuando consultamos un equipo
+# Reemplaza únicamente la clase EquipoRespuesta en app/schemas.py por esta:
 class EquipoRespuesta(BaseModel):
     id_equipo: int
     id_hospital: Optional[int] = None
     id_proveedor: Optional[int] = None
-    nombre_equipo: str
-    area: str
+    nombre_equipo: Optional[str] = None
+    area: Optional[str] = None
     subarea: Optional[str] = None
-    marca: str
+    marca: Optional[str] = None
     modelo: Optional[str] = None
-    sn: str
-    nni: str
-    garantia: bool
+    sn: Optional[str] = None
+    nni: Optional[str] = None
+    garantia: Optional[bool] = False
     fecha_expgarantia: Optional[date] = None
-    estatusfuncional: bool
+    estatusfuncional: Optional[bool] = True
     observaciones: Optional[str] = None
 
     class Config:

@@ -51,6 +51,10 @@ def verificar_password(password_plana: str, password_guardada: str) -> bool:
 os.makedirs("frontend", exist_ok=True)
 app.mount("/app", StaticFiles(directory="frontend"), name="frontend")
 
+# NUEVO: Permite que el navegador pueda mostrar las fotos de perfil guardadas en el servidor
+os.makedirs("archivos_subidos/perfiles", exist_ok=True)
+app.mount("/archivos", StaticFiles(directory="archivos_subidos"), name="archivos")
+
 @app.get("/", include_in_schema=False)
 def pagina_principal():
     """Al entrar a http://127.0.0.1:8000, abre directamente la pantalla de Login."""
@@ -140,6 +144,31 @@ def actualizar_perfil(id_usuario: int, datos: schemas.UsuarioActualizarPerfil, d
     db.refresh(usuario)
     return usuario
 
+@app.post("/usuarios/{id_usuario}/foto", response_model=schemas.UsuarioRespuesta, tags=["Usuarios y Login"])
+def subir_foto_perfil(
+    id_usuario: int,
+    foto: UploadFile = File(..., description="Selecciona una imagen (JPG, PNG) desde tu computadora"),
+    db: Session = Depends(get_db)
+):
+    """Guarda la foto de perfil físicamente en el servidor y actualiza la ruta del usuario."""
+    usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+
+    # Extraer extensión (.jpg, .png) y crear un nombre limpio por usuario
+    extension = os.path.splitext(foto.filename)[1] or ".png"
+    nombre_archivo = f"avatar_usuario_{id_usuario}{extension}"
+    ruta_fisica = os.path.join("archivos_subidos", "perfiles", nombre_archivo)
+
+    # Guardar la imagen en la carpeta
+    with open(ruta_fisica, "wb") as buffer:
+        shutil.copyfileobj(foto.file, buffer)
+
+    # Guardar la URL relativa en la base de datos
+    usuario.foto_perfil = f"/archivos/perfiles/{nombre_archivo}"
+    db.commit()
+    db.refresh(usuario)
+    return usuario
 
 @app.put("/usuarios/{id_usuario}/cambiar-password", tags=["Usuarios y Login"])
 def cambiar_password(id_usuario: int, datos: schemas.UsuarioCambiarPassword, db: Session = Depends(get_db)):

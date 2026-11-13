@@ -62,7 +62,7 @@
         <div class="p-3 border-top" style="border-color: var(--borde-fino) !important;">
             <div class="d-flex align-items-center gap-2 mb-2">
                 <img id="sidebar-avatar" src="https://ui-avatars.com/api/?name=User&background=13322B&color=fff" 
-                     alt="Avatar" class="rounded-circle" width="36" height="36" style="object-fit: cover;">
+                     alt="Avatar" class="rounded-circle" width="38" height="38" style="object-fit: cover;">
                 <div class="overflow-hidden">
                     <div id="sidebar-nombre" class="fw-semibold text-truncate" style="font-size: 0.85rem;">Cargando...</div>
                     <span id="sidebar-rol" class="badge-soft-neutral" style="font-size: 0.7rem; padding: 0.15rem 0.45rem;">...</span>
@@ -184,8 +184,6 @@
                 </button>
             </div>
 
-            <div id="alerta-inventarios" class="alert d-none small py-2"></div>
-
             <div id="panel-crear-inventario" class="card-clean d-none" style="border-left: 4px solid var(--verde-imss);">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="fw-bold mb-0">Nuevo Levantamiento de Inventario</h6>
@@ -235,7 +233,7 @@
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label small fw-semibold">3. Participantes Adicionales</label>
+                            <label class="form-label small fw-semibold">3. Participantes Adicionales (Tú te agregas automáticamente como Administrador)</label>
                             <div id="lista-checkbox-usuarios" class="row g-2 p-2 rounded" style="background-color: var(--bg-fondo); max-height: 140px; overflow-y: auto;"></div>
                         </div>
 
@@ -251,23 +249,23 @@
             <div id="panel-captura-inventario" class="card-clean d-none" style="border-left: 4px solid var(--dorado-sutil);">
                 <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
                     <div>
-                        <span class="badge-soft-warning me-2">EN PROCESO</span>
+                        <span class="badge-soft-warning me-2" id="badge-estado-inv-activo">EN PROCESO</span>
                         <span class="fw-bold" id="titulo-inventario-activo">Inventario #</span>
                     </div>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-primario btn-sm solo-admin d-none" onclick="finalizarInventarioActual()">
+                        <button id="btn-finalizar-inv" class="btn btn-primario btn-sm solo-admin d-none" onclick="finalizarInventarioActual()">
                             <i class="bi bi-check2-circle me-1"></i> 5. Finalizar Inventario
                         </button>
                         <button class="btn btn-secundario btn-sm" onclick="cerrarPanelCaptura()">Cerrar vista</button>
                     </div>
                 </div>
 
-                <ul class="nav nav-tabs mb-3 small fw-semibold">
+                <ul class="nav nav-tabs mb-3 small fw-semibold" id="tabs-captura-equipos">
                     <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-eq-manual">4A. Registro Manual</button></li>
                     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-eq-csv">4B. Importación CSV</button></li>
                 </ul>
 
-                <div class="tab-content mb-4">
+                <div class="tab-content mb-4" id="contenido-captura-equipos">
                     <div class="tab-pane fade show active" id="tab-eq-manual">
                         <form id="form-agregar-equipo" class="row g-2">
                             <div class="col-md-4">
@@ -339,7 +337,7 @@
                     </div>
                 </div>
 
-                <h6 class="fw-bold small text-muted text-uppercase mb-2">Equipos Censados</h6>
+                <h6 class="fw-bold small text-muted text-uppercase mb-2">Equipos Censados en este Inventario</h6>
                 <div class="table-responsive">
                     <table class="table-clean">
                         <thead>
@@ -545,7 +543,7 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h4 class="fw-bold mb-1">Repositorio Documental (PDFs e Imágenes)</h4>
-                    <p class="text-muted small mb-0">Minutas, manuales y minutas de supervisión hospitalaria</p>
+                    <p class="text-muted small mb-0">Minutas, manuales y reportes de supervisión hospitalaria</p>
                 </div>
                 <button class="btn btn-primario solo-admin d-none" onclick="toggleFormDocumento()">
                     <i class="bi bi-upload me-1"></i> Subir Documento
@@ -596,7 +594,7 @@
         </section>
 
         <!-- ======================================================
-             VISTA 7: MI PERFIL
+             VISTA 7: MI PERFIL (CON SUBIDA DE FOTO DESDE ARCHIVOS)
              ====================================================== -->
         <section id="vista-perfil" class="vista-panel d-none">
             <div class="mb-4">
@@ -610,6 +608,21 @@
                 <div class="col-md-6">
                     <div class="card-clean h-100">
                         <h6 class="fw-bold mb-3">Información de Usuario</h6>
+                        
+                        <!-- Bloque para subir foto desde el explorador de archivos -->
+                        <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+                            <img id="perfil-preview-avatar" src="https://ui-avatars.com/api/?name=User&background=13322B&color=fff" 
+                                 class="rounded-circle border" width="68" height="68" style="object-fit: cover;">
+                            <div class="flex-grow-1">
+                                <label class="form-label small fw-medium mb-1">Foto de Perfil</label>
+                                <div class="d-flex gap-2">
+                                    <input type="file" class="form-control form-control-sm" id="input-archivo-foto" accept="image/*">
+                                    <button type="button" class="btn btn-secundario btn-sm" onclick="subirFotoDesdeExplorador()">Subir</button>
+                                </div>
+                                <small class="text-muted" style="font-size: 0.75rem;">Formatos JPG o PNG desde tu computadora</small>
+                            </div>
+                        </div>
+
                         <form id="form-actualizar-perfil">
                             <div class="mb-3">
                                 <label class="form-label small text-muted">Nombre completo</label>
@@ -619,15 +632,11 @@
                                 <label class="form-label small text-muted">Correo electrónico</label>
                                 <input type="email" class="form-control bg-light" id="perfil-correo" disabled>
                             </div>
-                            <div class="mb-3">
+                            <div class="mb-4">
                                 <label class="form-label small fw-medium">Nombre de usuario (Username)</label>
                                 <input type="text" class="form-control" id="perfil-username" placeholder="ej. luis_biomedica">
                             </div>
-                            <div class="mb-4">
-                                <label class="form-label small fw-medium">URL de foto de perfil</label>
-                                <input type="text" class="form-control" id="perfil-foto" placeholder="https://...">
-                            </div>
-                            <button type="submit" class="btn btn-primario">Guardar Cambios</button>
+                            <button type="submit" class="btn btn-primario">Guardar Nombre de Usuario</button>
                         </form>
                     </div>
                 </div>
@@ -683,6 +692,14 @@
         let mapaHospitales = {};
         let idInventarioActivo = null;
 
+        // FUNCIÓN PARA REEMPLAZAR CUALQUIER 'null' POR 'Sin información'
+        function limpiarTexto(valor, esCodigo = false) {
+            if (valor === null || valor === undefined || valor === "" || valor === "null") {
+                return `<span class="text-muted small">Sin información</span>`;
+            }
+            return esCodigo ? `<code>${valor}</code>` : valor;
+        }
+
         function alternarPassword(idInput, boton) {
             const input = document.getElementById(idInput);
             const icono = boton.querySelector("i");
@@ -697,14 +714,15 @@
             document.getElementById("sidebar-rol").textContent = usuarioActual.rol;
             document.getElementById("kpi-rol").textContent = usuarioActual.rol;
 
-            const avatarUrl = usuarioActual.foto_perfil || 
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(nombreCompleto)}&background=13322B&color=fff`;
+            const avatarUrl = usuarioActual.foto_perfil 
+                ? `${usuarioActual.foto_perfil}?t=${new Date().getTime()}` 
+                : `https://ui-avatars.com/api/?name=${encodeURIComponent(nombreCompleto)}&background=13322B&color=fff`;
             document.getElementById("sidebar-avatar").src = avatarUrl;
+            document.getElementById("perfil-preview-avatar").src = avatarUrl;
 
             document.getElementById("perfil-nombre-completo").value = nombreCompleto;
             document.getElementById("perfil-correo").value = usuarioActual.correo;
             document.getElementById("perfil-username").value = usuarioActual.username || "";
-            document.getElementById("perfil-foto").value = usuarioActual.foto_perfil || "";
 
             if (usuarioActual.rol === "ADMIN") {
                 document.querySelectorAll(".solo-admin").forEach(el => el.classList.remove("d-none"));
@@ -759,10 +777,10 @@
                 : data.alertas_garantias.map(eq => {
                     const badge = eq.semaforo === "VENCIDA" ? `<span class="badge-soft-danger">Vencida</span>` : `<span class="badge-soft-warning">Por vencer</span>`;
                     return `<tr>
-                        <td class="fw-medium">${eq.nombre_equipo}</td>
-                        <td><code>${eq.nni}</code></td>
+                        <td class="fw-medium">${limpiarTexto(eq.nombre_equipo)}</td>
+                        <td>${limpiarTexto(eq.nni, true)}</td>
                         <td>${mapaHospitales[eq.id_hospital] || 'Hospital #' + eq.id_hospital}</td>
-                        <td>${eq.fecha_expiracion}</td>
+                        <td>${limpiarTexto(eq.fecha_expiracion)}</td>
                         <td>${eq.dias_restantes} días</td>
                         <td>${badge}</td>
                     </tr>`;
@@ -775,8 +793,8 @@
                     const badge = m.semaforo === "ATRASADO" ? `<span class="badge-soft-danger">Atrasado</span>` : `<span class="badge-soft-warning">Próximo</span>`;
                     return `<tr>
                         <td class="fw-medium">Equipo #${m.id_equipo}</td>
-                        <td>${m.tipo_mantenimiento}</td>
-                        <td>${m.proxima_fecha}</td>
+                        <td>${limpiarTexto(m.tipo_mantenimiento)}</td>
+                        <td>${limpiarTexto(m.proxima_fecha)}</td>
                         <td>${m.dias_restantes} días</td>
                         <td>${badge}</td>
                     </tr>`;
@@ -835,7 +853,7 @@
             const usuarios = await res.json();
             const contenedor = document.getElementById("lista-checkbox-usuarios");
             const otros = usuarios.filter(u => u.id_usuario !== usuarioActual.id_usuario);
-            contenedor.innerHTML = otros.length === 0 ? `<div class="col-12 small text-muted">No hay más usuarios.</div>` :
+            contenedor.innerHTML = otros.length === 0 ? `<div class="col-12 small text-muted">No hay más usuarios registrados.</div>` :
                 otros.map(u => `<div class="col-md-4"><div class="form-check"><input class="form-check-input check-participante" type="checkbox" value="${u.id_usuario}" id="part-${u.id_usuario}"><label class="form-check-label small" for="part-${u.id_usuario}">${u.primernombre} ${u.primerapellido}</label></div></div>`).join("");
         }
 
@@ -859,17 +877,36 @@
         async function cargarInventarios() {
             const res = await fetch(`/inventarios/?id_usuario_consulta=${usuarioActual.id_usuario}`);
             const lista = await res.json();
-            document.getElementById("tabla-lista-inventarios").innerHTML = lista.length === 0 ? `<tr><td colspan="5" class="text-center text-muted py-3">Sin inventarios.</td></tr>` :
-                lista.map(inv => `<tr><td class="fw-semibold">#${inv.id_inventario}</td><td>${mapaHospitales[inv.id_hospital] || 'Hospital #' + inv.id_hospital}</td><td>${inv.fecha}</td><td><span class="${inv.estado === 'EN_PROCESO' ? 'badge-soft-warning' : 'badge-soft-success'}">${inv.estado}</span></td><td><button class="btn btn-secundario btn-sm" onclick="abrirCapturaInventario(${inv.id_inventario}, ${inv.id_hospital}, '${inv.fecha}', '${inv.estado}')">Ver</button></td></tr>`).join("");
+            const mensajeVacio = usuarioActual.rol === "ADMIN" 
+                ? "No hay inventarios registrados aún." 
+                : "Aún no has sido asignado como participante en ningún inventario.";
+
+            document.getElementById("tabla-lista-inventarios").innerHTML = lista.length === 0 
+                ? `<tr><td colspan="5" class="text-center text-muted py-3">${mensajeVacio}</td></tr>` 
+                : lista.map(inv => `<tr>
+                    <td class="fw-semibold">#${inv.id_inventario}</td>
+                    <td>${mapaHospitales[inv.id_hospital] || 'Hospital #' + inv.id_hospital}</td>
+                    <td>${inv.fecha}</td>
+                    <td><span class="${inv.estado === 'EN_PROCESO' ? 'badge-soft-warning' : 'badge-soft-success'}">${inv.estado}</span></td>
+                    <td><button class="btn btn-secundario btn-sm" onclick="abrirCapturaInventario(${inv.id_inventario}, ${inv.id_hospital}, '${inv.fecha}', '${inv.estado}')">Ver Equipos</button></td>
+                </tr>`).join("");
         }
 
         function abrirCapturaInventario(idInv, idHosp, fecha, estado) {
             idInventarioActivo = idInv;
             const panel = document.getElementById("panel-captura-inventario");
             panel.classList.remove("d-none");
-            document.getElementById("titulo-inventario-activo").textContent = `Inventario #${idInv} — ${mapaHospitales[idHosp]} (${fecha})`;
+            document.getElementById("titulo-inventario-activo").textContent = `Inventario #${idInv} — ${mapaHospitales[idHosp] || 'Hospital #' + idHosp} (${fecha})`;
+            
+            const badgeEstado = document.getElementById("badge-estado-inv-activo");
+            badgeEstado.textContent = estado;
+            badgeEstado.className = estado === "EN_PROCESO" ? "badge-soft-warning me-2" : "badge-soft-success me-2";
+
             const esEditable = (estado === "EN_PROCESO" && usuarioActual.rol === "ADMIN");
-            document.getElementById("form-agregar-equipo").closest(".tab-content").classList.toggle("d-none", !esEditable);
+            document.getElementById("tabs-captura-equipos").classList.toggle("d-none", !esEditable);
+            document.getElementById("contenido-captura-equipos").classList.toggle("d-none", !esEditable);
+            document.getElementById("btn-finalizar-inv").classList.toggle("d-none", !esEditable);
+
             cargarEquiposDeInventarioActivo();
         }
 
@@ -913,8 +950,16 @@
         async function cargarEquiposDeInventarioActivo() {
             const res = await fetch(`/equipos/?id_inventario=${idInventarioActivo}`);
             const equipos = await res.json();
-            document.getElementById("tabla-equipos-inventario-activo").innerHTML = equipos.length === 0 ? `<tr><td colspan="6" class="text-center text-muted py-3">Sin equipos.</td></tr>` :
-                equipos.map(eq => `<tr><td class="fw-medium">${eq.nombre_equipo}</td><td>${eq.area}</td><td>${eq.marca}</td><td><code>${eq.nni}</code></td><td>${eq.sn}</td><td><span class="${eq.estatusfuncional ? 'badge-soft-success' : 'badge-soft-danger'}">${eq.estatusfuncional ? 'Funcional' : 'Falla'}</span></td></tr>`).join("");
+            document.getElementById("tabla-equipos-inventario-activo").innerHTML = equipos.length === 0 
+                ? `<tr><td colspan="6" class="text-center text-muted py-3">Sin equipos registrados en este inventario.</td></tr>` 
+                : equipos.map(eq => `<tr>
+                    <td class="fw-medium">${limpiarTexto(eq.nombre_equipo)}</td>
+                    <td>${limpiarTexto(eq.area)}</td>
+                    <td>${limpiarTexto(eq.marca)} ${eq.modelo ? '/ ' + eq.modelo : ''}</td>
+                    <td>${limpiarTexto(eq.nni, true)}</td>
+                    <td>${limpiarTexto(eq.sn)}</td>
+                    <td><span class="${eq.estatusfuncional ? 'badge-soft-success' : 'badge-soft-danger'}">${eq.estatusfuncional ? 'Funcional' : 'Inactivo'}</span></td>
+                </tr>`).join("");
         }
 
         async function finalizarInventarioActual() {
@@ -923,21 +968,44 @@
             if (res.ok) { alert("Inventario finalizado."); cerrarPanelCaptura(); cargarInventarios(); }
         }
 
-        // ================= EQUIPOS FILTRADOS =================
+        // ================= EQUIPOS FILTRADOS (SIN NULLS) =================
         async function cargarEquiposFiltrados() {
-            const params = new URLSearchParams();
-            const texto = document.getElementById("filtro-eq-texto").value.trim();
-            const hosp = document.getElementById("filtro-eq-hospital").value;
-            const area = document.getElementById("filtro-eq-area").value.trim();
-            const gar = document.getElementById("filtro-eq-garantia").value;
-            const est = document.getElementById("filtro-eq-estatus").value;
-            if (texto) params.append("buscar_texto", texto); if (hosp) params.append("id_hospital", hosp);
-            if (area) params.append("area", area); if (gar) params.append("garantia", gar); if (est) params.append("estatusfuncional", est);
+            const tbody = document.getElementById("tabla-catalogo-equipos");
+            try {
+                const params = new URLSearchParams();
+                const texto = document.getElementById("filtro-eq-texto").value.trim();
+                const hosp = document.getElementById("filtro-eq-hospital").value;
+                const area = document.getElementById("filtro-eq-area").value.trim();
+                const gar = document.getElementById("filtro-eq-garantia").value;
+                const est = document.getElementById("filtro-eq-estatus").value;
+                if (texto) params.append("buscar_texto", texto);
+                if (hosp) params.append("id_hospital", hosp);
+                if (area) params.append("area", area);
+                if (gar) params.append("garantia", gar);
+                if (est) params.append("estatusfuncional", est);
 
-            const res = await fetch(`/equipos/?${params.toString()}`);
-            const equipos = await res.json();
-            document.getElementById("tabla-catalogo-equipos").innerHTML = equipos.length === 0 ? `<tr><td colspan="7" class="text-center text-muted py-3">Sin resultados.</td></tr>` :
-                equipos.map(eq => `<tr><td class="fw-medium">${eq.nombre_equipo}</td><td>${mapaHospitales[eq.id_hospital] || 'Hosp #' + eq.id_hospital}</td><td>${eq.area}</td><td>${eq.marca}</td><td><code>${eq.nni}</code><br><small class="text-muted">SN: ${eq.sn}</small></td><td>${eq.garantia ? `<span class="badge-soft-success">${eq.fecha_expgarantia}</span>` : '<span class="badge-soft-neutral">Sin garantía</span>'}</td><td><span class="${eq.estatusfuncional ? 'badge-soft-success' : 'badge-soft-danger'}">${eq.estatusfuncional ? 'Funcional' : 'Inactivo'}</span></td></tr>`).join("");
+                const res = await fetch(`/equipos/?${params.toString()}`);
+                const equipos = await res.json();
+
+                if (!res.ok || !Array.isArray(equipos)) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">Error al cargar equipos. Verifica que schemas.py esté guardado.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = equipos.length === 0 
+                    ? `<tr><td colspan="7" class="text-center text-muted py-3">Sin resultados.</td></tr>` 
+                    : equipos.map(eq => `<tr>
+                        <td class="fw-medium">${limpiarTexto(eq.nombre_equipo)}</td>
+                        <td>${mapaHospitales[eq.id_hospital] || 'Sin hospital asignado'}</td>
+                        <td>${limpiarTexto(eq.area)} ${eq.subarea ? '<br><small class="text-muted">' + eq.subarea + '</small>' : ''}</td>
+                        <td>${limpiarTexto(eq.marca)} ${eq.modelo ? '<br><small class="text-muted">' + eq.modelo + '</small>' : ''}</td>
+                        <td>NNI: ${limpiarTexto(eq.nni, true)}<br><small class="text-muted">SN: ${limpiarTexto(eq.sn)}</small></td>
+                        <td>${eq.garantia ? `<span class="badge-soft-success">Vence: ${limpiarTexto(eq.fecha_expgarantia)}</span>` : '<span class="badge-soft-neutral">Sin garantía</span>'}</td>
+                        <td><span class="${eq.estatusfuncional ? 'badge-soft-success' : 'badge-soft-danger'}">${eq.estatusfuncional ? 'Funcional' : 'Inactivo'}</span></td>
+                    </tr>`).join("");
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">Error de conexión al cargar equipos.</td></tr>`;
+            }
         }
 
         // ================= MANTENIMIENTOS =================
@@ -946,8 +1014,16 @@
         async function cargarMantenimientos() {
             const res = await fetch("/mantenimientos/");
             const lista = await res.json();
-            document.getElementById("tabla-lista-mantenimientos").innerHTML = lista.length === 0 ? `<tr><td colspan="6" class="text-center text-muted py-3">Sin mantenimientos.</td></tr>` :
-                lista.map(m => `<tr><td>#${m.id_mantenimiento}</td><td>Equipo #${m.id_equipo}</td><td><span class="badge-soft-neutral">${m.tipo_mantenimiento}</span></td><td>${m.fecha}</td><td>${m.prox_fecha || 'N/D'}</td><td>${m.observaciones || '-'}</td></tr>`).join("");
+            document.getElementById("tabla-lista-mantenimientos").innerHTML = lista.length === 0 
+                ? `<tr><td colspan="6" class="text-center text-muted py-3">Sin mantenimientos registrados.</td></tr>` 
+                : lista.map(m => `<tr>
+                    <td>#${m.id_mantenimiento}</td>
+                    <td>Equipo #${m.id_equipo}</td>
+                    <td><span class="badge-soft-neutral">${limpiarTexto(m.tipo_mantenimiento)}</span></td>
+                    <td>${limpiarTexto(m.fecha)}</td>
+                    <td>${limpiarTexto(m.prox_fecha)}</td>
+                    <td>${limpiarTexto(m.observaciones)}</td>
+                </tr>`).join("");
         }
 
         document.getElementById("form-registrar-mant").addEventListener("submit", async (e) => {
@@ -973,8 +1049,15 @@
         async function cargarProveedores() {
             const res = await fetch("/proveedores/");
             const lista = await res.json();
-            document.getElementById("tabla-lista-proveedores").innerHTML = lista.length === 0 ? `<tr><td colspan="5" class="text-center text-muted py-3">Sin proveedores.</td></tr>` :
-                lista.map(p => `<tr><td>#${p.id_proveedor}</td><td class="fw-medium">${p.nombre_proveedor}</td><td>${p.nombre_contacto || '-'}</td><td>${p.correo || '-'}</td><td>${p.num_tel || '-'}</td></tr>`).join("");
+            document.getElementById("tabla-lista-proveedores").innerHTML = lista.length === 0 
+                ? `<tr><td colspan="5" class="text-center text-muted py-3">Sin proveedores registrados.</td></tr>` 
+                : lista.map(p => `<tr>
+                    <td>#${p.id_proveedor}</td>
+                    <td class="fw-medium">${limpiarTexto(p.nombre_proveedor)}</td>
+                    <td>${limpiarTexto(p.nombre_contacto)}</td>
+                    <td>${limpiarTexto(p.correo)}</td>
+                    <td>${limpiarTexto(p.num_tel)}</td>
+                </tr>`).join("");
         }
 
         document.getElementById("form-registrar-prov").addEventListener("submit", async (e) => {
@@ -998,10 +1081,17 @@
         async function cargarDocumentos() {
             const res = await fetch("/documentos/");
             const lista = await res.json();
-            document.getElementById("tabla-lista-documentos").innerHTML = lista.length === 0 ? `<tr><td colspan="5" class="text-center text-muted py-3">Sin documentos.</td></tr>` :
-                lista.map(d => {
+            document.getElementById("tabla-lista-documentos").innerHTML = lista.length === 0 
+                ? `<tr><td colspan="5" class="text-center text-muted py-3">Sin documentos registrados.</td></tr>` 
+                : lista.map(d => {
                     let asociado = d.id_equipo ? `Equipo #${d.id_equipo}` : (d.id_mantenimiento ? `Mant #${d.id_mantenimiento}` : `Inventario #${d.id_inventario}`);
-                    return `<tr><td>#${d.id_documento}</td><td class="fw-medium">${d.nombredocumento}</td><td>${asociado}</td><td><code class="small">${d.rutaarchivo}</code></td><td><a href="/documentos/${d.id_documento}/ver" target="_blank" class="btn btn-secundario btn-sm"><i class="bi bi-file-earmark-pdf me-1"></i> Abrir PDF</a></td></tr>`;
+                    return `<tr>
+                        <td>#${d.id_documento}</td>
+                        <td class="fw-medium">${limpiarTexto(d.nombredocumento)}</td>
+                        <td>${asociado}</td>
+                        <td>${limpiarTexto(d.rutaarchivo, true)}</td>
+                        <td><a href="/documentos/${d.id_documento}/ver" target="_blank" class="btn btn-secundario btn-sm"><i class="bi bi-file-earmark-pdf me-1"></i> Abrir</a></td>
+                    </tr>`;
                 }).join("");
         }
 
@@ -1022,16 +1112,45 @@
             else { const d = await res.json(); alert(d.detail); }
         });
 
-        // ================= PERFIL Y ADMINS =================
+        // ================= PERFIL (CON SUBIDA DE FOTO DESDE ARCHIVO) =================
+        async function subirFotoDesdeExplorador() {
+            const inputFoto = document.getElementById("input-archivo-foto");
+            const alerta = document.getElementById("alerta-perfil");
+            if (!inputFoto.files[0]) {
+                return alert("Primero selecciona una imagen desde tu computadora.");
+            }
+
+            const formData = new FormData();
+            formData.append("foto", inputFoto.files[0]);
+
+            const res = await fetch(`/usuarios/${usuarioActual.id_usuario}/foto`, {
+                method: "POST",
+                body: formData
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                usuarioActual = data;
+                localStorage.setItem("usuario_imss", JSON.stringify(usuarioActual));
+                inicializarInterfaz();
+                alerta.textContent = "Foto de perfil actualizada correctamente.";
+                alerta.className = "alert alert-success small py-2";
+                alerta.classList.remove("d-none");
+                inputFoto.value = "";
+            } else {
+                alert(data.detail || "No se pudo subir la foto.");
+            }
+        }
+
         document.getElementById("form-actualizar-perfil").addEventListener("submit", async (e) => {
             e.preventDefault();
             const alerta = document.getElementById("alerta-perfil");
             const res = await fetch(`/usuarios/${usuarioActual.id_usuario}/perfil`, {
                 method: "PUT", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username: document.getElementById("perfil-username").value || null, foto_perfil: document.getElementById("perfil-foto").value || null })
+                body: JSON.stringify({ username: document.getElementById("perfil-username").value || null, foto_perfil: usuarioActual.foto_perfil })
             });
             const data = await res.json();
-            if (res.ok) { usuarioActual = data; localStorage.setItem("usuario_imss", JSON.stringify(usuarioActual)); inicializarInterfaz(); alerta.textContent = "Perfil actualizado."; alerta.className = "alert alert-success small py-2"; }
+            if (res.ok) { usuarioActual = data; localStorage.setItem("usuario_imss", JSON.stringify(usuarioActual)); inicializarInterfaz(); alerta.textContent = "Nombre de usuario actualizado."; alerta.className = "alert alert-success small py-2"; }
             else { alerta.textContent = data.detail; alerta.className = "alert alert-danger small py-2"; }
             alerta.classList.remove("d-none");
         });
