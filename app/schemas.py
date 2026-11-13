@@ -116,6 +116,30 @@ class EquipoCrear(BaseModel):
             raise ValueError("Si el equipo NO tiene garantía (false), fecha_expgarantia debe quedar vacía (null).")
         return self
 
+# Formulario para que un ADMIN modifique cualquier dato de un equipo existente
+class EquipoActualizar(BaseModel):
+    id_hospital: Optional[int] = None
+    id_proveedor: Optional[int] = None
+    nombre_equipo: str
+    area: str
+    subarea: Optional[str] = None
+    marca: str
+    modelo: Optional[str] = None
+    sn: str
+    nni: str
+    garantia: bool
+    fecha_expgarantia: Optional[date] = None
+    estatusfuncional: bool
+    observaciones: Optional[str] = None
+
+    @model_validator(mode='after')
+    def validar_regla_garantia_edicion(self):
+        if self.garantia is True and self.fecha_expgarantia is None:
+            raise ValueError("Si el equipo tiene garantía, debes indicar la fecha de expiración.")
+        if self.garantia is False and self.fecha_expgarantia is not None:
+            raise ValueError("Si el equipo NO tiene garantía, la fecha de expiración debe quedar vacía.")
+        return self
+
 # Lo que devuelve el sistema cuando consultamos un equipo
 # Reemplaza únicamente la clase EquipoRespuesta en app/schemas.py por esta:
 class EquipoRespuesta(BaseModel):

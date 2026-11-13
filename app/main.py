@@ -428,6 +428,40 @@ def filtrar_equipos(
 
     return consulta.order_by(models.Equipo.id_equipo).all()
 
+@app.put("/equipos/{id_equipo}", response_model=schemas.EquipoRespuesta, tags=["Equipos"])
+def actualizar_equipo(
+    id_equipo: int,
+    datos: schemas.EquipoActualizar,
+    id_admin: int = Query(..., description="ID del Administrador que realiza la modificación"),
+    db: Session = Depends(get_db)
+):
+    """Permite a un Administrador modificar los datos, garantía o estatus funcional de un equipo."""
+    # 1. Verificar que quien edita sea ADMIN
+    admin = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin).first()
+    if not admin or admin.rol != "ADMIN":
+        raise HTTPException(status_code=403, detail="Solo un Administrador puede modificar equipos.")
+
+    # 2. Buscar el equipo a modificar
+    equipo = db.query(models.Equipo).filter(models.Equipo.id_equipo == id_equipo).first()
+    if not equipo:
+        raise HTTPException(status_code=404, detail="Equipo no encontrado.")
+
+    # 3. Verificar que el nuevo SN o NNI no choque con el de OTRO equipo distinto
+    duplicado = db.query(models.Equipo).filter(
+        models.Equipo.id_equipo != id_equipo,
+        (models.Equipo.sn == datos.sn) | (models.Equipo.nni == datos.nni)
+    ).first()
+    if duplicado:
+        raise HTTPException(status_code=400, detail="Otro equipo ya tiene registrado ese Número de Serie (SN) o NNI.")
+
+    # 4. Actualizar todos los campos
+    for campo, valor in datos.model_dump().items():
+        setattr(equipo, campo, valor)
+
+    db.commit()
+    db.refresh(equipo)
+    return equipo
+
 
 # ==========================================================
 # 6. PROVEEDORES (VER Y AGREGAR)

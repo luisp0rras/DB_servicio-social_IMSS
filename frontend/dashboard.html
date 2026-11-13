@@ -155,7 +155,7 @@
                     <table class="table-clean">
                         <thead>
                             <tr>
-                                <th>ID Equipo</th>
+                                <th>Equipo</th>
                                 <th>Tipo</th>
                                 <th>Próxima Fecha</th>
                                 <th>Días</th>
@@ -364,12 +364,17 @@
         </section>
 
         <!-- ======================================================
-             VISTA 3: EQUIPOS MÉDICOS
+             VISTA 3: EQUIPOS MÉDICOS (CON EDICIÓN Y EXPORTACIÓN CSV)
              ====================================================== -->
         <section id="vista-equipos" class="vista-panel d-none">
-            <div class="mb-4">
-                <h4 class="fw-bold mb-1">Catálogo Maestro de Equipos Médicos</h4>
-                <p class="text-muted small mb-0">Filtra equipos por hospital, área, estado funcional o garantía</p>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4 class="fw-bold mb-1">Catálogo Maestro de Equipos Médicos</h4>
+                    <p class="text-muted small mb-0">Filtra equipos por hospital, área, estado funcional o garantía</p>
+                </div>
+                <button class="btn btn-secundario btn-sm" onclick="exportarEquiposCSV()">
+                    <i class="bi bi-download me-1"></i> Exportar Tabla a Excel (CSV)
+                </button>
             </div>
 
             <div class="card-clean">
@@ -408,10 +413,19 @@
                 <div class="table-responsive">
                     <table class="table-clean">
                         <thead>
-                            <tr><th>Equipo</th><th>Hospital</th><th>Área / Subárea</th><th>Marca / Modelo</th><th>NNI / SN</th><th>Garantía</th><th>Estatus</th></tr>
+                            <tr>
+                                <th>Equipo</th>
+                                <th>Hospital</th>
+                                <th>Área / Subárea</th>
+                                <th>Marca / Modelo</th>
+                                <th>NNI / SN</th>
+                                <th>Garantía</th>
+                                <th>Estatus</th>
+                                <th class="solo-admin d-none">Acción</th>
+                            </tr>
                         </thead>
                         <tbody id="tabla-catalogo-equipos">
-                            <tr><td colspan="7" class="text-center text-muted py-3">Cargando equipos...</td></tr>
+                            <tr><td colspan="8" class="text-center text-muted py-3">Cargando equipos...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -419,7 +433,7 @@
         </section>
 
         <!-- ======================================================
-             VISTA 4: MANTENIMIENTOS
+             VISTA 4: MANTENIMIENTOS (CON SELECTORES INTELIGENTES)
              ====================================================== -->
         <section id="vista-mantenimientos" class="vista-panel d-none">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -435,15 +449,15 @@
             <div id="panel-crear-mant" class="card-clean d-none" style="border-left: 4px solid var(--verde-imss);">
                 <h6 class="fw-bold mb-3">Nuevo Registro de Mantenimiento</h6>
                 <form id="form-registrar-mant" class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label small fw-semibold">ID del Equipo *</label>
-                        <input type="number" class="form-control form-control-sm" id="mant-id-equipo" placeholder="Ej. 1" required>
+                    <div class="col-md-5">
+                        <label class="form-label small fw-semibold">Seleccionar Equipo Médico *</label>
+                        <select class="form-select form-select-sm" id="mant-id-equipo" required></select>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label small fw-semibold">ID del Proveedor *</label>
-                        <input type="number" class="form-control form-control-sm" id="mant-id-proveedor" placeholder="Ej. 1" required>
+                        <label class="form-label small fw-semibold">Seleccionar Proveedor *</label>
+                        <select class="form-select form-select-sm" id="mant-id-proveedor" required></select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label small fw-semibold">Tipo de Mantenimiento *</label>
                         <select class="form-select form-select-sm" id="mant-tipo">
                             <option value="PREVENTIVO">PREVENTIVO</option>
@@ -473,10 +487,10 @@
                 <div class="table-responsive">
                     <table class="table-clean">
                         <thead>
-                            <tr><th>ID</th><th>Equipo</th><th>Tipo</th><th>Fecha</th><th>Próxima Fecha</th><th>Observaciones</th></tr>
+                            <tr><th>ID</th><th>Equipo</th><th>Proveedor</th><th>Tipo</th><th>Fecha</th><th>Próxima Fecha</th><th>Observaciones</th></tr>
                         </thead>
                         <tbody id="tabla-lista-mantenimientos">
-                            <tr><td colspan="6" class="text-center text-muted py-3">Cargando mantenimientos...</td></tr>
+                            <tr><td colspan="7" class="text-center text-muted py-3">Cargando mantenimientos...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -537,7 +551,7 @@
         </section>
 
         <!-- ======================================================
-             VISTA 6: REPOSITORIO DOCUMENTAL
+             VISTA 6: REPOSITORIO DOCUMENTAL (CON SELECTOR GUIADO)
              ====================================================== -->
         <section id="vista-documentos" class="vista-panel d-none">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -553,21 +567,21 @@
             <div id="panel-subir-doc" class="card-clean d-none" style="border-left: 4px solid var(--verde-imss);">
                 <h6 class="fw-bold mb-3">Subir Archivo al Servidor</h6>
                 <form id="form-subir-documento" class="row g-3">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label small fw-semibold">Título del Documento *</label>
                         <input type="text" class="form-control form-control-sm" id="doc-titulo" placeholder="ej. Minuta Supervisión HGR 66" required>
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label small fw-semibold">ID Equipo</label>
-                        <input type="number" class="form-control form-control-sm" id="doc-id-eq" placeholder="Opcional">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">¿A qué pertenece este documento? *</label>
+                        <select class="form-select form-select-sm" id="doc-tipo-asociacion" onchange="cambiarOpcionesAsociacionDoc()">
+                            <option value="inventario">A un Inventario Hospitalario</option>
+                            <option value="equipo">A un Equipo Médico</option>
+                            <option value="mantenimiento">A un Mantenimiento</option>
+                        </select>
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label small fw-semibold">ID Mantenimiento</label>
-                        <input type="number" class="form-control form-control-sm" id="doc-id-mant" placeholder="Opcional">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label small fw-semibold">ID Inventario</label>
-                        <input type="number" class="form-control form-control-sm" id="doc-id-inv" placeholder="Opcional">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Seleccionar Registro *</label>
+                        <select class="form-select form-select-sm" id="doc-id-destino" required></select>
                     </div>
                     <div class="col-12">
                         <label class="form-label small fw-semibold">Seleccionar Archivo (PDF o Imagen) *</label>
@@ -594,7 +608,7 @@
         </section>
 
         <!-- ======================================================
-             VISTA 7: MI PERFIL (CON SUBIDA DE FOTO DESDE ARCHIVOS)
+             VISTA 7: MI PERFIL
              ====================================================== -->
         <section id="vista-perfil" class="vista-panel d-none">
             <div class="mb-4">
@@ -609,7 +623,6 @@
                     <div class="card-clean h-100">
                         <h6 class="fw-bold mb-3">Información de Usuario</h6>
                         
-                        <!-- Bloque para subir foto desde el explorador de archivos -->
                         <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
                             <img id="perfil-preview-avatar" src="https://ui-avatars.com/api/?name=User&background=13322B&color=fff" 
                                  class="rounded-circle border" width="68" height="68" style="object-fit: cover;">
@@ -683,6 +696,85 @@
 
     </main>
 
+    <!-- ==========================================================
+         VENTANA EMERGENTE (MODAL) PARA EDITAR EQUIPO (SOLO ADMIN)
+         ========================================================== -->
+    <div class="modal fade" id="modalEditarEquipo" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 12px; border: 1px solid var(--borde-fino);">
+                <div class="modal-header border-bottom">
+                    <h6 class="modal-title fw-bold">Editar Equipo Médico</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="form-editar-equipo">
+                    <div class="modal-body">
+                        <input type="hidden" id="edit-eq-id">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Nombre del Equipo *</label>
+                                <input type="text" class="form-control form-control-sm" id="edit-eq-nombre" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Hospital Asignado</label>
+                                <select class="form-select form-select-sm" id="edit-eq-hospital"></select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Área *</label>
+                                <input type="text" class="form-control form-control-sm" id="edit-eq-area" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Subárea</label>
+                                <input type="text" class="form-control form-control-sm" id="edit-eq-subarea">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Estatus Funcional *</label>
+                                <select class="form-select form-select-sm" id="edit-eq-estatus">
+                                    <option value="true">Funcional</option>
+                                    <option value="false">Inactivo / Fuera de servicio</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold">Marca *</label>
+                                <input type="text" class="form-control form-control-sm" id="edit-eq-marca" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold">Modelo</label>
+                                <input type="text" class="form-control form-control-sm" id="edit-eq-modelo">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold">Número de Serie (SN) *</label>
+                                <input type="text" class="form-control form-control-sm" id="edit-eq-sn" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold">NNI *</label>
+                                <input type="text" class="form-control form-control-sm" id="edit-eq-nni" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">¿Tiene Garantía?</label>
+                                <select class="form-select form-select-sm" id="edit-eq-garantia" onchange="toggleEditGarantia()">
+                                    <option value="false">No</option>
+                                    <option value="true">Sí</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Expiración de Garantía</label>
+                                <input type="date" class="form-control form-control-sm" id="edit-eq-fecha-garantia">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Observaciones</label>
+                                <input type="text" class="form-control form-control-sm" id="edit-eq-obs">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top">
+                        <button type="button" class="btn btn-secundario btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primario btn-sm">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const usuarioGuardado = localStorage.getItem("usuario_imss");
@@ -690,9 +782,12 @@
         let usuarioActual = JSON.parse(usuarioGuardado);
 
         let mapaHospitales = {};
+        let mapaEquipos = {};
+        let mapaProveedores = {};
+        let listaEquiposActuales = []; // Para exportar a CSV y editar rápidamente
         let idInventarioActivo = null;
+        let modalEditarInstancia = null;
 
-        // FUNCIÓN PARA REEMPLAZAR CUALQUIER 'null' POR 'Sin información'
         function limpiarTexto(valor, esCodigo = false) {
             if (valor === null || valor === undefined || valor === "" || valor === "null") {
                 return `<span class="text-muted small">Sin información</span>`;
@@ -729,7 +824,9 @@
                 cargarListaUsuariosAdmin();
             }
 
-            await cargarCatalogoHospitales();
+            modalEditarInstancia = new bootstrap.Modal(document.getElementById("modalEditarEquipo"));
+
+            await cargarCatalogosBase();
             cargarAlertas();
         }
 
@@ -752,16 +849,39 @@
             window.location.href = "/app/login.html";
         }
 
-        async function cargarCatalogoHospitales() {
-            const res = await fetch("/hospitales/");
-            const hospitales = await res.json();
+        // Carga diccionarios de Hospitales, Equipos y Proveedores para mostrar nombres reales en vez de solo IDs
+        async function cargarCatalogosBase() {
+            const [resHosp, resEq, resProv] = await Promise.all([
+                fetch("/hospitales/"),
+                fetch("/equipos/"),
+                fetch("/proveedores/")
+            ]);
+            const hospitales = await resHosp.json();
+            const equipos = await resEq.json();
+            const proveedores = await resProv.json();
+
             const selectFiltro = document.getElementById("filtro-eq-hospital");
+            const selectEditHosp = document.getElementById("edit-eq-hospital");
             selectFiltro.innerHTML = `<option value="">Todos</option>`;
-            
+            selectEditHosp.innerHTML = `<option value="">Sin hospital</option>`;
+
             hospitales.forEach(h => {
                 mapaHospitales[h.id_hospital] = `${h.nombre} (${h.ciudad})`;
                 selectFiltro.innerHTML += `<option value="${h.id_hospital}">${h.nombre} - ${h.ciudad}</option>`;
+                selectEditHosp.innerHTML += `<option value="${h.id_hospital}">${h.nombre} - ${h.ciudad}</option>`;
             });
+
+            if (Array.isArray(equipos)) {
+                equipos.forEach(e => {
+                    mapaEquipos[e.id_equipo] = `${e.nombre_equipo || 'Equipo #' + e.id_equipo} (NNI: ${e.nni || 'S/N'})`;
+                });
+            }
+
+            if (Array.isArray(proveedores)) {
+                proveedores.forEach(p => {
+                    mapaProveedores[p.id_proveedor] = p.nombre_proveedor;
+                });
+            }
         }
 
         async function cargarAlertas() {
@@ -792,7 +912,7 @@
                 : data.alertas_mantenimientos.map(m => {
                     const badge = m.semaforo === "ATRASADO" ? `<span class="badge-soft-danger">Atrasado</span>` : `<span class="badge-soft-warning">Próximo</span>`;
                     return `<tr>
-                        <td class="fw-medium">Equipo #${m.id_equipo}</td>
+                        <td class="fw-medium">${mapaEquipos[m.id_equipo] || 'Equipo #' + m.id_equipo}</td>
                         <td>${limpiarTexto(m.tipo_mantenimiento)}</td>
                         <td>${limpiarTexto(m.proxima_fecha)}</td>
                         <td>${m.dias_restantes} días</td>
@@ -842,7 +962,7 @@
             const res = await fetch("/hospitales/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombre, ciudad, estado }) });
             if (res.ok) {
                 const nuevo = await res.json();
-                await cargarCatalogoHospitales();
+                await cargarCatalogosBase();
                 seleccionarHospital(nuevo.id_hospital, nuevo.nombre, nuevo.ciudad);
                 document.getElementById("subpanel-nuevo-hospital").classList.add("d-none");
             }
@@ -877,9 +997,7 @@
         async function cargarInventarios() {
             const res = await fetch(`/inventarios/?id_usuario_consulta=${usuarioActual.id_usuario}`);
             const lista = await res.json();
-            const mensajeVacio = usuarioActual.rol === "ADMIN" 
-                ? "No hay inventarios registrados aún." 
-                : "Aún no has sido asignado como participante en ningún inventario.";
+            const mensajeVacio = usuarioActual.rol === "ADMIN" ? "No hay inventarios registrados aún." : "Aún no has sido asignado como participante en ningún inventario.";
 
             document.getElementById("tabla-lista-inventarios").innerHTML = lista.length === 0 
                 ? `<tr><td colspan="5" class="text-center text-muted py-3">${mensajeVacio}</td></tr>` 
@@ -932,7 +1050,7 @@
                     estatusfuncional: document.getElementById("eq-estatus").value === "true", observaciones: document.getElementById("eq-obs").value || null
                 })
             });
-            if (res.ok) { document.getElementById("form-agregar-equipo").reset(); toggleFechaGarantia(); cargarEquiposDeInventarioActivo(); }
+            if (res.ok) { document.getElementById("form-agregar-equipo").reset(); toggleFechaGarantia(); await cargarCatalogosBase(); cargarEquiposDeInventarioActivo(); }
             else { const d = await res.json(); alert(d.detail); }
         });
 
@@ -943,7 +1061,7 @@
             const formData = new FormData(); formData.append("archivo_csv", archivo);
             const res = await fetch(`/inventarios/${idInventarioActivo}/importar-csv`, { method: "POST", body: formData });
             const data = await res.json();
-            if (res.ok) { alert(`Carga completada: ${data.equipos_registrados} agregados.`); document.getElementById("form-subir-csv").reset(); cargarEquiposDeInventarioActivo(); }
+            if (res.ok) { alert(`Carga completada: ${data.equipos_registrados} agregados.`); document.getElementById("form-subir-csv").reset(); await cargarCatalogosBase(); cargarEquiposDeInventarioActivo(); }
             else { alert(data.detail); }
         });
 
@@ -968,9 +1086,10 @@
             if (res.ok) { alert("Inventario finalizado."); cerrarPanelCaptura(); cargarInventarios(); }
         }
 
-        // ================= EQUIPOS FILTRADOS (SIN NULLS) =================
+        // ================= EQUIPOS FILTRADOS + EDICIÓN + EXPORTACIÓN CSV =================
         async function cargarEquiposFiltrados() {
             const tbody = document.getElementById("tabla-catalogo-equipos");
+            const esAdmin = usuarioActual.rol === "ADMIN";
             try {
                 const params = new URLSearchParams();
                 const texto = document.getElementById("filtro-eq-texto").value.trim();
@@ -986,15 +1105,18 @@
 
                 const res = await fetch(`/equipos/?${params.toString()}`);
                 const equipos = await res.json();
+                listaEquiposActuales = Array.isArray(equipos) ? equipos : [];
 
-                if (!res.ok || !Array.isArray(equipos)) {
-                    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">Error al cargar equipos. Verifica que schemas.py esté guardado.</td></tr>`;
+                if (listaEquiposActuales.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">Sin resultados.</td></tr>`;
                     return;
                 }
 
-                tbody.innerHTML = equipos.length === 0 
-                    ? `<tr><td colspan="7" class="text-center text-muted py-3">Sin resultados.</td></tr>` 
-                    : equipos.map(eq => `<tr>
+                tbody.innerHTML = listaEquiposActuales.map(eq => {
+                    const colAccion = esAdmin 
+                        ? `<td><button class="btn btn-secundario btn-sm" onclick="abrirModalEditarEquipo(${eq.id_equipo})" title="Editar equipo"><i class="bi bi-pencil"></i></button></td>` 
+                        : "";
+                    return `<tr>
                         <td class="fw-medium">${limpiarTexto(eq.nombre_equipo)}</td>
                         <td>${mapaHospitales[eq.id_hospital] || 'Sin hospital asignado'}</td>
                         <td>${limpiarTexto(eq.area)} ${eq.subarea ? '<br><small class="text-muted">' + eq.subarea + '</small>' : ''}</td>
@@ -1002,23 +1124,137 @@
                         <td>NNI: ${limpiarTexto(eq.nni, true)}<br><small class="text-muted">SN: ${limpiarTexto(eq.sn)}</small></td>
                         <td>${eq.garantia ? `<span class="badge-soft-success">Vence: ${limpiarTexto(eq.fecha_expgarantia)}</span>` : '<span class="badge-soft-neutral">Sin garantía</span>'}</td>
                         <td><span class="${eq.estatusfuncional ? 'badge-soft-success' : 'badge-soft-danger'}">${eq.estatusfuncional ? 'Funcional' : 'Inactivo'}</span></td>
-                    </tr>`).join("");
+                        ${colAccion}
+                    </tr>`;
+                }).join("");
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">Error de conexión al cargar equipos.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">Error al cargar equipos.</td></tr>`;
             }
         }
 
+        function toggleEditGarantia() {
+            const tiene = document.getElementById("edit-eq-garantia").value === "true";
+            const inputFecha = document.getElementById("edit-eq-fecha-garantia");
+            inputFecha.disabled = !tiene;
+            if (!tiene) inputFecha.value = "";
+        }
+
+        function abrirModalEditarEquipo(idEquipo) {
+            const eq = listaEquiposActuales.find(e => e.id_equipo === idEquipo);
+            if (!eq) return;
+
+            document.getElementById("edit-eq-id").value = eq.id_equipo;
+            document.getElementById("edit-eq-nombre").value = eq.nombre_equipo || "";
+            document.getElementById("edit-eq-hospital").value = eq.id_hospital || "";
+            document.getElementById("edit-eq-area").value = eq.area || "";
+            document.getElementById("edit-eq-subarea").value = eq.subarea || "";
+            document.getElementById("edit-eq-estatus").value = eq.estatusfuncional ? "true" : "false";
+            document.getElementById("edit-eq-marca").value = eq.marca || "";
+            document.getElementById("edit-eq-modelo").value = eq.modelo || "";
+            document.getElementById("edit-eq-sn").value = eq.sn || "";
+            document.getElementById("edit-eq-nni").value = eq.nni || "";
+            document.getElementById("edit-eq-garantia").value = eq.garantia ? "true" : "false";
+            document.getElementById("edit-eq-fecha-garantia").value = eq.fecha_expgarantia || "";
+            document.getElementById("edit-eq-obs").value = eq.observaciones || "";
+            toggleEditGarantia();
+
+            modalEditarInstancia.show();
+        }
+
+        document.getElementById("form-editar-equipo").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const idEq = document.getElementById("edit-eq-id").value;
+            const tieneGarantia = document.getElementById("edit-eq-garantia").value === "true";
+            const hospVal = document.getElementById("edit-eq-hospital").value;
+
+            const datos = {
+                id_hospital: hospVal ? parseInt(hospVal) : null,
+                nombre_equipo: document.getElementById("edit-eq-nombre").value,
+                area: document.getElementById("edit-eq-area").value,
+                subarea: document.getElementById("edit-eq-subarea").value || null,
+                marca: document.getElementById("edit-eq-marca").value,
+                modelo: document.getElementById("edit-eq-modelo").value || null,
+                sn: document.getElementById("edit-eq-sn").value,
+                nni: document.getElementById("edit-eq-nni").value,
+                garantia: tieneGarantia,
+                fecha_expgarantia: tieneGarantia ? document.getElementById("edit-eq-fecha-garantia").value : null,
+                estatusfuncional: document.getElementById("edit-eq-estatus").value === "true",
+                observaciones: document.getElementById("edit-eq-obs").value || null
+            };
+
+            const res = await fetch(`/equipos/${idEq}?id_admin=${usuarioActual.id_usuario}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(datos)
+            });
+
+            if (res.ok) {
+                modalEditarInstancia.hide();
+                await cargarCatalogosBase();
+                cargarEquiposFiltrados();
+                cargarAlertas();
+            } else {
+                const d = await res.json();
+                alert(d.detail || "No se pudo actualizar el equipo.");
+            }
+        });
+
+        function exportarEquiposCSV() {
+            if (listaEquiposActuales.length === 0) return alert("No hay equipos en la tabla para exportar.");
+
+            const encabezados = ["ID", "Equipo", "Hospital", "Area", "Subarea", "Marca", "Modelo", "NNI", "SN", "Garantia", "Expiracion_Garantia", "Estatus_Funcional", "Observaciones"];
+            const filas = listaEquiposActuales.map(eq => [
+                eq.id_equipo,
+                `"${(eq.nombre_equipo || '').replace(/"/g, '""')}"`,
+                `"${(mapaHospitales[eq.id_hospital] || '').replace(/"/g, '""')}"`,
+                `"${(eq.area || '').replace(/"/g, '""')}"`,
+                `"${(eq.subarea || '').replace(/"/g, '""')}"`,
+                `"${(eq.marca || '').replace(/"/g, '""')}"`,
+                `"${(eq.modelo || '').replace(/"/g, '""')}"`,
+                `"${(eq.nni || '').replace(/"/g, '""')}"`,
+                `"${(eq.sn || '').replace(/"/g, '""')}"`,
+                eq.garantia ? "SI" : "NO",
+                eq.fecha_expgarantia || "",
+                eq.estatusfuncional ? "FUNCIONAL" : "INACTIVO",
+                `"${(eq.observaciones || '').replace(/"/g, '""')}"`
+            ].join(","));
+
+            // \uFEFF asegura que Excel reconozca acentos y ñ automáticamente
+            const contenidoCSV = "\uFEFF" + [encabezados.join(","), ...filas].join("\n");
+            const blob = new Blob([contenidoCSV], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `reporte_equipos_imss_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+        }
+
         // ================= MANTENIMIENTOS =================
-        function toggleFormMantenimiento() { document.getElementById("panel-crear-mant").classList.toggle("d-none"); }
+        async function toggleFormMantenimiento() {
+            const panel = document.getElementById("panel-crear-mant");
+            panel.classList.toggle("d-none");
+            if (!panel.classList.contains("d-none")) {
+                await cargarCatalogosBase();
+                document.getElementById("mant-fecha").valueAsDate = new Date();
+                
+                const selEq = document.getElementById("mant-id-equipo");
+                selEq.innerHTML = Object.entries(mapaEquipos).map(([id, texto]) => `<option value="${id}">${texto}</option>`).join("");
+
+                const selProv = document.getElementById("mant-id-proveedor");
+                selProv.innerHTML = Object.entries(mapaProveedores).map(([id, texto]) => `<option value="${id}">${texto}</option>`).join("");
+            }
+        }
         
         async function cargarMantenimientos() {
+            await cargarCatalogosBase();
             const res = await fetch("/mantenimientos/");
             const lista = await res.json();
             document.getElementById("tabla-lista-mantenimientos").innerHTML = lista.length === 0 
-                ? `<tr><td colspan="6" class="text-center text-muted py-3">Sin mantenimientos registrados.</td></tr>` 
+                ? `<tr><td colspan="7" class="text-center text-muted py-3">Sin mantenimientos registrados.</td></tr>` 
                 : lista.map(m => `<tr>
                     <td>#${m.id_mantenimiento}</td>
-                    <td>Equipo #${m.id_equipo}</td>
+                    <td class="fw-medium">${mapaEquipos[m.id_equipo] || 'Equipo #' + m.id_equipo}</td>
+                    <td>${mapaProveedores[m.id_proveedor] || 'Proveedor #' + m.id_proveedor}</td>
                     <td><span class="badge-soft-neutral">${limpiarTexto(m.tipo_mantenimiento)}</span></td>
                     <td>${limpiarTexto(m.fecha)}</td>
                     <td>${limpiarTexto(m.prox_fecha)}</td>
@@ -1039,7 +1275,7 @@
                     observaciones: document.getElementById("mant-obs").value || null
                 })
             });
-            if (res.ok) { document.getElementById("form-registrar-mant").reset(); toggleFormMantenimiento(); cargarMantenimientos(); }
+            if (res.ok) { document.getElementById("form-registrar-mant").reset(); toggleFormMantenimiento(); cargarMantenimientos(); cargarAlertas(); }
             else { const d = await res.json(); alert(d.detail); }
         });
 
@@ -1071,20 +1307,45 @@
                     nombre_contacto: document.getElementById("prov-contacto").value || null
                 })
             });
-            if (res.ok) { document.getElementById("form-registrar-prov").reset(); toggleFormProveedor(); cargarProveedores(); }
+            if (res.ok) { document.getElementById("form-registrar-prov").reset(); toggleFormProveedor(); await cargarCatalogosBase(); cargarProveedores(); }
             else { const d = await res.json(); alert(d.detail); }
         });
 
         // ================= DOCUMENTOS =================
-        function toggleFormDocumento() { document.getElementById("panel-subir-doc").classList.toggle("d-none"); }
+        async function toggleFormDocumento() {
+            const panel = document.getElementById("panel-subir-doc");
+            panel.classList.toggle("d-none");
+            if (!panel.classList.contains("d-none")) {
+                await cambiarOpcionesAsociacionDoc();
+            }
+        }
+
+        async function cambiarOpcionesAsociacionDoc() {
+            const tipo = document.getElementById("doc-tipo-asociacion").value;
+            const selectDestino = document.getElementById("doc-id-destino");
+            await cargarCatalogosBase();
+
+            if (tipo === "inventario") {
+                const res = await fetch(`/inventarios/?id_usuario_consulta=${usuarioActual.id_usuario}`);
+                const invs = await res.json();
+                selectDestino.innerHTML = invs.map(i => `<option value="${i.id_inventario}">Inventario #${i.id_inventario} - ${mapaHospitales[i.id_hospital] || ''} (${i.fecha})</option>`).join("");
+            } else if (tipo === "equipo") {
+                selectDestino.innerHTML = Object.entries(mapaEquipos).map(([id, texto]) => `<option value="${id}">${texto}</option>`).join("");
+            } else if (tipo === "mantenimiento") {
+                const res = await fetch("/mantenimientos/");
+                const mants = await res.json();
+                selectDestino.innerHTML = mants.map(m => `<option value="${m.id_mantenimiento}">Mant #${m.id_mantenimiento} - ${mapaEquipos[m.id_equipo] || ''} (${m.fecha})</option>`).join("");
+            }
+        }
 
         async function cargarDocumentos() {
+            await cargarCatalogosBase();
             const res = await fetch("/documentos/");
             const lista = await res.json();
             document.getElementById("tabla-lista-documentos").innerHTML = lista.length === 0 
                 ? `<tr><td colspan="5" class="text-center text-muted py-3">Sin documentos registrados.</td></tr>` 
                 : lista.map(d => {
-                    let asociado = d.id_equipo ? `Equipo #${d.id_equipo}` : (d.id_mantenimiento ? `Mant #${d.id_mantenimiento}` : `Inventario #${d.id_inventario}`);
+                    let asociado = d.id_equipo ? (mapaEquipos[d.id_equipo] || `Equipo #${d.id_equipo}`) : (d.id_mantenimiento ? `Mantenimiento #${d.id_mantenimiento}` : `Inventario #${d.id_inventario}`);
                     return `<tr>
                         <td>#${d.id_documento}</td>
                         <td class="fw-medium">${limpiarTexto(d.nombredocumento)}</td>
@@ -1099,12 +1360,13 @@
             e.preventDefault();
             const formData = new FormData();
             formData.append("nombre_documento", document.getElementById("doc-titulo").value);
-            const eq = document.getElementById("doc-id-eq").value;
-            const mant = document.getElementById("doc-id-mant").value;
-            const inv = document.getElementById("doc-id-inv").value;
-            if (eq) formData.append("id_equipo", eq);
-            if (mant) formData.append("id_mantenimiento", mant);
-            if (inv) formData.append("id_inventario", inv);
+            
+            const tipo = document.getElementById("doc-tipo-asociacion").value;
+            const idDestino = document.getElementById("doc-id-destino").value;
+            if (tipo === "equipo") formData.append("id_equipo", idDestino);
+            if (tipo === "mantenimiento") formData.append("id_mantenimiento", idDestino);
+            if (tipo === "inventario") formData.append("id_inventario", idDestino);
+            
             formData.append("archivo", document.getElementById("doc-archivo").files[0]);
 
             const res = await fetch("/documentos/subir", { method: "POST", body: formData });
@@ -1112,21 +1374,16 @@
             else { const d = await res.json(); alert(d.detail); }
         });
 
-        // ================= PERFIL (CON SUBIDA DE FOTO DESDE ARCHIVO) =================
+        // ================= PERFIL =================
         async function subirFotoDesdeExplorador() {
             const inputFoto = document.getElementById("input-archivo-foto");
             const alerta = document.getElementById("alerta-perfil");
-            if (!inputFoto.files[0]) {
-                return alert("Primero selecciona una imagen desde tu computadora.");
-            }
+            if (!inputFoto.files[0]) return alert("Primero selecciona una imagen desde tu computadora.");
 
             const formData = new FormData();
             formData.append("foto", inputFoto.files[0]);
 
-            const res = await fetch(`/usuarios/${usuarioActual.id_usuario}/foto`, {
-                method: "POST",
-                body: formData
-            });
+            const res = await fetch(`/usuarios/${usuarioActual.id_usuario}/foto`, { method: "POST", body: formData });
             const data = await res.json();
 
             if (res.ok) {
