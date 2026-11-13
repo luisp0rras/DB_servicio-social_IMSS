@@ -1,3 +1,5 @@
+import csv
+import io
 import os
 import shutil
 import bcrypt
@@ -602,4 +604,107 @@ def obtener_alertas_proximas(
         "alertas_garantias": alertas_garantias,
         "total_alertas_mantenimiento": len(alertas_mantenimientos),
         "alertas_mantenimientos": alertas_mantenimientos
+    }
+
+
+# ==========================================================
+# 10. IMPORTACIÓN MASIVA DE EQUIPOS DESDE CSV (SIN TABLAS TEMPORALES)
+# ==========================================================
+
+@app.post("/inventarios/{id_inventario}/importar-csv", tags=["Inventarios"])
+def importar_equipos_csv(
+    id_inventario: int,
+    archivo_csv: UploadFile = File(..., description="Selecciona tu archivo .csv con los equipos del hospital"),
+    db: Session = Depends(get_db)
+):
+    """
+    Lee un archivo CSV de Excel y registra todos los equipos automáticamente en el inventario:
+    - Les asigna el hospital del inventario.
+    - Salta filas con NNI o Número de Serie (SN) duplicados para que no falle la carga.
+    - Los vincula en la tabla inventario_equipo.
+    """
+    # 1. Revisar que el inventario exista y siga EN_PROCESO
+    inventario = db.query(models.Inventario).filter(models.Inventario.id_inventario == id_inventario).first()
+    if not inventario:
+        raise HTTPException(status_code=404, detail="El inventario no existe.")
+    if inventario.estado == "FINALIZADO":
+        raise HTTPException(status_code=400, detail="Este inventario ya está FINALIZADO y no admite más equipos.")
+
+    # 2. Leer el contenido del archivo CSV (soporta acentos y ñ con utf-8-sig o latin-1)
+    contenido_bytes = archivo_csv.file.read()
+    try:
+        texto_csv = contenido_bytes.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        texto_csv = contenido_bytes.decode("latin-1")
+
+    lector = csv.DictReader(io.StringIO(texto_csv))
+
+    equipos_insertados = 0
+    equipos_omitidos = []
+
+    # 3. Recorrer fila por fila el CSV
+    for num_fila, fila in enumerate(lector, start=2):
+        # Limpiar espacios en blanco de los nombres de columna y valores
+        fila_limpia = {k.strip().lower(): (v.strip() if v else None) for k, v in fila.items() if k}
+
+        sn = fila_limpia.get("sn")
+        nni = fila_limpia.get("nni")
+
+        # Si la fila está vacía o no tiene NNI ni SN, la saltamos
+        if not sn and not nni:
+            continue
+
+        # Verificar si ya existe ese SN o NNI en la base de datos (evita el error de repetidos)
+        duplicado = db.query(models.Equipo).filter(
+            (models.Equipo.sn == sn) | (models.Equipo.nni == nni)
+        ).first()
+
+        if duplicado:
+            equipos_omitidos.append(f"Fila {num_fila}: NNI '{nni}' o SN '{sn}' ya registrado.")
+            continue
+
+        # Convertir textos como 'TRUE'/'SI'/'1' a valores booleanos de Python (True/False)
+        garantia_txt = str(fila_limpia.get("garantia", "")).upper()
+        tiene_garantia = garantia_txt in ["TRUE", "1", "SI", "SÍ", "T", "YES"]
+
+        estatus_txt = str(fila_limpia.get("estatusfuncional", "TRUE")).upper()
+        es_funcional = estatus_txt in ["TRUE", "1", "SI", "SÍ", "T", "YES", "FUNCIONAL"]
+
+        fecha_garantia = fila_limpia.get("fecha_expgarantia") if tiene_garantia else None
+
+        # Crear el equipo ligado al hospital del inventario
+        nuevo_equipo = models.Equipo(
+            id_hospital=inventario.id_hospital,
+            nombre_equipo=fila_limpia.get("nombre_equipo"),
+            area=fila_limpia.get("area"),
+            subarea=fila_limpia.get("subarea"),
+            marca=fila_limpia.get("marca"),
+            modelo=fila_limpia.get("modelo"),
+            sn=sn,
+            nni=nni,
+            garantia=tiene_garantia,
+            fecha_expgarantia=fecha_garantia,
+            estatusfuncional=es_funcional,
+            observaciones=fila_limpia.get("observaciones")
+        )
+        db.add(nuevo_equipo)
+        db.flush()  # Obtiene el id_equipo recién creado
+
+        # Vincular con el inventario actual
+        vinculo = models.InventarioEquipo(
+            id_inventario=id_inventario,
+            id_equipo=nuevo_equipo.id_equipo
+        )
+        db.add(vinculo)
+        equipos_insertados += 1
+
+    db.commit()
+
+    return {
+        "mensaje": "Importación de CSV completada con éxito",
+        "id_inventario": id_inventario,
+        "id_hospital_asignado": inventario.id_hospital,
+        "equipos_registrados": equipos_insertados,
+        "duplicados_omitidos": len(equipos_omitidos),
+        "detalle_omitidos": equipos_omitidos
     }
