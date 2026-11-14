@@ -1,43 +1,60 @@
-import csv
-import io
 import os
+import io
+import csv
 import shutil
-import bcrypt
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, RedirectResponse
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import date, timedelta
+from typing import List, Optional
+
+import bcrypt
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, status, Query, UploadFile, File, Form
-from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from typing import List, Optional
 
 from .database import get_db
 from . import models, schemas
 
+load_dotenv()
+
 app = FastAPI(
     title="API - Gestión de Equipos Médicos IMSS",
     description="Backend para el control de inventarios, mantenimientos y equipos médicos hospitalarios.",
-    version="0.3.0"
+    version="0.4.0"
 )
+
+# Conectar carpetas estáticas para el Frontend y los Archivos Subidos
+os.makedirs("frontend", exist_ok=True)
+app.mount("/app", StaticFiles(directory="frontend"), name="frontend")
+
+os.makedirs("archivos_subidos/perfiles", exist_ok=True)
+app.mount("/archivos", StaticFiles(directory="archivos_subidos"), name="archivos")
+
+@app.get("/", include_in_schema=False)
+def pagina_principal():
+    """Al entrar a la raíz del servidor, redirige a la pantalla de Login."""
+    return RedirectResponse(url="/app/login.html")
+
 
 # ==========================================================
 # FUNCIONES DE AYUDA PARA CONTRASEÑAS (CANDADOS)
 # ==========================================================
 
 def encriptar_password(password_plana: str) -> str:
-    """Convierte una contraseña normal (ej. '12345') en un texto secreto encriptado."""
     sal = bcrypt.gensalt()
     encriptada = bcrypt.hashpw(password_plana.encode('utf-8'), sal)
     return encriptada.decode('utf-8')
 
 def verificar_password(password_plana: str, password_guardada: str) -> bool:
-    """Compara la contraseña que escribió el usuario con la que está en la base de datos."""
     try:
-        # Si la contraseña en la BD está encriptada con bcrypt (empieza con $2b$)
         if password_guardada.startswith("$2b$"):
             return bcrypt.checkpw(password_plana.encode('utf-8'), password_guardada.encode('utf-8'))
-        # Por si tienes usuarios viejos de prueba en la BD con contraseñas sin encriptar
         return password_plana == password_guardada
     except Exception:
         return False
@@ -46,19 +63,6 @@ def verificar_password(password_plana: str, password_guardada: str) -> bool:
 # ==========================================================
 # 1. RUTAS GENERALES (PRUEBA DE CONEXIÓN)
 # ==========================================================
-
-# Conectar la carpeta 'frontend' para que el servidor muestre las páginas HTML y CSS
-os.makedirs("frontend", exist_ok=True)
-app.mount("/app", StaticFiles(directory="frontend"), name="frontend")
-
-# NUEVO: Permite que el navegador pueda mostrar las fotos de perfil guardadas en el servidor
-os.makedirs("archivos_subidos/perfiles", exist_ok=True)
-app.mount("/archivos", StaticFiles(directory="archivos_subidos"), name="archivos")
-
-@app.get("/", include_in_schema=False)
-def pagina_principal():
-    """Al entrar a http://127.0.0.1:8000, abre directamente la pantalla de Login."""
-    return RedirectResponse(url="/app/login.html")
 
 @app.get("/health-db", tags=["General"])
 def probar_conexion_bd(db: Session = Depends(get_db)):
@@ -79,8 +83,6 @@ def probar_conexion_bd(db: Session = Depends(get_db)):
 
 @app.post("/usuarios/registro", response_model=schemas.UsuarioRespuesta, status_code=status.HTTP_201_CREATED, tags=["Usuarios y Login"])
 def registrar_usuario(datos: schemas.UsuarioRegistro, db: Session = Depends(get_db)):
-    """Registra un usuario nuevo. Por seguridad, todos nacen con el rol 'EMPLEADO'."""
-    
     correo_ocupado = db.query(models.Usuario).filter(models.Usuario.correo == datos.correo).first()
     if correo_ocupado:
         raise HTTPException(status_code=400, detail="Ese correo electrónico ya está registrado.")
@@ -108,10 +110,7 @@ def registrar_usuario(datos: schemas.UsuarioRegistro, db: Session = Depends(get_
 
 @app.post("/usuarios/login", tags=["Usuarios y Login"])
 def iniciar_sesion(credenciales: schemas.UsuarioLogin, db: Session = Depends(get_db)):
-    """Verifica correo y contraseña, y devuelve los datos del usuario junto con su rol (ADMIN o EMPLEADO)."""
-    
     usuario = db.query(models.Usuario).filter(models.Usuario.correo == credenciales.correo).first()
-    
     if not usuario or not verificar_password(credenciales.password, usuario.password_hash):
         raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos.")
     
@@ -123,20 +122,24 @@ def iniciar_sesion(credenciales: schemas.UsuarioLogin, db: Session = Depends(get
 
 @app.get("/usuarios/", response_model=List[schemas.UsuarioRespuesta], tags=["Usuarios y Login"])
 def listar_usuarios(db: Session = Depends(get_db)):
-    """Muestra la lista de todos los usuarios registrados (útil para elegir participantes de un inventario)."""
-    return db.query(models.Usuario).all()
+    return db.query(models.Usuario).order_by(models.Usuario.id_usuario).all()
 
 
 @app.put("/usuarios/{id_usuario}/perfil", response_model=schemas.UsuarioRespuesta, tags=["Usuarios y Login"])
 def actualizar_perfil(id_usuario: int, datos: schemas.UsuarioActualizarPerfil, db: Session = Depends(get_db)):
-    """Permite al usuario cambiar su nombre de usuario (username) o su foto de perfil."""
-    
     usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
     if datos.username is not None:
+        otro = db.query(models.Usuario).filter(
+            models.Usuario.id_usuario != id_usuario,
+            models.Usuario.username == datos.username
+        ).first()
+        if otro:
+            raise HTTPException(status_code=400, detail="Ese nombre de usuario ya está ocupado.")
         usuario.username = datos.username
+
     if datos.foto_perfil is not None:
         usuario.foto_perfil = datos.foto_perfil
 
@@ -144,36 +147,32 @@ def actualizar_perfil(id_usuario: int, datos: schemas.UsuarioActualizarPerfil, d
     db.refresh(usuario)
     return usuario
 
+
 @app.post("/usuarios/{id_usuario}/foto", response_model=schemas.UsuarioRespuesta, tags=["Usuarios y Login"])
 def subir_foto_perfil(
     id_usuario: int,
     foto: UploadFile = File(..., description="Selecciona una imagen (JPG, PNG) desde tu computadora"),
     db: Session = Depends(get_db)
 ):
-    """Guarda la foto de perfil físicamente en el servidor y actualiza la ruta del usuario."""
     usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
-    # Extraer extensión (.jpg, .png) y crear un nombre limpio por usuario
     extension = os.path.splitext(foto.filename)[1] or ".png"
     nombre_archivo = f"avatar_usuario_{id_usuario}{extension}"
     ruta_fisica = os.path.join("archivos_subidos", "perfiles", nombre_archivo)
 
-    # Guardar la imagen en la carpeta
     with open(ruta_fisica, "wb") as buffer:
         shutil.copyfileobj(foto.file, buffer)
 
-    # Guardar la URL relativa en la base de datos
     usuario.foto_perfil = f"/archivos/perfiles/{nombre_archivo}"
     db.commit()
     db.refresh(usuario)
     return usuario
 
+
 @app.put("/usuarios/{id_usuario}/cambiar-password", tags=["Usuarios y Login"])
 def cambiar_password(id_usuario: int, datos: schemas.UsuarioCambiarPassword, db: Session = Depends(get_db)):
-    """Permite al usuario cambiar su contraseña verificando primero que conozca la actual."""
-    
     usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
@@ -189,18 +188,16 @@ def cambiar_password(id_usuario: int, datos: schemas.UsuarioCambiarPassword, db:
 @app.put("/usuarios/{id_usuario_objetivo}/hacer-admin", response_model=schemas.UsuarioRespuesta, tags=["Usuarios y Login"])
 def convertir_en_administrador(
     id_usuario_objetivo: int, 
-    id_admin_que_autoriza: int = Query(..., description="ID del administrador que está dando el permiso"), 
+    id_admin_que_autoriza: int = Query(...), 
     db: Session = Depends(get_db)
 ):
-    """Permite que un Administrador convierta a otro usuario en ADMIN."""
-    
     admin = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin_que_autoriza).first()
     if not admin or admin.rol != "ADMIN":
-        raise HTTPException(status_code=403, detail="Acceso denegado: Solo un Administrador puede crear otros administradores.")
+        raise HTTPException(status_code=403, detail="Solo un Administrador puede crear otros administradores.")
     
     usuario_objetivo = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario_objetivo).first()
     if not usuario_objetivo:
-        raise HTTPException(status_code=404, detail="El usuario que intentas hacer administrador no existe.")
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
     
     usuario_objetivo.rol = "ADMIN"
     db.commit()
@@ -209,32 +206,25 @@ def convertir_en_administrador(
 
 
 # ==========================================================
-# 3. HOSPITALES (CON BUSCADOR TIPO LISTA DESPLEGABLE)
+# 3. HOSPITALES
 # ==========================================================
 
 @app.get("/hospitales/", response_model=List[schemas.HospitalRespuesta], tags=["Hospitales"])
 def buscar_o_listar_hospitales(
-    buscar: Optional[str] = Query(None, description="Escribe parte del nombre o ciudad del hospital (ej. 'UMF' o 'Delicias')"),
+    buscar: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
-    """
-    Si no escribes nada en 'buscar', devuelve todos los hospitales.
-    Si escribes algo (ej. '33' o 'Delicias'), filtra la lista como un buscador desplegable.
-    """
     consulta = db.query(models.Hospital)
-    
     if buscar:
         consulta = consulta.filter(
             (models.Hospital.nombre.ilike(f"%{buscar}%")) | 
             (models.Hospital.ciudad.ilike(f"%{buscar}%"))
         )
-        
     return consulta.order_by(models.Hospital.nombre).all()
 
 
 @app.post("/hospitales/", response_model=schemas.HospitalRespuesta, status_code=status.HTTP_201_CREATED, tags=["Hospitales"])
 def registrar_hospital(hospital: schemas.HospitalCrear, db: Session = Depends(get_db)):
-    """Si el hospital no apareció en el buscador, aquí se registra uno nuevo."""
     nuevo_hospital = models.Hospital(**hospital.model_dump())
     db.add(nuevo_hospital)
     db.commit()
@@ -248,12 +238,6 @@ def registrar_hospital(hospital: schemas.HospitalCrear, db: Session = Depends(ge
 
 @app.post("/inventarios/", response_model=schemas.InventarioRespuesta, status_code=status.HTTP_201_CREATED, tags=["Inventarios"])
 def iniciar_inventario(datos: schemas.InventarioCrear, db: Session = Depends(get_db)):
-    """
-    PASOS 2 y 3 DEL FLUJO:
-    1. Revisa que quien lo crea sea ADMIN.
-    2. Crea el inventario en estado 'EN_PROCESO'.
-    3. Agrega automáticamente al ADMIN y a los demás usuarios participantes.
-    """
     admin = db.query(models.Usuario).filter(models.Usuario.id_usuario == datos.id_admin_creador).first()
     if not admin or admin.rol != "ADMIN":
         raise HTTPException(status_code=403, detail="Solo un Administrador puede iniciar un inventario.")
@@ -295,10 +279,6 @@ def registrar_equipo_en_inventario(
     equipo: schemas.EquipoCrear,
     db: Session = Depends(get_db)
 ):
-    """
-    PASO 4 DEL FLUJO:
-    Registra un equipo dentro del inventario activo y le asigna automáticamente el hospital.
-    """
     inventario = db.query(models.Inventario).filter(models.Inventario.id_inventario == id_inventario).first()
     if not inventario:
         raise HTTPException(status_code=404, detail="El inventario no existe.")
@@ -332,13 +312,9 @@ def registrar_equipo_en_inventario(
 @app.put("/inventarios/{id_inventario}/finalizar", response_model=schemas.InventarioRespuesta, tags=["Inventarios"])
 def finalizar_inventario(
     id_inventario: int,
-    id_admin: int = Query(..., description="ID del Administrador que finaliza el inventario"),
+    id_admin: int = Query(...),
     db: Session = Depends(get_db)
 ):
-    """
-    PASO 5 DEL FLUJO:
-    Cambia el estado del inventario a 'FINALIZADO' para cerrar la captura de equipos.
-    """
     admin = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin).first()
     if not admin or admin.rol != "ADMIN":
         raise HTTPException(status_code=403, detail="Solo un Administrador puede finalizar un inventario.")
@@ -355,16 +331,11 @@ def finalizar_inventario(
 
 @app.get("/inventarios/", response_model=List[schemas.InventarioRespuesta], tags=["Inventarios"])
 def ver_inventarios(
-    id_usuario_consulta: int = Query(..., description="ID del usuario que está viendo la pantalla"),
-    id_hospital: Optional[int] = Query(None, description="Filtrar por hospital"),
-    estado: Optional[str] = Query(None, description="Filtrar por 'EN_PROCESO' o 'FINALIZADO'"),
+    id_usuario_consulta: int = Query(...),
+    id_hospital: Optional[int] = Query(None),
+    estado: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
-    """
-    Muestra los inventarios según el permiso del usuario:
-    - Si es ADMIN: Puede ver TODOS los inventarios de todos los hospitales.
-    - Si es EMPLEADO: Solo ve los inventarios en los que él participó.
-    """
     usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario_consulta).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
@@ -386,21 +357,21 @@ def ver_inventarios(
 
 
 # ==========================================================
-# 5. CONSULTA Y FILTROS DE EQUIPOS MÉDICOS
+# 5. CONSULTA, FILTROS Y EXPORTACIÓN EXCEL DE EQUIPOS MÉDICOS
 # ==========================================================
 
-@app.get("/equipos/", response_model=List[schemas.EquipoRespuesta], tags=["Equipos"])
-def filtrar_equipos(
-    id_hospital: Optional[int] = Query(None, description="Filtrar por ID de hospital"),
-    id_inventario: Optional[int] = Query(None, description="Filtrar equipos de un inventario específico"),
-    area: Optional[str] = Query(None, description="Buscar por área (ej. 'Urgencias' o 'Area 03')"),
-    marca: Optional[str] = Query(None, description="Buscar por marca"),
-    garantia: Optional[bool] = Query(None, description="True = Con garantía, False = Sin garantía"),
-    estatusfuncional: Optional[bool] = Query(None, description="True = Funcional, False = Dañado"),
-    buscar_texto: Optional[str] = Query(None, description="Buscar por nombre, NNI o Número de Serie (SN)"),
-    db: Session = Depends(get_db)
+def construir_consulta_equipos(
+    db: Session,
+    id_hospital: Optional[int] = None,
+    id_inventario: Optional[int] = None,
+    id_proveedor: Optional[int] = None,
+    area: Optional[str] = None,
+    marca: Optional[str] = None,
+    garantia: Optional[bool] = None,
+    estatusfuncional: Optional[bool] = None,
+    buscar_texto: Optional[str] = None
 ):
-    """Permite buscar y filtrar equipos combinando todos los requisitos que necesites."""
+    """Función reutilizable para aplicar exactamente los mismos filtros en pantalla y en el Excel."""
     consulta = db.query(models.Equipo)
 
     if id_inventario is not None:
@@ -411,6 +382,8 @@ def filtrar_equipos(
 
     if id_hospital is not None:
         consulta = consulta.filter(models.Equipo.id_hospital == id_hospital)
+    if id_proveedor is not None:
+        consulta = consulta.filter(models.Equipo.id_proveedor == id_proveedor)
     if area:
         consulta = consulta.filter(models.Equipo.area.ilike(f"%{area}%"))
     if marca:
@@ -428,25 +401,181 @@ def filtrar_equipos(
 
     return consulta.order_by(models.Equipo.id_equipo).all()
 
+
+@app.get("/equipos/", response_model=List[schemas.EquipoRespuesta], tags=["Equipos"])
+def filtrar_equipos(
+    id_hospital: Optional[int] = Query(None),
+    id_inventario: Optional[int] = Query(None),
+    id_proveedor: Optional[int] = Query(None),
+    area: Optional[str] = Query(None),
+    marca: Optional[str] = Query(None),
+    garantia: Optional[bool] = Query(None),
+    estatusfuncional: Optional[bool] = Query(None),
+    buscar_texto: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    return construir_consulta_equipos(
+        db, id_hospital, id_inventario, id_proveedor, area, marca, garantia, estatusfuncional, buscar_texto
+    )
+
+
+@app.get("/exportar/equipos-excel", tags=["Equipos"])
+def exportar_equipos_excel(
+    id_hospital: Optional[int] = Query(None),
+    id_inventario: Optional[int] = Query(None),
+    id_proveedor: Optional[int] = Query(None),
+    area: Optional[str] = Query(None),
+    marca: Optional[str] = Query(None),
+    garantia: Optional[bool] = Query(None),
+    estatusfuncional: Optional[bool] = Query(None),
+    buscar_texto: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Genera un archivo Excel (.xlsx) con estilo institucional IMSS que contiene
+    únicamente los equipos que coinciden con los filtros seleccionados o con un inventario específico.
+    """
+    equipos = construir_consulta_equipos(
+        db, id_hospital, id_inventario, id_proveedor, area, marca, garantia, estatusfuncional, buscar_texto
+    )
+
+    # Diccionarios para traducir IDs a nombres reales en el Excel
+    hospitales = {h.id_hospital: f"{h.nombre} ({h.ciudad})" for h in db.query(models.Hospital).all()}
+    proveedores = {p.id_proveedor: p.nombre_proveedor for p in db.query(models.Proveedor).all()}
+
+    # Crear libro de Excel
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Equipos Biomédicos"
+
+    # Estilos institucionales IMSS
+    relleno_verde = PatternFill(start_color="13322B", end_color="13322B", fill_type="solid")
+    relleno_subtitulo = PatternFill(start_color="EBF3F0", end_color="EBF3F0", fill_type="solid")
+    fuente_titulo = Font(name="Calibri", size=13, bold=True, color="FFFFFF")
+    fuente_encabezado = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    fuente_subtitulo = Font(name="Calibri", size=10, italic=True, color="13322B")
+    borde_fino = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    # Fila 1: Banner Principal
+    ws.merge_cells("A1:L1")
+    ws["A1"] = "INSTITUTO MEXICANO DEL SEGURO SOCIAL - REPORTE DE EQUIPO BIOMÉDICO"
+    ws["A1"].fill = relleno_verde
+    ws["A1"].font = fuente_titulo
+    ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 26
+
+    # Fila 2: Resumen de los filtros aplicados
+    resumen_filtros = []
+    if id_inventario:
+        inv = db.query(models.Inventario).filter(models.Inventario.id_inventario == id_inventario).first()
+        if inv:
+            resumen_filtros.append(f"Inventario #{inv.id_inventario} ({inv.fecha})")
+            if not id_hospital:
+                resumen_filtros.append(f"Hospital: {hospitales.get(inv.id_hospital, inv.id_hospital)}")
+    if id_hospital:
+        resumen_filtros.append(f"Hospital: {hospitales.get(id_hospital, id_hospital)}")
+    if id_proveedor:
+        resumen_filtros.append(f"Proveedor: {proveedores.get(id_proveedor, id_proveedor)}")
+    if area:
+        resumen_filtros.append(f"Área: {area}")
+    if marca:
+        resumen_filtros.append(f"Marca: {marca}")
+    if garantia is not None:
+        resumen_filtros.append(f"Garantía: {'Con garantía' if garantia else 'Sin garantía'}")
+    if estatusfuncional is not None:
+        resumen_filtros.append(f"Estatus: {'Funcional' if estatusfuncional else 'Inactivo'}")
+    if buscar_texto:
+        resumen_filtros.append(f"Búsqueda: '{buscar_texto}'")
+
+    texto_criterios = " | ".join(resumen_filtros) if resumen_filtros else "Catálogo General"
+    ws.merge_cells("A2:L2")
+    ws["A2"] = f"Fecha de emisión: {date.today()}   —   Criterios aplicados: {texto_criterios}   —   Total de equipos: {len(equipos)}"
+    ws["A2"].fill = relleno_subtitulo
+    ws["A2"].font = fuente_subtitulo
+    ws["A2"].alignment = Alignment(horizontal="left", vertical="center")
+    ws.row_dimensions[2].height = 20
+
+    # Fila 4: Encabezados de la tabla
+    encabezados = [
+        "ID", "Nombre del Equipo", "Hospital", "Área", "Subárea",
+        "Marca", "Modelo", "NNI", "Número de Serie (SN)", "Proveedor",
+        "Garantía / Vigencia", "Estatus Funcional"
+    ]
+    ws.append([])  # Fila 3 vacía de separación
+    ws.append(encabezados)
+    ws.row_dimensions[4].height = 22
+
+    for col_num in range(1, len(encabezados) + 1):
+        celda = ws.cell(row=4, column=col_num)
+        celda.fill = relleno_verde
+        celda.font = fuente_encabezado
+        celda.alignment = Alignment(horizontal="center", vertical="center")
+
+    # Filas de datos
+    for eq in equipos:
+        vigencia = f"Vence: {eq.fecha_expgarantia}" if eq.garantia else "Sin garantía"
+        estatus = "FUNCIONAL" if eq.estatusfuncional else "FUERA DE SERVICIO"
+        fila = [
+            eq.id_equipo,
+            eq.nombre_equipo or "Sin información",
+            hospitales.get(eq.id_hospital, "Sin hospital"),
+            eq.area or "Sin información",
+            eq.subarea or "-",
+            eq.marca or "Sin información",
+            eq.modelo or "-",
+            eq.nni or "Sin información",
+            eq.sn or "Sin información",
+            proveedores.get(eq.id_proveedor, "Sin proveedor asignado"),
+            vigencia,
+            estatus
+        ]
+        ws.append(fila)
+        fila_actual = ws.max_row
+        for col_num in range(1, len(encabezados) + 1):
+            ws.cell(row=fila_actual, column=col_num).border = borde_fino
+
+    # Autoajustar el ancho de todas las columnas
+    for col in ws.columns:
+        letra_col = openpyxl.utils.get_column_letter(col[0].column)
+        max_len = 0
+        for celda in col:
+            if celda.row >= 4 and celda.value:
+                max_len = max(max_len, len(str(celda.value)))
+        ws.column_dimensions[letra_col].width = max(max_len + 4, 12)
+
+    # Preparar el archivo en memoria para descargarlo
+    flujo = io.BytesIO()
+    wb.save(flujo)
+    flujo.seek(0)
+
+    nombre_archivo = f"Inventario_{id_inventario}_{date.today()}.xlsx" if id_inventario else f"Equipos_Filtrados_{date.today()}.xlsx"
+    return StreamingResponse(
+        flujo,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={nombre_archivo}"}
+    )
+
+
 @app.put("/equipos/{id_equipo}", response_model=schemas.EquipoRespuesta, tags=["Equipos"])
 def actualizar_equipo(
     id_equipo: int,
     datos: schemas.EquipoActualizar,
-    id_admin: int = Query(..., description="ID del Administrador que realiza la modificación"),
+    id_admin: int = Query(...),
     db: Session = Depends(get_db)
 ):
-    """Permite a un Administrador modificar los datos, garantía o estatus funcional de un equipo."""
-    # 1. Verificar que quien edita sea ADMIN
     admin = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin).first()
     if not admin or admin.rol != "ADMIN":
         raise HTTPException(status_code=403, detail="Solo un Administrador puede modificar equipos.")
 
-    # 2. Buscar el equipo a modificar
     equipo = db.query(models.Equipo).filter(models.Equipo.id_equipo == id_equipo).first()
     if not equipo:
         raise HTTPException(status_code=404, detail="Equipo no encontrado.")
 
-    # 3. Verificar que el nuevo SN o NNI no choque con el de OTRO equipo distinto
     duplicado = db.query(models.Equipo).filter(
         models.Equipo.id_equipo != id_equipo,
         (models.Equipo.sn == datos.sn) | (models.Equipo.nni == datos.nni)
@@ -454,7 +583,6 @@ def actualizar_equipo(
     if duplicado:
         raise HTTPException(status_code=400, detail="Otro equipo ya tiene registrado ese Número de Serie (SN) o NNI.")
 
-    # 4. Actualizar todos los campos
     for campo, valor in datos.model_dump().items():
         setattr(equipo, campo, valor)
 
@@ -464,15 +592,14 @@ def actualizar_equipo(
 
 
 # ==========================================================
-# 6. PROVEEDORES (VER Y AGREGAR)
+# 6. PROVEEDORES
 # ==========================================================
 
 @app.get("/proveedores/", response_model=List[schemas.ProveedorRespuesta], tags=["Proveedores"])
 def listar_proveedores(
-    buscar: Optional[str] = Query(None, description="Buscar por nombre de empresa o contacto"),
+    buscar: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
-    """Muestra todos los proveedores registrados o los filtra si escribes en el buscador."""
     consulta = db.query(models.Proveedor)
     if buscar:
         consulta = consulta.filter(
@@ -484,7 +611,6 @@ def listar_proveedores(
 
 @app.post("/proveedores/", response_model=schemas.ProveedorRespuesta, status_code=status.HTTP_201_CREATED, tags=["Proveedores"])
 def agregar_proveedor(proveedor: schemas.ProveedorCrear, db: Session = Depends(get_db)):
-    """Registra un nuevo proveedor externo."""
     if proveedor.correo:
         existe = db.query(models.Proveedor).filter(models.Proveedor.correo == proveedor.correo).first()
         if existe:
@@ -498,12 +624,11 @@ def agregar_proveedor(proveedor: schemas.ProveedorCrear, db: Session = Depends(g
 
 
 # ==========================================================
-# 7. MANTENIMIENTOS (REGISTRAR Y CONSULTAR HISTORIAL)
+# 7. MANTENIMIENTOS
 # ==========================================================
 
 @app.post("/mantenimientos/", response_model=schemas.MantenimientoRespuesta, status_code=status.HTTP_201_CREATED, tags=["Mantenimientos"])
 def registrar_mantenimiento(datos: schemas.MantenimientoCrear, db: Session = Depends(get_db)):
-    """Registra un mantenimiento (PREVENTIVO, CORRECTIVO u OTRO) a un equipo médico."""
     equipo = db.query(models.Equipo).filter(models.Equipo.id_equipo == datos.id_equipo).first()
     if not equipo:
         raise HTTPException(status_code=404, detail="El equipo indicado no existe.")
@@ -521,11 +646,10 @@ def registrar_mantenimiento(datos: schemas.MantenimientoCrear, db: Session = Dep
 
 @app.get("/mantenimientos/", response_model=List[schemas.MantenimientoRespuesta], tags=["Mantenimientos"])
 def listar_mantenimientos(
-    id_equipo: Optional[int] = Query(None, description="Filtrar historial de un equipo específico"),
-    tipo: Optional[str] = Query(None, description="Filtrar por PREVENTIVO, CORRECTIVO u OTRO"),
+    id_equipo: Optional[int] = Query(None),
+    tipo: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
-    """Muestra el historial de mantenimientos realizados."""
     consulta = db.query(models.Mantenimiento)
     if id_equipo is not None:
         consulta = consulta.filter(models.Mantenimiento.id_equipo == id_equipo)
@@ -535,7 +659,7 @@ def listar_mantenimientos(
 
 
 # ==========================================================
-# 8. DOCUMENTOS (SUBIR Y VISUALIZAR ARCHIVOS PDF / IMÁGENES)
+# 8. DOCUMENTOS
 # ==========================================================
 
 CARPETA_DOCUMENTOS = "archivos_subidos"
@@ -543,22 +667,18 @@ os.makedirs(CARPETA_DOCUMENTOS, exist_ok=True)
 
 @app.post("/documentos/subir", response_model=schemas.DocumentoRespuesta, status_code=status.HTTP_201_CREATED, tags=["Documentos"])
 def subir_documento(
-    nombre_documento: str = Form(..., description="Título del documento (ej. 'Minuta supervisión HGR 66')"),
-    id_equipo: Optional[int] = Form(None, description="Llenar SOLO si el documento pertenece a un Equipo"),
-    id_mantenimiento: Optional[int] = Form(None, description="Llenar SOLO si pertenece a un Mantenimiento"),
-    id_inventario: Optional[int] = Form(None, description="Llenar SOLO si pertenece a un Inventario"),
-    archivo: UploadFile = File(..., description="Selecciona el archivo PDF o imagen de tu computadora"),
+    nombre_documento: str = Form(...),
+    id_equipo: Optional[int] = Form(None),
+    id_mantenimiento: Optional[int] = Form(None),
+    id_inventario: Optional[int] = Form(None),
+    archivo: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    """
-    Recibe un archivo real desde tu computadora, lo guarda en la carpeta 'archivos_subidos'
-    y registra sus datos en PostgreSQL respetando la regla de exclusividad (solo 1 ID lleno).
-    """
     ids_proporcionados = [x for x in [id_equipo, id_mantenimiento, id_inventario] if x is not None]
     if len(ids_proporcionados) != 1:
         raise HTTPException(
             status_code=400, 
-            detail="Regla de integridad: Debes asociar el documento a UNA SOLA entidad (o id_equipo, o id_mantenimiento, o id_inventario)."
+            detail="Debes asociar el documento a UNA SOLA entidad (equipo, mantenimiento o inventario)."
         )
 
     ruta_guardado = os.path.join(CARPETA_DOCUMENTOS, archivo.filename)
@@ -585,7 +705,6 @@ def listar_documentos(
     id_inventario: Optional[int] = Query(None),
     db: Session = Depends(get_db)
 ):
-    """Muestra la lista de documentos registrados (puedes filtrar por equipo, mantenimiento o inventario)."""
     consulta = db.query(models.Documento)
     if id_equipo is not None:
         consulta = consulta.filter(models.Documento.id_equipo == id_equipo)
@@ -598,34 +717,25 @@ def listar_documentos(
 
 @app.get("/documentos/{id_documento}/ver", tags=["Documentos"])
 def ver_o_descargar_documento(id_documento: int, db: Session = Depends(get_db)):
-    """Abre o descarga el archivo PDF/imagen real guardado en el servidor."""
     doc = db.query(models.Documento).filter(models.Documento.id_documento == id_documento).first()
     if not doc:
-        raise HTTPException(status_code=404, detail="El registro del documento no existe en la base de datos.")
+        raise HTTPException(status_code=404, detail="El documento no existe en la base de datos.")
     
     if not os.path.exists(doc.rutaarchivo):
-        raise HTTPException(
-            status_code=404, 
-            detail=f"El archivo físico no se encontró en la ruta: {doc.rutaarchivo}"
-        )
+        raise HTTPException(status_code=404, detail="El archivo físico no se encontró en el servidor.")
     
     return FileResponse(doc.rutaarchivo)
 
 
 # ==========================================================
-# 9. SISTEMA DE ALERTAS (GARANTÍAS Y MANTENIMIENTOS PRÓXIMOS)
+# 9. SISTEMA DE ALERTAS Y NOTIFICACIONES POR CORREO A ADMINS
 # ==========================================================
 
 @app.get("/alertas/", tags=["Alertas"])
 def obtener_alertas_proximas(
-    dias_anticipacion: int = Query(30, description="¿Con cuántos días de anticipación quieres que te avise? (Por defecto: 30 días)"),
+    dias_anticipacion: int = Query(30),
     db: Session = Depends(get_db)
 ):
-    """
-    Revisa la fecha de hoy y busca:
-    1. Equipos cuya garantía ya venció o vence en los próximos X días.
-    2. Mantenimientos cuya próxima fecha programada ya pasó o toca en los próximos X días.
-    """
     hoy = date.today()
     fecha_limite = hoy + timedelta(days=dias_anticipacion)
 
@@ -677,30 +787,120 @@ def obtener_alertas_proximas(
     }
 
 
+@app.post("/alertas/enviar-correo", tags=["Alertas"])
+def enviar_alertas_correo_admins(
+    id_admin_solicitante: int = Query(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Recopila las alertas activas y las envía por correo electrónico
+    a todos los usuarios que tengan el rol de 'ADMIN'.
+    """
+    solicitante = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin_solicitante).first()
+    if not solicitante or solicitante.rol != "ADMIN":
+        raise HTTPException(status_code=403, detail="Solo un Administrador puede disparar el envío de alertas por correo.")
+
+    smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_password = os.getenv("SMTP_PASSWORD")
+
+    if not smtp_user or not smtp_password or "tu_correo" in smtp_user:
+        raise HTTPException(
+            status_code=400,
+            detail="Falta configurar SMTP_USER y SMTP_PASSWORD en tu archivo .env para poder enviar correos."
+        )
+
+    # Buscar los correos de todos los administradores
+    admins = db.query(models.Usuario).filter(models.Usuario.rol == "ADMIN").all()
+    correos_destino = [a.correo for a in admins if a.correo]
+    if not correos_destino:
+        raise HTTPException(status_code=404, detail="No hay administradores con correo registrado.")
+
+    datos_alertas = obtener_alertas_proximas(dias_anticipacion=30, db=db)
+
+    filas_garantias = "".join([
+        f"<tr><td style='padding:6px;border:1px solid #ddd;'>{g['nombre_equipo'] or 'S/N'}</td>"
+        f"<td style='padding:6px;border:1px solid #ddd;'>{g['nni'] or 'Sin información'}</td>"
+        f"<td style='padding:6px;border:1px solid #ddd;'>{g['fecha_expiracion']}</td>"
+        f"<td style='padding:6px;border:1px solid #ddd;'>{g['dias_restantes']} días ({g['semaforo']})</td></tr>"
+        for g in datos_alertas["alertas_garantias"]
+    ]) or "<tr><td colspan='4' style='padding:8px;'>Sin alertas de garantía</td></tr>"
+
+    filas_mant = "".join([
+        f"<tr><td style='padding:6px;border:1px solid #ddd;'>Equipo #{m['id_equipo']}</td>"
+        f"<td style='padding:6px;border:1px solid #ddd;'>{m['tipo_mantenimiento']}</td>"
+        f"<td style='padding:6px;border:1px solid #ddd;'>{m['proxima_fecha']}</td>"
+        f"<td style='padding:6px;border:1px solid #ddd;'>{m['dias_restantes']} días ({m['semaforo']})</td></tr>"
+        for m in datos_alertas["alertas_mantenimientos"]
+    ]) or "<tr><td colspan='4' style='padding:8px;'>Sin mantenimientos próximos</td></tr>"
+
+    cuerpo_html = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; color: #1E293B;">
+        <div style="background-color:#13322B; color:white; padding:16px; border-bottom:3px solid #A68250;">
+            <h3 style="margin:0;">Biomédica IMSS - Reporte Automático de Alertas</h3>
+            <small>Fecha de corte: {date.today()}</small>
+        </div>
+        <p>Se presenta el resumen de garantías próximas a expirar y mantenimientos programados (próximos 30 días):</p>
+        <h4>1. Garantías Vencidas o por Vencer ({datos_alertas['total_alertas_garantia']})</h4>
+        <table style="border-collapse:collapse; width:100%; font-size:13px;">
+            <tr style="background:#F1F5F9;">
+                <th style="padding:6px;border:1px solid #ddd;text-align:left;">Equipo</th>
+                <th style="padding:6px;border:1px solid #ddd;text-align:left;">NNI</th>
+                <th style="padding:6px;border:1px solid #ddd;text-align:left;">Expiración</th>
+                <th style="padding:6px;border:1px solid #ddd;text-align:left;">Estado</th>
+            </tr>
+            {filas_garantias}
+        </table>
+        <h4 style="margin-top:20px;">2. Mantenimientos Próximos o Atrasados ({datos_alertas['total_alertas_mantenimiento']})</h4>
+        <table style="border-collapse:collapse; width:100%; font-size:13px;">
+            <tr style="background:#F1F5F9;">
+                <th style="padding:6px;border:1px solid #ddd;text-align:left;">Equipo</th>
+                <th style="padding:6px;border:1px solid #ddd;text-align:left;">Tipo</th>
+                <th style="padding:6px;border:1px solid #ddd;text-align:left;">Próxima Fecha</th>
+                <th style="padding:6px;border:1px solid #ddd;text-align:left;">Estado</th>
+            </tr>
+            {filas_mant}
+        </table>
+    </body>
+    </html>
+    """
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"[Biomédica IMSS] Alertas de Garantías y Mantenimiento ({date.today()})"
+    msg["From"] = smtp_user
+    msg["To"] = ", ".join(correos_destino)
+    msg.attach(MIMEText(cuerpo_html, "html"))
+
+    try:
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_password)
+            server.sendmail(smtp_user, correos_destino, msg.as_string())
+        return {
+            "mensaje": f"Reporte enviado con éxito a {len(correos_destino)} administrador(es): {', '.join(correos_destino)}"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"No se pudo enviar el correo: {str(e)}")
+
+
 # ==========================================================
-# 10. IMPORTACIÓN MASIVA DE EQUIPOS DESDE CSV (SIN TABLAS TEMPORALES)
+# 10. IMPORTACIÓN MASIVA DE EQUIPOS DESDE CSV
 # ==========================================================
 
 @app.post("/inventarios/{id_inventario}/importar-csv", tags=["Inventarios"])
 def importar_equipos_csv(
     id_inventario: int,
-    archivo_csv: UploadFile = File(..., description="Selecciona tu archivo .csv con los equipos del hospital"),
+    archivo_csv: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    """
-    Lee un archivo CSV de Excel y registra todos los equipos automáticamente en el inventario:
-    - Les asigna el hospital del inventario.
-    - Salta filas con NNI o Número de Serie (SN) duplicados para que no falle la carga.
-    - Los vincula en la tabla inventario_equipo.
-    """
-    # 1. Revisar que el inventario exista y siga EN_PROCESO
     inventario = db.query(models.Inventario).filter(models.Inventario.id_inventario == id_inventario).first()
     if not inventario:
         raise HTTPException(status_code=404, detail="El inventario no existe.")
     if inventario.estado == "FINALIZADO":
         raise HTTPException(status_code=400, detail="Este inventario ya está FINALIZADO y no admite más equipos.")
 
-    # 2. Leer el contenido del archivo CSV (soporta acentos y ñ con utf-8-sig o latin-1)
     contenido_bytes = archivo_csv.file.read()
     try:
         texto_csv = contenido_bytes.decode("utf-8-sig")
@@ -712,19 +912,15 @@ def importar_equipos_csv(
     equipos_insertados = 0
     equipos_omitidos = []
 
-    # 3. Recorrer fila por fila el CSV
     for num_fila, fila in enumerate(lector, start=2):
-        # Limpiar espacios en blanco de los nombres de columna y valores
         fila_limpia = {k.strip().lower(): (v.strip() if v else None) for k, v in fila.items() if k}
 
         sn = fila_limpia.get("sn")
         nni = fila_limpia.get("nni")
 
-        # Si la fila está vacía o no tiene NNI ni SN, la saltamos
         if not sn and not nni:
             continue
 
-        # Verificar si ya existe ese SN o NNI en la base de datos (evita el error de repetidos)
         duplicado = db.query(models.Equipo).filter(
             (models.Equipo.sn == sn) | (models.Equipo.nni == nni)
         ).first()
@@ -733,7 +929,6 @@ def importar_equipos_csv(
             equipos_omitidos.append(f"Fila {num_fila}: NNI '{nni}' o SN '{sn}' ya registrado.")
             continue
 
-        # Convertir textos como 'TRUE'/'SI'/'1' a valores booleanos de Python (True/False)
         garantia_txt = str(fila_limpia.get("garantia", "")).upper()
         tiene_garantia = garantia_txt in ["TRUE", "1", "SI", "SÍ", "T", "YES"]
 
@@ -742,7 +937,6 @@ def importar_equipos_csv(
 
         fecha_garantia = fila_limpia.get("fecha_expgarantia") if tiene_garantia else None
 
-        # Crear el equipo ligado al hospital del inventario
         nuevo_equipo = models.Equipo(
             id_hospital=inventario.id_hospital,
             nombre_equipo=fila_limpia.get("nombre_equipo"),
@@ -758,9 +952,8 @@ def importar_equipos_csv(
             observaciones=fila_limpia.get("observaciones")
         )
         db.add(nuevo_equipo)
-        db.flush()  # Obtiene el id_equipo recién creado
+        db.flush()
 
-        # Vincular con el inventario actual
         vinculo = models.InventarioEquipo(
             id_inventario=id_inventario,
             id_equipo=nuevo_equipo.id_equipo
