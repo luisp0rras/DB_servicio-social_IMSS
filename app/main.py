@@ -114,11 +114,13 @@ def iniciar_sesion(credenciales: schemas.UsuarioLogin, db: Session = Depends(get
     if not usuario or not verificar_password(credenciales.password, usuario.password_hash):
         raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos.")
     
+    if usuario.rol == "INACTIVO":
+        raise HTTPException(status_code=403, detail="Esta cuenta ha sido desactivada por un Administrador.")
+    
     return {
         "mensaje": f"Bienvenido, {usuario.primernombre}",
         "usuario": schemas.UsuarioRespuesta.model_validate(usuario)
     }
-
 
 @app.get("/usuarios/", response_model=List[schemas.UsuarioRespuesta], tags=["Usuarios y Login"])
 def listar_usuarios(db: Session = Depends(get_db)):
@@ -204,6 +206,76 @@ def convertir_en_administrador(
     db.refresh(usuario_objetivo)
     return usuario_objetivo
 
+@app.put("/usuarios/{id_usuario_objetivo}/cambiar-rol", response_model=schemas.UsuarioRespuesta, tags=["Usuarios y Login"])
+def cambiar_rol_o_estado_usuario(
+    id_usuario_objetivo: int,
+    nuevo_rol: str = Query(..., description="Valores permitidos: ADMIN, EMPLEADO, INACTIVO"),
+    id_admin_que_autoriza: int = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Permite a un Administrador cambiar el rol de un usuario o desactivar su acceso (INACTIVO)."""
+    admin = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin_que_autoriza).first()
+    if not admin or admin.rol != "ADMIN":
+        raise HTTPException(status_code=403, detail="Solo un Administrador puede modificar roles de usuario.")
+
+    if id_usuario_objetivo == id_admin_que_autoriza and nuevo_rol != "ADMIN":
+        raise HTTPException(status_code=400, detail="No puedes quitarte el rol de Administrador ni desactivar tu propia cuenta.")
+
+    nuevo_rol = nuevo_rol.upper().strip()
+    if nuevo_rol not in ["ADMIN", "EMPLEADO", "INACTIVO"]:
+        raise HTTPException(status_code=400, detail="Rol no válido. Usa ADMIN, EMPLEADO o INACTIVO.")
+
+    usuario_objetivo = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario_objetivo).first()
+    if not usuario_objetivo:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+
+    usuario_objetivo.rol = nuevo_rol
+    db.commit()
+    db.refresh(usuario_objetivo)
+    return usuario_objetivo
+
+
+@app.delete("/usuarios/{id_usuario_objetivo}", tags=["Usuarios y Login"])
+def eliminar_usuario(
+    id_usuario_objetivo: int,
+    id_admin_que_autoriza: int = Query(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Elimina permanentemente a un usuario del sistema (previa limpieza de su relación
+    en inventario_usuario para respetar las llaves foráneas de PostgreSQL).
+    """
+    admin = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin_que_autoriza).first()
+    if not admin or admin.rol != "ADMIN":
+        raise HTTPException(status_code=403, detail="Solo un Administrador puede eliminar usuarios.")
+
+    if id_usuario_objetivo == id_admin_que_autoriza:
+        raise HTTPException(status_code=400, detail="Por seguridad, no puedes eliminar tu propia cuenta de Administrador.")
+
+    usuario_objetivo = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario_objetivo).first()
+    if not usuario_objetivo:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+
+    # 1. Limpiar participaciones en inventario_usuario para no romper la llave foránea
+    db.query(models.InventarioUsuario).filter(
+        models.InventarioUsuario.id_usuario == id_usuario_objetivo
+    ).delete()
+
+    # 2. Eliminar foto de perfil física si tenía una personalizada
+    if usuario_objetivo.foto_perfil and usuario_objetivo.foto_perfil.startswith("/archivos/perfiles/"):
+        ruta_foto = usuario_objetivo.foto_perfil.replace("/archivos/", "archivos_subidos/")
+        if os.path.exists(ruta_foto):
+            try:
+                os.remove(ruta_foto)
+            except OSError:
+                pass
+
+    # 3. Eliminar al usuario de la base de datos
+    nombre_borrado = f"{usuario_objetivo.primernombre} {usuario_objetivo.primerapellido}"
+    db.delete(usuario_objetivo)
+    db.commit()
+
+    return {"mensaje": f"El usuario '{nombre_borrado}' fue eliminado permanentemente del sistema."}
 
 # ==========================================================
 # 3. HOSPITALES

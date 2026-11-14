@@ -14,7 +14,7 @@
          BARRA LATERAL DE NAVEGACIÓN
          ========================================================== -->
     <aside class="sidebar">
-        <div class="sidebar-header">
+        <div class="sidebar-header" onclick="irAlInicio()" style="cursor: pointer;" title="Ir al Panel de Control y Alertas">
             <div class="logo-insignia">
                 <i class="bi bi-heart-pulse"></i>
             </div>
@@ -891,6 +891,12 @@
             await cargarAlertas(false);
         }
 
+        function irAlInicio() {
+            const botonInicio = document.querySelector(".nav-menu .nav-item-btn");
+            cambiarVista('vista-inicio', botonInicio);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
         function cambiarVista(idVista, botonPresionado) {
             document.querySelectorAll(".vista-panel").forEach(sec => sec.classList.add("d-none"));
             document.getElementById(idVista).classList.remove("d-none");
@@ -1107,8 +1113,8 @@
             const res = await fetch("/usuarios/");
             const usuarios = await res.json();
             const contenedor = document.getElementById("lista-checkbox-usuarios");
-            const otros = usuarios.filter(u => u.id_usuario !== usuarioActual.id_usuario);
-            contenedor.innerHTML = otros.length === 0 ? `<div class="col-12 small text-muted">No hay más usuarios registrados.</div>` :
+            const otros = usuarios.filter(u => u.id_usuario !== usuarioActual.id_usuario && u.rol !== "INACTIVO");
+            contenedor.innerHTML = otros.length === 0 ? `<div class="col-12 small text-muted">No hay más usuarios activos registrados.</div>` :
                 otros.map(u => `<div class="col-md-4"><div class="form-check"><input class="form-check-input check-participante" type="checkbox" value="${u.id_usuario}" id="part-${u.id_usuario}"><label class="form-check-label small" for="part-${u.id_usuario}">${u.primernombre} ${u.primerapellido}</label></div></div>`).join("");
         }
 
@@ -1603,12 +1609,72 @@
         async function cargarListaUsuariosAdmin() {
             const res = await fetch("/usuarios/");
             const usuarios = await res.json();
-            document.getElementById("tabla-gestion-usuarios").innerHTML = usuarios.map(u => `<tr><td>#${u.id_usuario}</td><td class="fw-medium">${u.primernombre} ${u.primerapellido}</td><td>${u.correo}</td><td><span class="${u.rol === 'ADMIN' ? 'badge-soft-success' : 'badge-soft-neutral'}">${u.rol}</span></td><td>${u.rol === 'ADMIN' ? '<span class="text-muted small">Es Admin</span>' : `<button class="btn btn-secundario btn-sm" onclick="hacerAdmin(${u.id_usuario})">Hacer Admin</button>`}</td></tr>`).join("");
+            const tbody = document.getElementById("tabla-gestion-usuarios");
+
+            tbody.innerHTML = usuarios.map(u => {
+                let claseBadge = "badge-soft-neutral";
+                if (u.rol === "ADMIN") claseBadge = "badge-soft-success";
+                if (u.rol === "INACTIVO") claseBadge = "badge-soft-danger";
+
+                // Si es la fila del propio administrador conectado, protegemos su cuenta
+                if (u.id_usuario === usuarioActual.id_usuario) {
+                    return `<tr>
+                        <td>#${u.id_usuario}</td>
+                        <td class="fw-medium">${u.primernombre} ${u.primerapellido} <span class="text-muted small">(Tú)</span></td>
+                        <td>${u.correo}</td>
+                        <td><span class="${claseBadge}">${u.rol}</span></td>
+                        <td><span class="text-muted small">Sesión actual protegida</span></td>
+                    </tr>`;
+                }
+
+                return `<tr>
+                    <td>#${u.id_usuario}</td>
+                    <td class="fw-medium">${u.primernombre} ${u.primerapellido}</td>
+                    <td>${u.correo}</td>
+                    <td><span class="${claseBadge}">${u.rol}</span></td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <select class="form-select form-select-sm" style="width: auto;" onchange="cambiarRolUsuario(${u.id_usuario}, this.value)">
+                                <option value="EMPLEADO" ${u.rol === 'EMPLEADO' ? 'selected' : ''}>Empleado</option>
+                                <option value="ADMIN" ${u.rol === 'ADMIN' ? 'selected' : ''}>Administrador</option>
+                                <option value="INACTIVO" ${u.rol === 'INACTIVO' ? 'selected' : ''}>Inactivo (Bloquear)</option>
+                            </select>
+                            <button class="btn btn-secundario btn-sm text-danger" onclick="eliminarUsuario(${u.id_usuario}, '${u.primernombre} ${u.primerapellido}')" title="Eliminar usuario permanentemente">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join("");
         }
 
-        async function hacerAdmin(idObjetivo) {
-            const res = await fetch(`/usuarios/${idObjetivo}/hacer-admin?id_admin_que_autoriza=${usuarioActual.id_usuario}`, { method: "PUT" });
-            if (res.ok) cargarListaUsuariosAdmin();
+        async function cambiarRolUsuario(idObjetivo, nuevoRol) {
+            const res = await fetch(`/usuarios/${idObjetivo}/cambiar-rol?nuevo_rol=${nuevoRol}&id_admin_que_autoriza=${usuarioActual.id_usuario}`, {
+                method: "PUT"
+            });
+            const data = await res.json();
+            if (res.ok) {
+                cargarListaUsuariosAdmin();
+            } else {
+                alert(data.detail || "No se pudo cambiar el rol.");
+                cargarListaUsuariosAdmin();
+            }
+        }
+
+        async function eliminarUsuario(idObjetivo, nombreUsuario) {
+            const confirmar = confirm(`¿Estás seguro de eliminar permanentemente al usuario "${nombreUsuario}"?\n\nConsejo: Si solo quieres quitarle el acceso sin borrarlo, puedes cambiar su estado a "Inactivo (Bloquear)".`);
+            if (!confirmar) return;
+
+            const res = await fetch(`/usuarios/${idObjetivo}?id_admin_que_autoriza=${usuarioActual.id_usuario}`, {
+                method: "DELETE"
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                cargarListaUsuariosAdmin();
+            } else {
+                alert(data.detail || "No se pudo eliminar el usuario.");
+            }
         }
 
         inicializarInterfaz();
