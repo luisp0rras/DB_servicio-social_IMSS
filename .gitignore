@@ -22,3 +22,6 @@ htmlcov/
 # Configuración IDE
 .vscode/
 .idea/
+
+# Carpetas de archivos subidos
+archivos_subidos/
