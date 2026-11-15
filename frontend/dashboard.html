@@ -52,10 +52,13 @@
             </button>
 
             <div class="text-uppercase text-muted fw-semibold px-3 mt-4 mb-2" style="font-size: 0.72rem; letter-spacing: 0.05em;">
-                Cuenta
+                Cuenta y Acceso
             </div>
             <button class="nav-item-btn" onclick="cambiarVista('vista-perfil', this)">
                 <i class="bi bi-person-circle"></i> Mi Perfil
+            </button>
+            <button class="nav-item-btn solo-admin d-none" onclick="cambiarVista('vista-usuarios', this)">
+                <i class="bi bi-people"></i> Usuarios
             </button>
         </nav>
 
@@ -663,7 +666,7 @@
         </section>
 
         <!-- ======================================================
-             VISTA 7: MI PERFIL
+             VISTA 7: MI PERFIL (SOLO DATOS PERSONALES)
              ====================================================== -->
         <section id="vista-perfil" class="vista-panel d-none">
             <div class="mb-4">
@@ -731,20 +734,39 @@
                         </form>
                     </div>
                 </div>
+            </div>
+        </section>
 
-                <div class="col-12 solo-admin d-none">
-                    <div class="card-clean">
-                        <h6 class="fw-bold mb-1">Gestión de Permisos (Exclusivo Administradores)</h6>
-                        <p class="text-muted small mb-3">Otorga privilegios de Administrador a otros usuarios registrados.</p>
-                        <div class="table-responsive">
-                            <table class="table-clean">
-                                <thead>
-                                    <tr><th>ID</th><th>Nombre</th><th>Correo</th><th>Rol Actual</th><th>Acción</th></tr>
-                                </thead>
-                                <tbody id="tabla-gestion-usuarios"></tbody>
-                            </table>
-                        </div>
-                    </div>
+        <!-- ======================================================
+             VISTA 8: GESTIÓN DE USUARIOS (EXCLUSIVA ADMINISTRADORES)
+             ====================================================== -->
+        <section id="vista-usuarios" class="vista-panel d-none">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+                <div>
+                    <h4 class="fw-bold mb-1">Administración de Usuarios y Permisos</h4>
+                    <p class="text-muted small mb-0">Gestiona niveles de acceso (Administrador / Empleado), bloquea cuentas inactivas o elimina registros</p>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control form-control-sm" id="filtro-usuarios-input" 
+                           placeholder="Buscar usuario por nombre o correo..." oninput="cargarListaUsuariosAdmin()">
+                </div>
+            </div>
+
+            <div class="card-clean">
+                <div class="table-responsive">
+                    <table class="table-clean">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre Completo</th>
+                                <th>Username</th>
+                                <th>Correo Electrónico</th>
+                                <th>Rol / Estado</th>
+                                <th>Acciones de Administrador</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-gestion-usuarios"></tbody>
+                    </table>
                 </div>
             </div>
         </section>
@@ -909,6 +931,7 @@
             if (idVista === "vista-mantenimientos") cargarMantenimientos();
             if (idVista === "vista-proveedores") cargarProveedores();
             if (idVista === "vista-documentos") cargarDocumentos();
+            if (idVista === "vista-usuarios") cargarListaUsuariosAdmin();
         }
 
         function cerrarSesion() {
@@ -1608,19 +1631,31 @@
 
         async function cargarListaUsuariosAdmin() {
             const res = await fetch("/usuarios/");
-            const usuarios = await res.json();
+            let usuarios = await res.json();
             const tbody = document.getElementById("tabla-gestion-usuarios");
+            if (!tbody) return;
+
+            const inputFiltro = document.getElementById("filtro-usuarios-input");
+            const textoBusqueda = inputFiltro ? inputFiltro.value.trim().toLowerCase() : "";
+
+            if (textoBusqueda) {
+                usuarios = usuarios.filter(u => 
+                    `${u.primernombre} ${u.primerapellido}`.toLowerCase().includes(textoBusqueda) ||
+                    (u.correo && u.correo.toLowerCase().includes(textoBusqueda)) ||
+                    (u.username && u.username.toLowerCase().includes(textoBusqueda))
+                );
+            }
 
             tbody.innerHTML = usuarios.map(u => {
                 let claseBadge = "badge-soft-neutral";
                 if (u.rol === "ADMIN") claseBadge = "badge-soft-success";
                 if (u.rol === "INACTIVO") claseBadge = "badge-soft-danger";
 
-                // Si es la fila del propio administrador conectado, protegemos su cuenta
                 if (u.id_usuario === usuarioActual.id_usuario) {
                     return `<tr>
                         <td>#${u.id_usuario}</td>
                         <td class="fw-medium">${u.primernombre} ${u.primerapellido} <span class="text-muted small">(Tú)</span></td>
+                        <td>${limpiarTexto(u.username)}</td>
                         <td>${u.correo}</td>
                         <td><span class="${claseBadge}">${u.rol}</span></td>
                         <td><span class="text-muted small">Sesión actual protegida</span></td>
@@ -1630,6 +1665,7 @@
                 return `<tr>
                     <td>#${u.id_usuario}</td>
                     <td class="fw-medium">${u.primernombre} ${u.primerapellido}</td>
+                    <td>${limpiarTexto(u.username)}</td>
                     <td>${u.correo}</td>
                     <td><span class="${claseBadge}">${u.rol}</span></td>
                     <td>

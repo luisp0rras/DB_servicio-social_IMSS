@@ -62,7 +62,7 @@
         <small class="text-white-50" style="font-size: 0.8rem;">Sistema de Gestión e Inventario de Equipo Médico</small>
     </div>
 
-    <div class="nav-tabs-clean">
+    <div class="nav-tabs-clean" id="barra-tabs-acceso">
         <button id="btn-tab-login" class="activo" onclick="mostrarTab('login')">Iniciar Sesión</button>
         <button id="btn-tab-registro" onclick="mostrarTab('registro')">Crear Cuenta</button>
     </div>
@@ -76,7 +76,7 @@
                 <label class="form-label small fw-medium text-muted">Correo electrónico</label>
                 <input type="email" class="form-control" id="login-correo" placeholder="nombre@imss.gob.mx" required>
             </div>
-            <div class="mb-4">
+            <div class="mb-2">
                 <label class="form-label small fw-medium text-muted">Contraseña</label>
                 <div class="password-box">
                     <input type="password" class="form-control" id="login-password" placeholder="••••••••" required>
@@ -84,6 +84,12 @@
                         <i class="bi bi-eye"></i>
                     </button>
                 </div>
+            </div>
+            <div class="text-end mb-4">
+                <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none small" 
+                        style="color: var(--verde-acento);" onclick="mostrarTab('recuperar')">
+                    ¿Olvidaste tu contraseña?
+                </button>
             </div>
             <button type="submit" class="btn btn-primario w-100 py-2">
                 Entrar al Sistema
@@ -133,13 +139,53 @@
                 Registrar Cuenta
             </button>
         </form>
+
+        <!-- PANEL 3: RECUPERAR CONTRASEÑA -->
+        <div id="panel-recuperar" class="d-none">
+            <h6 class="fw-bold mb-1">Restablecer Contraseña</h6>
+            <p class="text-muted small mb-3">Te enviaremos un código de verificación de 6 dígitos a tu correo registrado.</p>
+
+            <!-- Paso 1 de recuperación: Pedir código -->
+            <form id="form-solicitar-codigo">
+                <div class="mb-3">
+                    <label class="form-label small fw-medium text-muted">Correo electrónico registrado</label>
+                    <input type="email" class="form-control" id="rec-correo" placeholder="tu_correo@ejemplo.com" required>
+                </div>
+                <button type="submit" class="btn btn-primario w-100 py-2 mb-2" id="btn-enviar-codigo">
+                    Enviar Código al Correo
+                </button>
+            </form>
+
+            <!-- Paso 2 de recuperación: Ingresar código y nueva contraseña -->
+            <form id="form-confirmar-codigo" class="d-none">
+                <div class="mb-3">
+                    <label class="form-label small fw-medium text-muted">Código de 6 dígitos recibido</label>
+                    <input type="text" class="form-control text-center fw-bold" id="rec-codigo" maxlength="6" placeholder="123456" required>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label small fw-medium text-muted">Nueva Contraseña</label>
+                    <div class="password-box">
+                        <input type="password" class="form-control" id="rec-nueva-password" placeholder="••••••••" required>
+                        <button type="button" class="btn-toggle-pass" onclick="alternarPassword('rec-nueva-password', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primario w-100 py-2 mb-2">
+                    Guardar Nueva Contraseña
+                </button>
+            </form>
+
+            <button type="button" class="btn btn-secundario w-100 btn-sm mt-1" onclick="mostrarTab('login')">
+                <i class="bi bi-arrow-left me-1"></i> Volver al Inicio de Sesión
+            </button>
+        </div>
     </div>
 </div>
 
 <script>
     const alerta = document.getElementById("alerta-login");
 
-    // Función limpia para mostrar/ocultar contraseña sin que el icono desaparezca nunca
     function alternarPassword(idInput, boton) {
         const input = document.getElementById(idInput);
         const icono = boton.querySelector("i");
@@ -150,7 +196,7 @@
             input.type = "password";
             icono.className = "bi bi-eye";
         }
-        input.focus(); // Mantiene el cursor dentro del campo listo para seguir escribiendo
+        input.focus();
     }
 
     function mostrarAlerta(mensaje, tipo) {
@@ -161,19 +207,34 @@
 
     function mostrarTab(tab) {
         alerta.classList.add("d-none");
+        const formLogin = document.getElementById("form-login");
+        const formRegistro = document.getElementById("form-registro");
+        const panelRecuperar = document.getElementById("panel-recuperar");
+        const barraTabs = document.getElementById("barra-tabs-acceso");
+
+        formLogin.classList.add("d-none");
+        formRegistro.classList.add("d-none");
+        panelRecuperar.classList.add("d-none");
+
         if (tab === "login") {
-            document.getElementById("form-login").classList.remove("d-none");
-            document.getElementById("form-registro").classList.add("d-none");
+            barraTabs.classList.remove("d-none");
+            formLogin.classList.remove("d-none");
             document.getElementById("btn-tab-login").classList.add("activo");
             document.getElementById("btn-tab-registro").classList.remove("activo");
-        } else {
-            document.getElementById("form-login").classList.add("d-none");
-            document.getElementById("form-registro").classList.remove("d-none");
+        } else if (tab === "registro") {
+            barraTabs.classList.remove("d-none");
+            formRegistro.classList.remove("d-none");
             document.getElementById("btn-tab-login").classList.remove("activo");
             document.getElementById("btn-tab-registro").classList.add("activo");
+        } else if (tab === "recuperar") {
+            barraTabs.classList.add("d-none");
+            panelRecuperar.classList.remove("d-none");
+            document.getElementById("form-solicitar-codigo").classList.remove("d-none");
+            document.getElementById("form-confirmar-codigo").classList.add("d-none");
         }
     }
 
+    // Login
     document.getElementById("form-login").addEventListener("submit", async (e) => {
         e.preventDefault();
         const datos = {
@@ -202,6 +263,7 @@
         }
     });
 
+    // Registro
     document.getElementById("form-registro").addEventListener("submit", async (e) => {
         e.preventDefault();
         const datos = {
@@ -230,6 +292,68 @@
             document.getElementById("form-registro").reset();
             mostrarTab("login");
             mostrarAlerta("Cuenta creada con rol EMPLEADO. Ya puedes iniciar sesión.", "success");
+        } catch (err) {
+            mostrarAlerta("Error de conexión con el servidor.", "danger");
+        }
+    });
+
+    // Recuperar Contraseña - Paso 1: Solicitar Código
+    document.getElementById("form-solicitar-codigo").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("btn-enviar-codigo");
+        btn.disabled = true;
+        btn.textContent = "Enviando código...";
+
+        const correo = document.getElementById("rec-correo").value.trim();
+        try {
+            const res = await fetch("/usuarios/recuperar-password/solicitar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ correo })
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                mostrarAlerta(data.detail || "No se pudo enviar el código.", "danger");
+            } else {
+                mostrarAlerta(data.mensaje, "success");
+                document.getElementById("form-solicitar-codigo").classList.add("d-none");
+                document.getElementById("form-confirmar-codigo").classList.remove("d-none");
+            }
+        } catch (err) {
+            mostrarAlerta("Error de conexión con el servidor.", "danger");
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Enviar Código al Correo";
+        }
+    });
+
+    // Recuperar Contraseña - Paso 2: Confirmar Código y Nueva Contraseña
+    document.getElementById("form-confirmar-codigo").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const datos = {
+            correo: document.getElementById("rec-correo").value.trim(),
+            codigo: document.getElementById("rec-codigo").value.trim(),
+            nueva_password: document.getElementById("rec-nueva-password").value
+        };
+
+        try {
+            const res = await fetch("/usuarios/recuperar-password/confirmar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(datos)
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                mostrarAlerta(data.detail || "Código inválido o expirado.", "danger");
+                return;
+            }
+
+            document.getElementById("form-solicitar-codigo").reset();
+            document.getElementById("form-confirmar-codigo").reset();
+            mostrarTab("login");
+            mostrarAlerta(data.mensaje, "success");
         } catch (err) {
             mostrarAlerta("Error de conexión con el servidor.", "danger");
         }

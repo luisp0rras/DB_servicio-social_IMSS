@@ -50,7 +50,17 @@ class UsuarioCambiarPassword(BaseModel):
     password_actual: str
     password_nueva: str
 
-# 5. Lo que el sistema devuelve al mostrar un usuario (¡NUNCA devolvemos la contraseña!)
+# 5. Solicitud para enviar código de recuperación al correo
+class RecuperarPasswordSolicitud(BaseModel):
+    correo: EmailStr
+
+# 6. Confirmación del código de 6 dígitos y creación de nueva contraseña
+class RecuperarPasswordConfirmacion(BaseModel):
+    correo: EmailStr
+    codigo: str
+    nueva_password: str
+
+# 7. Lo que el sistema devuelve al mostrar un usuario (¡NUNCA devolvemos la contraseña!)
 class UsuarioRespuesta(BaseModel):
     id_usuario: int
     primernombre: str

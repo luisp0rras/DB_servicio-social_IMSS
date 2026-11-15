@@ -1,11 +1,12 @@
+import random
 import os
 import io
 import csv
 import shutil
 import smtplib
+from datetime import date, datetime, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import date, timedelta
 from typing import List, Optional
 
 import bcrypt
@@ -276,6 +277,95 @@ def eliminar_usuario(
     db.commit()
 
     return {"mensaje": f"El usuario '{nombre_borrado}' fue eliminado permanentemente del sistema."}
+
+# Diccionario temporal en memoria para guardar códigos de recuperación:
+# { "correo@dominio.com": {"codigo": "123456", "expira": datetime} }
+codigos_recuperacion = {}
+
+@app.post("/usuarios/recuperar-password/solicitar", tags=["Usuarios y Login"])
+def solicitar_codigo_recuperacion(datos: schemas.RecuperarPasswordSolicitud, db: Session = Depends(get_db)):
+    """Genera un código de 6 dígitos válido por 15 minutos y lo envía al correo del usuario."""
+    usuario = db.query(models.Usuario).filter(models.Usuario.correo == datos.correo).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="No existe ninguna cuenta registrada con ese correo electrónico.")
+    
+    if usuario.rol == "INACTIVO":
+        raise HTTPException(status_code=403, detail="Esta cuenta está desactivada. Contacta a un Administrador.")
+
+    smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_password = os.getenv("SMTP_PASSWORD")
+
+    if not smtp_user or not smtp_password or "tu_correo" in smtp_user:
+        raise HTTPException(status_code=400, detail="El servidor aún no tiene configurado SMTP_USER y SMTP_PASSWORD en .env.")
+
+    # Generar código de 6 dígitos y vigencia de 15 minutos
+    codigo = f"{random.randint(100000, 999999)}"
+    codigos_recuperacion[usuario.correo] = {
+        "codigo": codigo,
+        "expira": datetime.now() + timedelta(minutes=15)
+    }
+
+    cuerpo_html = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; color: #1E293B;">
+        <div style="background-color:#13322B; color:white; padding:16px; border-bottom:3px solid #A68250;">
+            <h3 style="margin:0;">Biomédica IMSS - Recuperación de Contraseña</h3>
+        </div>
+        <div style="padding: 16px;">
+            <p>Hola, <strong>{usuario.primernombre} {usuario.primerapellido}</strong>:</p>
+            <p>Recibimos una solicitud para restablecer tu contraseña. Ingresa el siguiente código de verificación en la pantalla de inicio de sesión:</p>
+            <div style="background:#F1F5F9; border:1px solid #CBD5E1; border-radius:8px; padding:14px; text-align:center; font-size:24px; font-weight:bold; letter-spacing:6px; color:#13322B; margin:20px 0;">
+                {codigo}
+            </div>
+            <p style="font-size:12px; color:#64748B;">Este código expira en 15 minutos. Si tú no solicitaste este cambio, puedes ignorar este correo.</p>
+        </div>
+    </body>
+    </html>
+    """
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = "[Biomédica IMSS] Código para restablecer tu contraseña"
+    msg["From"] = smtp_user
+    msg["To"] = usuario.correo
+    msg.attach(MIMEText(cuerpo_html, "html"))
+
+    try:
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_password)
+            server.sendmail(smtp_user, [usuario.correo], msg.as_string())
+        return {"mensaje": f"Se envió un código de 6 dígitos a {usuario.correo}."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"No se pudo enviar el correo de recuperación: {str(e)}")
+
+
+@app.post("/usuarios/recuperar-password/confirmar", tags=["Usuarios y Login"])
+def confirmar_recuperacion_password(datos: schemas.RecuperarPasswordConfirmacion, db: Session = Depends(get_db)):
+    """Valida el código de 6 dígitos y actualiza la contraseña del usuario."""
+    registro = codigos_recuperacion.get(datos.correo)
+    if not registro:
+        raise HTTPException(status_code=400, detail="No hay una solicitud activa para este correo o el código ya fue usado.")
+
+    if datetime.now() > registro["expira"]:
+        del codigos_recuperacion[datos.correo]
+        raise HTTPException(status_code=400, detail="El código ha expirado. Solicita uno nuevo.")
+
+    if datos.codigo.strip() != registro["codigo"]:
+        raise HTTPException(status_code=400, detail="El código ingresado es incorrecto.")
+
+    usuario = db.query(models.Usuario).filter(models.Usuario.correo == datos.correo).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+
+    usuario.password_hash = encriptar_password(datos.nueva_password)
+    db.commit()
+
+    # Borrar el código para que no se pueda reutilizar
+    del codigos_recuperacion[datos.correo]
+    return {"mensaje": "Contraseña restablecida con éxito. Ya puedes iniciar sesión."}
+
 
 # ==========================================================
 # 3. HOSPITALES
