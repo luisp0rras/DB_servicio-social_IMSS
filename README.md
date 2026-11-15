@@ -29,35 +29,35 @@ El sistema centraliza la información de hospitales, inventarios, usuarios, equi
 
 ### Backend
 - **Python 3.10+** & **FastAPI** (API REST asíncrona con tareas en segundo plano).
-- **SQLAlchemy** (ORM para mapeo relacional y control de sesiones con `pool_pre_ping`)[cite: 8].
-- **Pydantic v2** (Validación estricta de esquemas con `ConfigDict` y reglas de negocio)[cite: 8].
-- **Bcrypt** (Encriptación segura de contraseñas)[cite: 8].
-- **Openpyxl** (Generación dinámica de reportes nativos en Excel `.xlsx`)[cite: 8].
+- **SQLAlchemy** (ORM para mapeo relacional y control de sesiones con `pool_pre_ping`).
+- **Pydantic v2** (Validación estricta de esquemas con `ConfigDict` y reglas de negocio).
+- **Bcrypt** (Encriptación segura de contraseñas).
+- **Openpyxl** (Generación dinámica de reportes nativos en Excel `.xlsx`).
 
 ### Base de Datos y Persistencia
-- **PostgreSQL** (Base de datos relacional)[cite: 8].
-- **pgAdmin 4** (Administración de esquemas y consultas)[cite: 8].
-- Sistema de archivos local estructurado (`archivos_subidos/`) con prefijos únicos de tiempo para evitar colisiones[cite: 8].
+- **PostgreSQL** (Base de datos relacional).
+- **pgAdmin 4** (Administración de esquemas y consultas).
+- Sistema de archivos local estructurado (`archivos_subidos/`) con prefijos únicos de tiempo para evitar colisiones.
 
 ### Frontend
-- **HTML5**, **Bootstrap 5** & **Bootstrap Icons**[cite: 8].
-- **JavaScript (Vanilla)** modular y **CSS3** personalizado[cite: 8].
+- **HTML5**, **Bootstrap 5** & **Bootstrap Icons**.
+- **JavaScript (Vanilla)** modular y **CSS3** personalizado.
 
 ---
 
 ## 📐 Arquitectura de la Base de Datos
 
-El modelo relacional en PostgreSQL consta de 9 entidades principales[cite: 8]:
+El modelo relacional en PostgreSQL consta de 9 entidades principales:
 
-1. **`hospital`**: Catálogo de unidades médicas (nombre, ciudad, estado)[cite: 8].
-2. **`proveedor`**: Empresas externas de soporte biomédico (correo, teléfono con validación regular, contacto)[cite: 8].
-3. **`usuarios`**: Personal del sistema (`primernombre`, `primerapellido`, `correo` único, `password_hash`, `username`, `foto_perfil` y `rol`)[cite: 8].
-4. **`equipos`**: Activos biomédicos con número de serie (`sn`, único), `nni` único, garantía, fechas de expiración y estatus funcional[cite: 8].
-5. **`inventarios`**: Censos hospitalarios con fecha de ejecución y estado (`EN_PROCESO` / `FINALIZADO`)[cite: 8].
-6. **`mantenimientos`**: Historial de intervenciones preventivas, correctivas u otras (`mantenimiento_enum`)[cite: 8].
-7. **`documentos`**: Metadatos de archivos adjuntos vinculados de forma exclusiva a equipos, mantenimientos o inventarios[cite: 8].
-8. **`inventario_equipo`**: Tabla intermedia (Muchos a Muchos) que mapea el historial de equipos por censo[cite: 8].
-9. **`inventario_usuario`**: Tabla intermedia que registra la participación del personal en cada inventario[cite: 8].
+1. **`hospital`**: Catálogo de unidades médicas (nombre, ciudad, estado).
+2. **`proveedor`**: Empresas externas de soporte biomédico (correo, teléfono con validación regular, contacto).
+3. **`usuarios`**: Personal del sistema (`primernombre`, `primerapellido`, `correo` único, `password_hash`, `username`, `foto_perfil` y `rol`).
+4. **`equipos`**: Activos biomédicos con número de serie (`sn`, único), `nni` único, garantía, fechas de expiración y estatus funcional.
+5. **`inventarios`**: Censos hospitalarios con fecha de ejecución y estado (`EN_PROCESO` / `FINALIZADO`).
+6. **`mantenimientos`**: Historial de intervenciones preventivas, correctivas u otras (`mantenimiento_enum`).
+7. **`documentos`**: Metadatos de archivos adjuntos vinculados de forma exclusiva a equipos, mantenimientos o inventarios.
+8. **`inventario_equipo`**: Tabla intermedia (Muchos a Muchos) que mapea el historial de equipos por censo.
+9. **`inventario_usuario`**: Tabla intermedia que registra la participación del personal en cada inventario.
 
 ---
 
