@@ -173,11 +173,11 @@ class EquipoRespuesta(BaseModel):
 
 
 # ==========================================================
-# 5. MOLDES PARA PROVEEDORES
+# 5. MOLDES PARA PROVEEDORES (CREACIÓN Y EDICIÓN)
 # ==========================================================
 
 class ProveedorCrear(BaseModel):
-    """Datos para registrar un proveedor externo de soporte biomédico."""
+    """Datos para registrar o actualizar un proveedor externo de soporte biomédico."""
     nombre_proveedor: str
     correo: Optional[EmailStr] = None
     num_tel: Optional[str] = None
@@ -198,6 +198,11 @@ class ProveedorCrear(BaseModel):
         return self
 
 
+class ProveedorActualizar(ProveedorCrear):
+    """Molde para que un Administrador modifique la información de un proveedor existente."""
+    pass
+
+
 class ProveedorRespuesta(ProveedorCrear):
     """Estructura de salida al consultar el directorio de proveedores."""
     id_proveedor: int
@@ -205,12 +210,12 @@ class ProveedorRespuesta(ProveedorCrear):
 
 
 # ==========================================================
-# 6. MOLDES PARA MANTENIMIENTOS
+# 6. MOLDES PARA MANTENIMIENTOS (CREACIÓN Y EDICIÓN)
 # ==========================================================
 
 class MantenimientoCrear(BaseModel):
     """Datos requeridos para registrar un mantenimiento preventivo, correctivo u otro."""
-    id_proveedor: int
+    id_proveedor: Optional[int] = None
     id_equipo: int
     tipo_mantenimiento: Literal["PREVENTIVO", "CORRECTIVO", "OTRO"]
     fecha: date
@@ -218,9 +223,26 @@ class MantenimientoCrear(BaseModel):
     observaciones: Optional[str] = None
 
 
-class MantenimientoRespuesta(MantenimientoCrear):
+class MantenimientoActualizar(BaseModel):
+    """Molde para que un Administrador edite proveedor, fechas u observaciones de un mantenimiento."""
+    id_proveedor: Optional[int] = None
+    id_equipo: int
+    tipo_mantenimiento: Literal["PREVENTIVO", "CORRECTIVO", "OTRO"]
+    fecha: date
+    prox_fecha: Optional[date] = None
+    observaciones: Optional[str] = None
+
+
+class MantenimientoRespuesta(BaseModel):
     """Estructura de salida para el historial de mantenimientos."""
     id_mantenimiento: int
+    id_proveedor: Optional[int] = None
+    id_equipo: int
+    tipo_mantenimiento: Literal["PREVENTIVO", "CORRECTIVO", "OTRO"]
+    fecha: date
+    prox_fecha: Optional[date] = None
+    observaciones: Optional[str] = None
+
     model_config = ConfigDict(from_attributes=True)
 
 

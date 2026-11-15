@@ -67,7 +67,6 @@ async def tarea_vigilante_alertas():
     Verifica cada hora si existen alertas próximas (30 días) y envía el correo diario
     a los Administradores aunque nadie tenga abierta la aplicación en el navegador.
     """
-    # Breve espera inicial para asegurar que el servidor terminó de arrancar
     await asyncio.sleep(5)
     while True:
         try:
@@ -84,7 +83,6 @@ async def tarea_vigilante_alertas():
         except Exception as e:
             print(f"[Auto-Alertas IMSS] Aviso en monitoreo automático: {e}")
 
-        # Esperar 1 hora (3600 segundos) antes de la siguiente verificación
         await asyncio.sleep(3600)
 
 
@@ -96,15 +94,13 @@ async def lifespan(app: FastAPI):
     tarea_bg.cancel()
 
 
-# Inicializar aplicación FastAPI conectada al ciclo de vida automático
 app = FastAPI(
     title="API - Gestión de Equipos Médicos IMSS",
     description="Backend para el control de inventarios, mantenimientos, usuarios y equipos médicos hospitalarios.",
-    version="1.0.0",
+    version="1.1.0",
     lifespan=lifespan
 )
 
-# Montar carpetas estáticas para el Frontend (/app) y los Archivos Subidos (/archivos)
 app.mount("/app", StaticFiles(directory="frontend"), name="frontend")
 app.mount("/archivos", StaticFiles(directory=CARPETA_DOCUMENTOS), name="archivos")
 
@@ -133,6 +129,16 @@ def verificar_password(password_plana: str, password_guardada: str) -> bool:
     except Exception:
         return False
 
+def verificar_es_admin(db: Session, id_admin: int) -> models.Usuario:
+    """Verifica que el ID proporcionado corresponda a un usuario con rol ADMIN activo."""
+    admin = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin).first()
+    if not admin or admin.rol != "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acción restringida: Solo un Administrador puede realizar esta operación."
+        )
+    return admin
+
 def buscar_equipo_duplicado(
     db: Session,
     sn: Optional[str],
@@ -157,6 +163,14 @@ def buscar_equipo_duplicado(
         consulta = consulta.filter(models.Equipo.id_equipo != excluir_id_equipo)
 
     return consulta.first()
+
+def eliminar_archivo_fisico_seguro(ruta_archivo: Optional[str]) -> None:
+    """Borra un archivo físico del disco sin lanzar error si ya no existe."""
+    if ruta_archivo and os.path.exists(ruta_archivo):
+        try:
+            os.remove(ruta_archivo)
+        except OSError:
+            pass
 
 
 # ==========================================================
@@ -301,9 +315,7 @@ def convertir_en_administrador(
     db: Session = Depends(get_db)
 ):
     """Otorga el rol ADMIN a otro usuario (exclusivo para Administradores)."""
-    admin = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin_que_autoriza).first()
-    if not admin or admin.rol != "ADMIN":
-        raise HTTPException(status_code=403, detail="Solo un Administrador puede crear otros administradores.")
+    verificar_es_admin(db, id_admin_que_autoriza)
     
     usuario_objetivo = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario_objetivo).first()
     if not usuario_objetivo:
@@ -323,9 +335,7 @@ def cambiar_rol_o_estado_usuario(
     db: Session = Depends(get_db)
 ):
     """Permite a un Administrador cambiar el rol de un usuario o bloquear su acceso (INACTIVO)."""
-    admin = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin_que_autoriza).first()
-    if not admin or admin.rol != "ADMIN":
-        raise HTTPException(status_code=403, detail="Solo un Administrador puede modificar roles de usuario.")
+    verificar_es_admin(db, id_admin_que_autoriza)
 
     if id_usuario_objetivo == id_admin_que_autoriza and nuevo_rol != "ADMIN":
         raise HTTPException(status_code=400, detail="No puedes quitarte el rol de Administrador ni desactivar tu propia cuenta.")
@@ -351,9 +361,7 @@ def eliminar_usuario(
     db: Session = Depends(get_db)
 ):
     """Elimina permanentemente a un usuario limpiando antes sus vínculos en inventario_usuario."""
-    admin = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin_que_autoriza).first()
-    if not admin or admin.rol != "ADMIN":
-        raise HTTPException(status_code=403, detail="Solo un Administrador puede eliminar usuarios.")
+    verificar_es_admin(db, id_admin_que_autoriza)
 
     if id_usuario_objetivo == id_admin_que_autoriza:
         raise HTTPException(status_code=400, detail="Por seguridad, no puedes eliminar tu propia cuenta de Administrador.")
@@ -362,21 +370,14 @@ def eliminar_usuario(
     if not usuario_objetivo:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
-    # 1. Eliminar relaciones en inventario_usuario para respetar la llave foránea
     db.query(models.InventarioUsuario).filter(
         models.InventarioUsuario.id_usuario == id_usuario_objetivo
     ).delete()
 
-    # 2. Borrar su foto de perfil del disco si tenía una subida
     if usuario_objetivo.foto_perfil and usuario_objetivo.foto_perfil.startswith("/archivos/perfiles/"):
         ruta_foto = usuario_objetivo.foto_perfil.replace("/archivos/", f"{CARPETA_DOCUMENTOS}/")
-        if os.path.exists(ruta_foto):
-            try:
-                os.remove(ruta_foto)
-            except OSError:
-                pass
+        eliminar_archivo_fisico_seguro(ruta_foto)
 
-    # 3. Eliminar registro del usuario
     nombre_borrado = f"{usuario_objetivo.primernombre} {usuario_objetivo.primerapellido}"
     db.delete(usuario_objetivo)
     db.commit()
@@ -384,8 +385,6 @@ def eliminar_usuario(
     return {"mensaje": f"El usuario '{nombre_borrado}' fue eliminado permanentemente del sistema."}
 
 
-# Almacenamiento temporal en memoria para códigos OTP de recuperación:
-# { "correo@dominio.com": {"codigo": "123456", "expira": datetime} }
 codigos_recuperacion = {}
 
 @app.post("/usuarios/recuperar-password/solicitar", tags=["Usuarios y Login"])
@@ -501,15 +500,13 @@ def registrar_hospital(hospital: schemas.HospitalCrear, db: Session = Depends(ge
 
 
 # ==========================================================
-# 4. FLUJO DE INVENTARIOS (CREACIÓN, CAPTURA Y CIERRE)
+# 4. FLUJO DE INVENTARIOS (CREACIÓN, CAPTURA, CIERRE Y CANCELACIÓN)
 # ==========================================================
 
 @app.post("/inventarios/", response_model=schemas.InventarioRespuesta, status_code=status.HTTP_201_CREATED, tags=["Inventarios"])
 def iniciar_inventario(datos: schemas.InventarioCrear, db: Session = Depends(get_db)):
     """Abre un nuevo inventario en estado EN_PROCESO y vincula a los usuarios participantes."""
-    admin = db.query(models.Usuario).filter(models.Usuario.id_usuario == datos.id_admin_creador).first()
-    if not admin or admin.rol != "ADMIN":
-        raise HTTPException(status_code=403, detail="Solo un Administrador puede iniciar un inventario.")
+    verificar_es_admin(db, datos.id_admin_creador)
 
     hospital = db.query(models.Hospital).filter(models.Hospital.id_hospital == datos.id_hospital).first()
     if not hospital:
@@ -584,9 +581,7 @@ def finalizar_inventario(
     db: Session = Depends(get_db)
 ):
     """Cambia el estado de un inventario a FINALIZADO para impedir futuras modificaciones."""
-    admin = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin).first()
-    if not admin or admin.rol != "ADMIN":
-        raise HTTPException(status_code=403, detail="Solo un Administrador puede finalizar un inventario.")
+    verificar_es_admin(db, id_admin)
 
     inventario = db.query(models.Inventario).filter(models.Inventario.id_inventario == id_inventario).first()
     if not inventario:
@@ -598,36 +593,95 @@ def finalizar_inventario(
     return inventario
 
 
+@app.delete("/inventarios/{id_inventario}", tags=["Inventarios"])
+def cancelar_o_eliminar_inventario(
+    id_inventario: int,
+    id_admin: int = Query(...),
+    eliminar_equipos_censados: bool = Query(True, description="Si es True, también da de baja los equipos registrados exclusivamente en este inventario"),
+    db: Session = Depends(get_db)
+):
+    """
+    Cancela y elimina un inventario del sistema (exclusivo para Administradores).
+    Limpia participantes, documentos asociados y opcionalmente los equipos que se estaban capturando.
+    """
+    verificar_es_admin(db, id_admin)
+
+    inventario = db.query(models.Inventario).filter(models.Inventario.id_inventario == id_inventario).first()
+    if not inventario:
+        raise HTTPException(status_code=404, detail="El inventario no existe.")
+
+    # 1. Obtener los IDs de los equipos vinculados a este inventario
+    vinculos_eq = db.query(models.InventarioEquipo).filter(
+        models.InventarioEquipo.id_inventario == id_inventario
+    ).all()
+    ids_equipos = [v.id_equipo for v in vinculos_eq]
+
+    # 2. Eliminar vínculos en inventario_equipo e inventario_usuario
+    db.query(models.InventarioEquipo).filter(
+        models.InventarioEquipo.id_inventario == id_inventario
+    ).delete()
+    db.query(models.InventarioUsuario).filter(
+        models.InventarioUsuario.id_inventario == id_inventario
+    ).delete()
+
+    # 3. Eliminar documentos vinculados directamente a este inventario
+    docs_inv = db.query(models.Documento).filter(models.Documento.id_inventario == id_inventario).all()
+    for d in docs_inv:
+        eliminar_archivo_fisico_seguro(d.rutaarchivo)
+        db.delete(d)
+
+    # 4. Si se indicó eliminar los equipos que se estaban registrando en este levantamiento
+    if eliminar_equipos_censados and ids_equipos:
+        for id_eq in ids_equipos:
+            # Verificar que el equipo no pertenezca a otro inventario histórico
+            en_otro_inv = db.query(models.InventarioEquipo).filter(
+                models.InventarioEquipo.id_equipo == id_eq
+            ).first()
+            if not en_otro_inv:
+                docs_eq = db.query(models.Documento).filter(models.Documento.id_equipo == id_eq).all()
+                for deq in docs_eq:
+                    eliminar_archivo_fisico_seguro(deq.rutaarchivo)
+                    db.delete(deq)
+                db.query(models.Mantenimiento).filter(models.Mantenimiento.id_equipo == id_eq).delete()
+                db.query(models.Equipo).filter(models.Equipo.id_equipo == id_eq).delete()
+
+    # 5. Eliminar el registro del inventario
+    db.delete(inventario)
+    db.commit()
+
+    return {"mensaje": f"El Inventario #{id_inventario} fue cancelado y eliminado correctamente."}
+
+
 @app.get("/inventarios/", response_model=List[schemas.InventarioRespuesta], tags=["Inventarios"])
 def ver_inventarios(
-    id_usuario_consulta: int = Query(...),
+    id_usuario_consulta: Optional[int] = Query(None),
     id_hospital: Optional[int] = Query(None),
     estado: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
-    """Devuelve todos los inventarios si consulta un ADMIN, o solo los asignados si consulta un EMPLEADO."""
-    usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario_consulta).first()
-    if not usuario:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+    """
+    Devuelve el historial completo de inventarios para cualquier usuario activo (ADMIN o EMPLEADO),
+    permitiendo que todos los empleados consulten equipos y descarguen reportes Excel sin restricción de participación.
+    """
+    if id_usuario_consulta is not None:
+        usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario_consulta).first()
+        if not usuario:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+        if usuario.rol == "INACTIVO":
+            raise HTTPException(status_code=403, detail="Cuenta inactiva.")
 
     consulta = db.query(models.Inventario)
-
-    if usuario.rol != "ADMIN":
-        consulta = consulta.join(
-            models.InventarioUsuario,
-            models.Inventario.id_inventario == models.InventarioUsuario.id_inventario
-        ).filter(models.InventarioUsuario.id_usuario == id_usuario_consulta)
 
     if id_hospital is not None:
         consulta = consulta.filter(models.Inventario.id_hospital == id_hospital)
     if estado is not None:
         consulta = consulta.filter(models.Inventario.estado == estado)
 
-    return consulta.order_by(models.Inventario.fecha.desc()).all()
+    return consulta.order_by(models.Inventario.fecha.desc(), models.Inventario.id_inventario.desc()).all()
 
 
 # ==========================================================
-# 5. CONSULTA, EDICIÓN Y EXPORTACIÓN EXCEL (.XLSX) DE EQUIPOS
+# 5. CONSULTA, EDICIÓN, BAJA Y EXPORTACIÓN EXCEL (.XLSX) DE EQUIPOS
 # ==========================================================
 
 def construir_consulta_equipos(
@@ -726,7 +780,6 @@ def exportar_equipos_excel(
         bottom=Side(style="thin", color="CBD5E1")
     )
 
-    # Fila 1: Título Institucional
     ws.merge_cells("A1:L1")
     ws["A1"] = "INSTITUTO MEXICANO DEL SEGURO SOCIAL - REPORTE DE EQUIPO BIOMÉDICO"
     ws["A1"].fill = relleno_verde
@@ -734,7 +787,6 @@ def exportar_equipos_excel(
     ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
     ws.row_dimensions[1].height = 26
 
-    # Fila 2: Ficha de filtros aplicados
     resumen_filtros = []
     if id_inventario:
         inv = db.query(models.Inventario).filter(models.Inventario.id_inventario == id_inventario).first()
@@ -765,7 +817,6 @@ def exportar_equipos_excel(
     ws["A2"].alignment = Alignment(horizontal="left", vertical="center")
     ws.row_dimensions[2].height = 20
 
-    # Fila 4: Encabezados de columnas
     encabezados = [
         "ID", "Nombre del Equipo", "Hospital", "Área", "Subárea",
         "Marca", "Modelo", "NNI", "Número de Serie (SN)", "Proveedor",
@@ -781,7 +832,6 @@ def exportar_equipos_excel(
         celda.font = fuente_encabezado
         celda.alignment = Alignment(horizontal="center", vertical="center")
 
-    # Filas de registros
     for eq in equipos:
         vigencia = f"Vence: {eq.fecha_expgarantia}" if eq.garantia else "Sin garantía"
         estatus = "FUNCIONAL" if eq.estatusfuncional else "FUERA DE SERVICIO"
@@ -804,7 +854,6 @@ def exportar_equipos_excel(
         for col_num in range(1, len(encabezados) + 1):
             ws.cell(row=fila_actual, column=col_num).border = borde_fino
 
-    # Autoajustar el ancho de cada columna
     for col in ws.columns:
         letra_col = openpyxl.utils.get_column_letter(col[0].column)
         max_len = 0
@@ -833,9 +882,7 @@ def actualizar_equipo(
     db: Session = Depends(get_db)
 ):
     """Permite a un Administrador editar la información, garantía o estado funcional de un equipo."""
-    admin = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin).first()
-    if not admin or admin.rol != "ADMIN":
-        raise HTTPException(status_code=403, detail="Solo un Administrador puede modificar equipos.")
+    verificar_es_admin(db, id_admin)
 
     equipo = db.query(models.Equipo).filter(models.Equipo.id_equipo == id_equipo).first()
     if not equipo:
@@ -853,8 +900,50 @@ def actualizar_equipo(
     return equipo
 
 
+@app.delete("/equipos/{id_equipo}", tags=["Equipos"])
+def eliminar_equipo(
+    id_equipo: int,
+    id_admin: int = Query(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Da de baja (elimina permanentemente) un equipo médico del sistema (exclusivo para Administradores).
+    Limpia previamente sus vínculos en inventarios, mantenimientos y documentos asociados.
+    """
+    verificar_es_admin(db, id_admin)
+
+    equipo = db.query(models.Equipo).filter(models.Equipo.id_equipo == id_equipo).first()
+    if not equipo:
+        raise HTTPException(status_code=404, detail="Equipo no encontrado.")
+
+    # 1. Eliminar documentos asociados a este equipo (y sus archivos físicos)
+    docs_eq = db.query(models.Documento).filter(models.Documento.id_equipo == id_equipo).all()
+    for doc in docs_eq:
+        eliminar_archivo_fisico_seguro(doc.rutaarchivo)
+        db.delete(doc)
+
+    # 2. Eliminar documentos asociados a los mantenimientos de este equipo
+    mants_eq = db.query(models.Mantenimiento).filter(models.Mantenimiento.id_equipo == id_equipo).all()
+    for m in mants_eq:
+        docs_mant = db.query(models.Documento).filter(models.Documento.id_mantenimiento == m.id_mantenimiento).all()
+        for dm in docs_mant:
+            eliminar_archivo_fisico_seguro(dm.rutaarchivo)
+            db.delete(dm)
+        db.delete(m)
+
+    # 3. Eliminar relación en inventario_equipo
+    db.query(models.InventarioEquipo).filter(models.InventarioEquipo.id_equipo == id_equipo).delete()
+
+    # 4. Eliminar el equipo
+    nombre_eq = equipo.nombre_equipo or f"#{id_equipo}"
+    db.delete(equipo)
+    db.commit()
+
+    return {"mensaje": f"El equipo '{nombre_eq}' fue dado de baja y eliminado del sistema."}
+
+
 # ==========================================================
-# 6. DIRECTORIO DE PROVEEDORES
+# 6. DIRECTORIO DE PROVEEDORES (ALTA, EDICIÓN Y BAJA)
 # ==========================================================
 
 @app.get("/proveedores/", response_model=List[schemas.ProveedorRespuesta], tags=["Proveedores"])
@@ -887,8 +976,64 @@ def agregar_proveedor(proveedor: schemas.ProveedorCrear, db: Session = Depends(g
     return nuevo_proveedor
 
 
+@app.put("/proveedores/{id_proveedor}", response_model=schemas.ProveedorRespuesta, tags=["Proveedores"])
+def actualizar_proveedor(
+    id_proveedor: int,
+    datos: schemas.ProveedorActualizar,
+    id_admin: int = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Permite a un Administrador modificar los datos de contacto o empresa de un proveedor."""
+    verificar_es_admin(db, id_admin)
+
+    proveedor = db.query(models.Proveedor).filter(models.Proveedor.id_proveedor == id_proveedor).first()
+    if not proveedor:
+        raise HTTPException(status_code=404, detail="Proveedor no encontrado.")
+
+    if datos.correo:
+        correo_duplicado = db.query(models.Proveedor).filter(
+            models.Proveedor.id_proveedor != id_proveedor,
+            models.Proveedor.correo == datos.correo
+        ).first()
+        if correo_duplicado:
+            raise HTTPException(status_code=400, detail="Otro proveedor ya tiene registrado ese correo electrónico.")
+
+    for campo, valor in datos.model_dump().items():
+        setattr(proveedor, campo, valor)
+
+    db.commit()
+    db.refresh(proveedor)
+    return proveedor
+
+
+@app.delete("/proveedores/{id_proveedor}", tags=["Proveedores"])
+def eliminar_proveedor(
+    id_proveedor: int,
+    id_admin: int = Query(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Elimina un proveedor del directorio (exclusivo para Administradores).
+    Desvincula previamente sus equipos y mantenimientos (poniendo id_proveedor = NULL) para no perder historial.
+    """
+    verificar_es_admin(db, id_admin)
+
+    proveedor = db.query(models.Proveedor).filter(models.Proveedor.id_proveedor == id_proveedor).first()
+    if not proveedor:
+        raise HTTPException(status_code=404, detail="Proveedor no encontrado.")
+
+    db.query(models.Equipo).filter(models.Equipo.id_proveedor == id_proveedor).update({"id_proveedor": None})
+    db.query(models.Mantenimiento).filter(models.Mantenimiento.id_proveedor == id_proveedor).update({"id_proveedor": None})
+
+    nombre_prov = proveedor.nombre_proveedor
+    db.delete(proveedor)
+    db.commit()
+
+    return {"mensaje": f"El proveedor '{nombre_prov}' fue eliminado correctamente."}
+
+
 # ==========================================================
-# 7. CONTROL DE MANTENIMIENTOS
+# 7. CONTROL DE MANTENIMIENTOS (ALTA, EDICIÓN Y BAJA)
 # ==========================================================
 
 @app.post("/mantenimientos/", response_model=schemas.MantenimientoRespuesta, status_code=status.HTTP_201_CREATED, tags=["Mantenimientos"])
@@ -898,9 +1043,10 @@ def registrar_mantenimiento(datos: schemas.MantenimientoCrear, db: Session = Dep
     if not equipo:
         raise HTTPException(status_code=404, detail="El equipo indicado no existe.")
 
-    proveedor = db.query(models.Proveedor).filter(models.Proveedor.id_proveedor == datos.id_proveedor).first()
-    if not proveedor:
-        raise HTTPException(status_code=404, detail="El proveedor indicado no existe.")
+    if datos.id_proveedor is not None:
+        proveedor = db.query(models.Proveedor).filter(models.Proveedor.id_proveedor == datos.id_proveedor).first()
+        if not proveedor:
+            raise HTTPException(status_code=404, detail="El proveedor indicado no existe.")
 
     nuevo_mant = models.Mantenimiento(**datos.model_dump())
     db.add(nuevo_mant)
@@ -921,11 +1067,65 @@ def listar_mantenimientos(
         consulta = consulta.filter(models.Mantenimiento.id_equipo == id_equipo)
     if tipo is not None:
         consulta = consulta.filter(models.Mantenimiento.tipo_mantenimiento == tipo)
-    return consulta.order_by(models.Mantenimiento.fecha.desc()).all()
+    return consulta.order_by(models.Mantenimiento.fecha.desc(), models.Mantenimiento.id_mantenimiento.desc()).all()
+
+
+@app.put("/mantenimientos/{id_mantenimiento}", response_model=schemas.MantenimientoRespuesta, tags=["Mantenimientos"])
+def actualizar_mantenimiento(
+    id_mantenimiento: int,
+    datos: schemas.MantenimientoActualizar,
+    id_admin: int = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Permite a un Administrador modificar proveedor, fechas u observaciones de un mantenimiento."""
+    verificar_es_admin(db, id_admin)
+
+    mant = db.query(models.Mantenimiento).filter(models.Mantenimiento.id_mantenimiento == id_mantenimiento).first()
+    if not mant:
+        raise HTTPException(status_code=404, detail="Registro de mantenimiento no encontrado.")
+
+    equipo = db.query(models.Equipo).filter(models.Equipo.id_equipo == datos.id_equipo).first()
+    if not equipo:
+        raise HTTPException(status_code=404, detail="El equipo seleccionado no existe.")
+
+    if datos.id_proveedor is not None:
+        proveedor = db.query(models.Proveedor).filter(models.Proveedor.id_proveedor == datos.id_proveedor).first()
+        if not proveedor:
+            raise HTTPException(status_code=404, detail="El proveedor seleccionado no existe.")
+
+    for campo, valor in datos.model_dump().items():
+        setattr(mant, campo, valor)
+
+    db.commit()
+    db.refresh(mant)
+    return mant
+
+
+@app.delete("/mantenimientos/{id_mantenimiento}", tags=["Mantenimientos"])
+def eliminar_mantenimiento(
+    id_mantenimiento: int,
+    id_admin: int = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Elimina un registro de mantenimiento y sus documentos asociados (exclusivo para Administradores)."""
+    verificar_es_admin(db, id_admin)
+
+    mant = db.query(models.Mantenimiento).filter(models.Mantenimiento.id_mantenimiento == id_mantenimiento).first()
+    if not mant:
+        raise HTTPException(status_code=404, detail="Mantenimiento no encontrado.")
+
+    docs_mant = db.query(models.Documento).filter(models.Documento.id_mantenimiento == id_mantenimiento).all()
+    for d in docs_mant:
+        eliminar_archivo_fisico_seguro(d.rutaarchivo)
+        db.delete(d)
+
+    db.delete(mant)
+    db.commit()
+    return {"mensaje": f"El Mantenimiento #{id_mantenimiento} fue eliminado correctamente."}
 
 
 # ==========================================================
-# 8. REPOSITORIO DOCUMENTAL (SUBIDA Y VISUALIZACIÓN SEGURA)
+# 8. REPOSITORIO DOCUMENTAL (SUBIDA, EDICIÓN, REEMPLAZO Y BAJA)
 # ==========================================================
 
 @app.post("/documentos/subir", response_model=schemas.DocumentoRespuesta, status_code=status.HTTP_201_CREATED, tags=["Documentos"])
@@ -966,6 +1166,75 @@ def subir_documento(
     db.commit()
     db.refresh(nuevo_doc)
     return nuevo_doc
+
+
+@app.put("/documentos/{id_documento}", response_model=schemas.DocumentoRespuesta, tags=["Documentos"])
+def actualizar_o_reemplazar_documento(
+    id_documento: int,
+    id_admin: int = Query(...),
+    nombre_documento: str = Form(...),
+    id_equipo: Optional[int] = Form(None),
+    id_mantenimiento: Optional[int] = Form(None),
+    id_inventario: Optional[int] = Form(None),
+    archivo: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Permite a un Administrador cambiar el nombre del documento, reasignar su entidad
+    (inventario, equipo o mantenimiento) y opcionalmente reemplazar el archivo físico en el servidor.
+    """
+    verificar_es_admin(db, id_admin)
+
+    doc = db.query(models.Documento).filter(models.Documento.id_documento == id_documento).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento no encontrado.")
+
+    ids_proporcionados = [x for x in [id_equipo, id_mantenimiento, id_inventario] if x is not None]
+    if len(ids_proporcionados) != 1:
+        raise HTTPException(
+            status_code=400,
+            detail="El documento debe estar asociado exactamente a una entidad (equipo, mantenimiento o inventario)."
+        )
+
+    doc.nombredocumento = nombre_documento.strip()
+    doc.id_equipo = id_equipo
+    doc.id_mantenimiento = id_mantenimiento
+    doc.id_inventario = id_inventario
+
+    # Si el administrador subió un archivo nuevo para reemplazar el anterior
+    if archivo and archivo.filename:
+        eliminar_archivo_fisico_seguro(doc.rutaarchivo)
+        nombre_limpio = os.path.basename(archivo.filename)
+        nombre_unico = f"{int(datetime.now().timestamp())}_{nombre_limpio}"
+        nueva_ruta = os.path.join(CARPETA_DOCUMENTOS, nombre_unico)
+        with open(nueva_ruta, "wb") as buffer:
+            shutil.copyfileobj(archivo.file, buffer)
+        doc.rutaarchivo = nueva_ruta
+
+    db.commit()
+    db.refresh(doc)
+    return doc
+
+
+@app.delete("/documentos/{id_documento}", tags=["Documentos"])
+def eliminar_documento(
+    id_documento: int,
+    id_admin: int = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Elimina un documento de la base de datos y borra su archivo físico del servidor."""
+    verificar_es_admin(db, id_admin)
+
+    doc = db.query(models.Documento).filter(models.Documento.id_documento == id_documento).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento no encontrado.")
+
+    eliminar_archivo_fisico_seguro(doc.rutaarchivo)
+    titulo = doc.nombredocumento
+    db.delete(doc)
+    db.commit()
+
+    return {"mensaje": f"El documento '{titulo}' fue eliminado permanentemente."}
 
 
 @app.get("/documentos/", response_model=List[schemas.DocumentoRespuesta], tags=["Documentos"])
@@ -1083,7 +1352,6 @@ def procesar_envio_correo_alertas(db: Session) -> tuple[bool, str]:
     if total_pendientes == 0:
         return False, "No hay alertas pendientes en los próximos 30 días."
 
-    # Mapa auxiliar para mostrar el nombre real del equipo en la tabla de mantenimientos
     mapa_equipos = {
         e.id_equipo: f"{e.nombre_equipo or 'Equipo #' + str(e.id_equipo)} (NNI: {e.nni or 'S/N'})"
         for e in db.query(models.Equipo).all()
@@ -1184,9 +1452,7 @@ def enviar_alertas_correo_admins(
     db: Session = Depends(get_db)
 ):
     """Permite forzar manualmente el envío del reporte de alertas desde Swagger (/docs) si se requiere."""
-    solicitante = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin_solicitante).first()
-    if not solicitante or solicitante.rol != "ADMIN":
-        raise HTTPException(status_code=403, detail="Solo un Administrador puede disparar el envío de alertas por correo.")
+    verificar_es_admin(db, id_admin_solicitante)
 
     exito, detalle = procesar_envio_correo_alertas(db)
     if not exito:

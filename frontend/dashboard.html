@@ -19,7 +19,6 @@
          BARRA LATERAL DE NAVEGACIÓN (COLAPSABLE Y CON PIE FIJO)
          ========================================================== -->
     <aside id="sidebar-menu" class="sidebar">
-        <!-- Encabezado con acceso al inicio y botón para ocultar menú -->
         <div class="sidebar-header">
             <div class="sidebar-brand" onclick="irAlInicio()" title="Ir al Panel de Control y Alertas">
                 <div class="logo-insignia">
@@ -35,7 +34,6 @@
             </button>
         </div>
 
-        <!-- Menú central con scroll independiente -->
         <nav class="nav-menu">
             <div class="text-uppercase text-muted fw-semibold px-3 mb-1" style="font-size: 0.69rem; letter-spacing: 0.05em;">
                 Principal
@@ -74,7 +72,6 @@
             </button>
         </nav>
 
-        <!-- Pie fijo (Siempre visible en cualquier resolución de laptop) -->
         <div class="sidebar-footer">
             <div class="d-flex align-items-center gap-2 mb-2">
                 <img id="sidebar-avatar" src="https://ui-avatars.com/api/?name=User&background=13322B&color=fff" 
@@ -114,7 +111,7 @@
                     <p class="text-muted small mb-0">Monitoreo automático de garantías y mantenimientos programados (próximos 30 días)</p>
                 </div>
                 <div class="d-flex flex-wrap align-items-center gap-2">
-                    <span id="estado-monitoreo-auto" class="badge-soft-neutral" title="Las alertas se verifican y notifican automáticamente al entrar al sistema">
+                    <span id="estado-monitoreo-auto" class="badge-soft-neutral" title="Las alertas se verifican y notifican automáticamente">
                         <i class="bi bi-broadcast"></i> Monitoreo automático activo
                     </span>
                     <button class="btn btn-primario btn-sm solo-admin d-none" onclick="cambiarVista('vista-inventarios', document.querySelectorAll('.nav-item-btn')[1])">
@@ -123,10 +120,8 @@
                 </div>
             </div>
 
-            <!-- Aviso discreto cuando el sistema envía automáticamente el reporte diario -->
             <div id="alerta-notificaciones" class="alert d-none small py-2"></div>
 
-            <!-- Tarjetas KPI de resumen -->
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
                     <div class="stat-card">
@@ -157,7 +152,6 @@
                 </div>
             </div>
 
-            <!-- Tabla de Garantías Vencidas o por Vencer -->
             <div class="card-clean">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="fw-bold mb-0"><i class="bi bi-shield-exclamation text-warning me-2"></i>Garantías Vencidas o Próximas a Expirar</h6>
@@ -184,7 +178,6 @@
                 </div>
             </div>
 
-            <!-- Tabla de Mantenimientos Próximos o Atrasados -->
             <div class="card-clean">
                 <h6 class="fw-bold mb-3"><i class="bi bi-wrench text-danger me-2"></i>Mantenimientos Próximos o Atrasados</h6>
                 <div class="table-responsive">
@@ -207,20 +200,20 @@
         </section>
 
         <!-- ======================================================
-             VISTA 2: INVENTARIOS (FLUJO DE 5 PASOS, GUÍA CSV Y EXCEL)
+             VISTA 2: INVENTARIOS (ACCESO GLOBAL + OPCIÓN CANCELAR)
              ====================================================== -->
         <section id="vista-inventarios" class="vista-panel d-none">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h4 class="fw-bold mb-1">Levantamiento e Historial de Inventarios</h4>
-                    <p class="text-muted small mb-0">Consulta inventarios realizados, importa censos desde Excel/CSV o descarga reportes</p>
+                    <p class="text-muted small mb-0">Consulta todos los inventarios hospitalarios, descarga su reporte en Excel o inicia un nuevo censo</p>
                 </div>
                 <button class="btn btn-primario solo-admin d-none" onclick="toggleNuevoInventario()">
                     <i class="bi bi-plus-lg me-1"></i> Iniciar Nuevo Inventario
                 </button>
             </div>
 
-            <!-- Asistente Paso 1, 2 y 3: Crear nuevo inventario (Exclusivo ADMIN) -->
+            <!-- Asistente Paso 1, 2 y 3: Crear nuevo inventario -->
             <div id="panel-crear-inventario" class="card-clean d-none" style="border-left: 4px solid var(--verde-imss);">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="fw-bold mb-0">Nuevo Levantamiento de Inventario</h6>
@@ -274,7 +267,8 @@
                             <div id="lista-checkbox-usuarios" class="row g-2 p-2 rounded" style="background-color: var(--bg-fondo); max-height: 140px; overflow-y: auto;"></div>
                         </div>
 
-                        <div class="col-12 text-end">
+                        <div class="col-12 text-end d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secundario" onclick="toggleNuevoInventario()">Cancelar</button>
                             <button type="submit" class="btn btn-primario">
                                 Crear Inventario y Comenzar Captura <i class="bi bi-arrow-right ms-1"></i>
                             </button>
@@ -283,19 +277,22 @@
                 </form>
             </div>
 
-            <!-- Panel Paso 4 y 5: Captura de equipos (Manual / CSV con Guía) y Cierre -->
+            <!-- Panel Paso 4 y 5: Captura de equipos, Finalización o Cancelación de Inventario -->
             <div id="panel-captura-inventario" class="card-clean d-none" style="border-left: 4px solid var(--dorado-sutil);">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom">
                     <div>
                         <span class="badge-soft-warning me-2" id="badge-estado-inv-activo">EN PROCESO</span>
                         <span class="fw-bold" id="titulo-inventario-activo">Inventario #</span>
                     </div>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex flex-wrap gap-2">
                         <button class="btn btn-secundario btn-sm" onclick="descargarExcelInventario(idInventarioActivo)">
-                            <i class="bi bi-file-earmark-excel text-success me-1"></i> Exportar este Inventario (.xlsx)
+                            <i class="bi bi-file-earmark-excel text-success me-1"></i> Exportar (.xlsx)
                         </button>
                         <button id="btn-finalizar-inv" class="btn btn-primario btn-sm solo-admin d-none" onclick="finalizarInventarioActual()">
                             <i class="bi bi-check2-circle me-1"></i> 5. Finalizar Inventario
+                        </button>
+                        <button id="btn-cancelar-inv" class="btn btn-secundario btn-sm text-danger solo-admin d-none" onclick="cancelarInventarioActual()" title="Cancelar y eliminar este levantamiento de inventario">
+                            <i class="bi bi-x-circle me-1"></i> Cancelar Inventario
                         </button>
                         <button class="btn btn-secundario btn-sm" onclick="cerrarPanelCaptura()">Cerrar vista</button>
                     </div>
@@ -434,9 +431,9 @@
                 </div>
             </div>
 
-            <!-- Tabla histórica de inventarios -->
+            <!-- Tabla histórica de inventarios (Visible para todos los usuarios) -->
             <div class="card-clean">
-                <h6 class="fw-bold mb-3">Inventarios Registrados</h6>
+                <h6 class="fw-bold mb-3">Inventarios Registrados en Unidades Médicas</h6>
                 <div class="table-responsive">
                     <table class="table-clean">
                         <thead>
@@ -451,7 +448,7 @@
         </section>
 
         <!-- ======================================================
-             VISTA 3: EQUIPOS MÉDICOS (FILTROS EN VIVO Y EXCEL)
+             VISTA 3: EQUIPOS MÉDICOS (EDICIÓN Y BAJA DE EQUIPOS)
              ====================================================== -->
         <section id="vista-equipos" class="vista-panel d-none">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
@@ -538,7 +535,7 @@
                                 <th>NNI / SN</th>
                                 <th>Garantía</th>
                                 <th>Estatus</th>
-                                <th class="solo-admin d-none">Acción</th>
+                                <th class="solo-admin d-none">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-catalogo-equipos">
@@ -550,7 +547,7 @@
         </section>
 
         <!-- ======================================================
-             VISTA 4: MANTENIMIENTOS
+             VISTA 4: MANTENIMIENTOS (ALTA, EDICIÓN Y BAJA)
              ====================================================== -->
         <section id="vista-mantenimientos" class="vista-panel d-none">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -604,10 +601,19 @@
                 <div class="table-responsive">
                     <table class="table-clean">
                         <thead>
-                            <tr><th>ID</th><th>Equipo</th><th>Proveedor</th><th>Tipo</th><th>Fecha</th><th>Próxima Fecha</th><th>Observaciones</th></tr>
+                            <tr>
+                                <th>ID</th>
+                                <th>Equipo</th>
+                                <th>Proveedor</th>
+                                <th>Tipo</th>
+                                <th>Fecha</th>
+                                <th>Próxima Fecha</th>
+                                <th>Observaciones</th>
+                                <th class="solo-admin d-none">Acciones</th>
+                            </tr>
                         </thead>
                         <tbody id="tabla-lista-mantenimientos">
-                            <tr><td colspan="7" class="text-center text-muted py-3">Cargando mantenimientos...</td></tr>
+                            <tr><td colspan="8" class="text-center text-muted py-3">Cargando mantenimientos...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -615,7 +621,7 @@
         </section>
 
         <!-- ======================================================
-             VISTA 5: PROVEEDORES
+             VISTA 5: PROVEEDORES (ALTA, EDICIÓN Y BAJA)
              ====================================================== -->
         <section id="vista-proveedores" class="vista-panel d-none">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -657,10 +663,17 @@
                 <div class="table-responsive">
                     <table class="table-clean">
                         <thead>
-                            <tr><th>ID</th><th>Proveedor</th><th>Contacto</th><th>Correo</th><th>Teléfono</th></tr>
+                            <tr>
+                                <th>ID</th>
+                                <th>Proveedor</th>
+                                <th>Contacto</th>
+                                <th>Correo</th>
+                                <th>Teléfono</th>
+                                <th class="solo-admin d-none">Acciones</th>
+                            </tr>
                         </thead>
                         <tbody id="tabla-lista-proveedores">
-                            <tr><td colspan="5" class="text-center text-muted py-3">Cargando proveedores...</td></tr>
+                            <tr><td colspan="6" class="text-center text-muted py-3">Cargando proveedores...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -668,7 +681,7 @@
         </section>
 
         <!-- ======================================================
-             VISTA 6: REPOSITORIO DOCUMENTAL (SIN RUTA FÍSICA)
+             VISTA 6: REPOSITORIO DOCUMENTAL (EDICIÓN, REEMPLAZO Y BAJA)
              ====================================================== -->
         <section id="vista-documentos" class="vista-panel d-none">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -718,7 +731,7 @@
                                 <th>ID</th>
                                 <th>Nombre del Documento</th>
                                 <th>Pertenece a</th>
-                                <th class="text-end">Visualizar</th>
+                                <th class="text-end">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-lista-documentos">
@@ -838,7 +851,7 @@
     </main>
 
     <!-- ==========================================================
-         VENTANA EMERGENTE (MODAL) PARA EDITAR EQUIPO (SOLO ADMIN)
+         MODAL 1: EDITAR EQUIPO MÉDICO (SOLO ADMIN)
          ========================================================== -->
     <div class="modal fade" id="modalEditarEquipo" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -921,23 +934,168 @@
     </div>
 
     <!-- ==========================================================
+         MODAL 2: EDITAR MANTENIMIENTO (SOLO ADMIN)
+         ========================================================== -->
+    <div class="modal fade" id="modalEditarMantenimiento" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 12px; border: 1px solid var(--borde-fino);">
+                <div class="modal-header border-bottom">
+                    <h6 class="modal-title fw-bold">Editar Registro de Mantenimiento</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="form-editar-mantenimiento">
+                    <div class="modal-body">
+                        <input type="hidden" id="edit-mant-id">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold">Equipo Médico *</label>
+                                <select class="form-select form-select-sm" id="edit-mant-equipo" required></select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Proveedor Asignado</label>
+                                <select class="form-select form-select-sm" id="edit-mant-proveedor"></select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Tipo de Mantenimiento *</label>
+                                <select class="form-select form-select-sm" id="edit-mant-tipo" required>
+                                    <option value="PREVENTIVO">PREVENTIVO</option>
+                                    <option value="CORRECTIVO">CORRECTIVO</option>
+                                    <option value="OTRO">OTRO</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Fecha de Realización *</label>
+                                <input type="date" class="form-control form-control-sm" id="edit-mant-fecha" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Próxima Fecha Programada</label>
+                                <input type="date" class="form-control form-control-sm" id="edit-mant-prox-fecha">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold">Observaciones / Detalles Técnicos</label>
+                                <input type="text" class="form-control form-control-sm" id="edit-mant-obs" placeholder="Añadir o actualizar observaciones...">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top">
+                        <button type="button" class="btn btn-secundario btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primario btn-sm">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================
+         MODAL 3: EDITAR PROVEEDOR (SOLO ADMIN)
+         ========================================================== -->
+    <div class="modal fade" id="modalEditarProveedor" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 12px; border: 1px solid var(--borde-fino);">
+                <div class="modal-header border-bottom">
+                    <h6 class="modal-title fw-bold">Editar Información de Proveedor</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="form-editar-proveedor">
+                    <div class="modal-body">
+                        <input type="hidden" id="edit-prov-id">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold">Nombre de la Empresa / Proveedor *</label>
+                                <input type="text" class="form-control form-control-sm" id="edit-prov-nombre" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold">Nombre del Contacto</label>
+                                <input type="text" class="form-control form-control-sm" id="edit-prov-contacto">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Correo Electrónico</label>
+                                <input type="email" class="form-control form-control-sm" id="edit-prov-correo">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Teléfono</label>
+                                <input type="text" class="form-control form-control-sm" id="edit-prov-tel" placeholder="+52 (614)...">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top">
+                        <button type="button" class="btn btn-secundario btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primario btn-sm">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================
+         MODAL 4: EDITAR O REEMPLAZAR DOCUMENTO (SOLO ADMIN)
+         ========================================================== -->
+    <div class="modal fade" id="modalEditarDocumento" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 12px; border: 1px solid var(--borde-fino);">
+                <div class="modal-header border-bottom">
+                    <h6 class="modal-title fw-bold">Editar o Reemplazar Documento</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="form-editar-documento">
+                    <div class="modal-body">
+                        <input type="hidden" id="edit-doc-id">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold">Título / Nombre del Documento *</label>
+                                <input type="text" class="form-control form-control-sm" id="edit-doc-titulo" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Asociado a *</label>
+                                <select class="form-select form-select-sm" id="edit-doc-tipo" onchange="cambiarOpcionesAsociacionModalDoc()">
+                                    <option value="inventario">Inventario Hospitalario</option>
+                                    <option value="equipo">Equipo Médico</option>
+                                    <option value="mantenimiento">Mantenimiento</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Registro Destino *</label>
+                                <select class="form-select form-select-sm" id="edit-doc-destino" required></select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold">Reemplazar Archivo (Opcional)</label>
+                                <input type="file" class="form-control form-control-sm" id="edit-doc-archivo">
+                                <small class="text-muted" style="font-size: 0.75rem;">Si no seleccionas ningún archivo, se conservará el PDF o imagen actual.</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top">
+                        <button type="button" class="btn btn-secundario btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primario btn-sm">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================
          LÓGICA JAVASCRIPT Y CONEXIÓN CON FASTAPI
          ========================================================== -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // 1. Verificar sesión activa en el navegador
         const usuarioGuardado = localStorage.getItem("usuario_imss");
         if (!usuarioGuardado) window.location.href = "/app/login.html";
         let usuarioActual = JSON.parse(usuarioGuardado);
 
-        // Diccionarios en memoria para traducir IDs a nombres legibles
         let mapaHospitales = {};
         let mapaEquipos = {};
         let mapaProveedores = {};
         let mapaInventarios = {};
         let listaEquiposActuales = [];
+        let listaMantenimientosActuales = [];
+        let listaProveedoresActuales = [];
+        let listaDocumentosActuales = [];
         let idInventarioActivo = null;
+
         let modalEditarInstancia = null;
+        let modalMantInstancia = null;
+        let modalProvInstancia = null;
+        let modalDocInstancia = null;
         let resumenAlertasActual = { garantias: 0, mantenimientos: 0 };
 
         function limpiarTexto(valor, esCodigo = false) {
@@ -955,7 +1113,6 @@
             input.focus();
         }
 
-        // Control para ocultar o mostrar el menú lateral (Sidebar)
         function alternarMenuLateral() {
             const sidebar = document.getElementById("sidebar-menu");
             const main = document.getElementById("main-content");
@@ -973,7 +1130,6 @@
             }
         }
 
-        // Descargar plantilla CSV de ejemplo para orientar al usuario
         function descargarPlantillaCSV() {
             const encabezados = "nombre_equipo,area,subarea,marca,modelo,sn,nni,garantia,fecha_expgarantia,estatusfuncional,observaciones\n";
             const filaEjemplo1 = "Monitor de Signos Vitales,Urgencias,Choque,Philips,IntelliVue MX450,SN-998877,NNI-2026001,SI,2027-12-31,SI,Equipo nuevo con sensores completos\n";
@@ -991,9 +1147,7 @@
             URL.revokeObjectURL(url);
         }
 
-        // 2. Inicializar interfaz, permisos de rol y alertas automáticas
         async function inicializarInterfaz() {
-            // Si la pantalla es pequeña (<992px), iniciar con el menú contraído para dar espacio
             if (window.innerWidth <= 992) {
                 document.getElementById("sidebar-menu").classList.add("colapsado");
                 document.getElementById("main-content").classList.add("expandido");
@@ -1021,6 +1175,9 @@
             }
 
             modalEditarInstancia = new bootstrap.Modal(document.getElementById("modalEditarEquipo"));
+            modalMantInstancia = new bootstrap.Modal(document.getElementById("modalEditarMantenimiento"));
+            modalProvInstancia = new bootstrap.Modal(document.getElementById("modalEditarProveedor"));
+            modalDocInstancia = new bootstrap.Modal(document.getElementById("modalEditarDocumento"));
 
             await cargarCatalogosBase();
             await cargarAlertas(true);
@@ -1057,7 +1214,6 @@
             window.location.href = "/app/login.html";
         }
 
-        // 3. Cargar catálogos de Hospitales, Proveedores, Inventarios y Equipos
         async function cargarCatalogosBase() {
             const [resHosp, resEq, resProv, resInv] = await Promise.all([
                 fetch("/hospitales/"),
@@ -1069,6 +1225,11 @@
             const equipos = await resEq.json();
             const proveedores = await resProv.json();
             const inventarios = await resInv.json();
+
+            mapaHospitales = {};
+            mapaProveedores = {};
+            mapaInventarios = {};
+            mapaEquipos = {};
 
             const selectFiltroHosp = document.getElementById("filtro-eq-hospital");
             const selectEditHosp = document.getElementById("edit-eq-hospital");
@@ -1155,7 +1316,6 @@
                     </tr>`;
                 }).join("");
 
-            // Notificación automática de escritorio (1 vez al día si existen alertas activas)
             const totalPendientes = resumenAlertasActual.garantias + resumenAlertasActual.mantenimientos;
             if (dispararNotificacionPC && totalPendientes > 0 && "Notification" in window) {
                 const hoyStr = new Date().toISOString().slice(0, 10);
@@ -1185,7 +1345,6 @@
             });
         }
 
-        // Sincronización automática de correo diario para Administradores (sin botón manual)
         async function ejecutarMonitoreoAutomaticoDiario() {
             if (usuarioActual.rol !== "ADMIN") return;
             try {
@@ -1199,12 +1358,10 @@
                     alertaBox.className = "alert alert-success small py-2";
                     alertaBox.classList.remove("d-none");
                 }
-            } catch (err) {
-                // Falla silenciosa en caso de no tener SMTP configurado aún
-            }
+            } catch (err) {}
         }
 
-        // ================= MÓDULO 2: INVENTARIOS =================
+        // ================= MÓDULO 2: INVENTARIOS (CON ACCESO GLOBAL Y CANCELACIÓN) =================
         function toggleNuevoInventario() {
             const panel = document.getElementById("panel-crear-inventario");
             panel.classList.toggle("d-none");
@@ -1281,24 +1438,32 @@
         async function cargarInventarios() {
             const res = await fetch(`/inventarios/?id_usuario_consulta=${usuarioActual.id_usuario}`);
             const lista = await res.json();
-            const mensajeVacio = usuarioActual.rol === "ADMIN" ? "No hay inventarios registrados aún." : "Aún no has sido asignado como participante en ningún inventario.";
+            const esAdmin = usuarioActual.rol === "ADMIN";
 
             document.getElementById("tabla-lista-inventarios").innerHTML = lista.length === 0 
-                ? `<tr><td colspan="5" class="text-center text-muted py-3">${mensajeVacio}</td></tr>` 
-                : lista.map(inv => `<tr>
-                    <td class="fw-semibold">#${inv.id_inventario}</td>
-                    <td>${mapaHospitales[inv.id_hospital] || 'Hospital #' + inv.id_hospital}</td>
-                    <td>${inv.fecha}</td>
-                    <td><span class="${inv.estado === 'EN_PROCESO' ? 'badge-soft-warning' : 'badge-soft-success'}">${inv.estado}</span></td>
-                    <td class="d-flex gap-2">
-                        <button class="btn btn-secundario btn-sm" onclick="abrirCapturaInventario(${inv.id_inventario}, ${inv.id_hospital}, '${inv.fecha}', '${inv.estado}')">
-                            <i class="bi bi-eye me-1"></i> Ver Equipos
-                        </button>
-                        <button class="btn btn-secundario btn-sm" onclick="descargarExcelInventario(${inv.id_inventario})" title="Descargar Excel de este inventario">
-                            <i class="bi bi-file-earmark-excel text-success me-1"></i> Excel
-                        </button>
-                    </td>
-                </tr>`).join("");
+                ? `<tr><td colspan="5" class="text-center text-muted py-3">No hay inventarios registrados aún.</td></tr>` 
+                : lista.map(inv => {
+                    const btnCancelar = esAdmin
+                        ? `<button class="btn btn-secundario btn-sm text-danger" onclick="eliminarInventarioDirecto(${inv.id_inventario})" title="Cancelar / Eliminar este inventario">
+                               <i class="bi bi-trash"></i>
+                           </button>`
+                        : "";
+                    return `<tr>
+                        <td class="fw-semibold">#${inv.id_inventario}</td>
+                        <td>${mapaHospitales[inv.id_hospital] || 'Hospital #' + inv.id_hospital}</td>
+                        <td>${inv.fecha}</td>
+                        <td><span class="${inv.estado === 'EN_PROCESO' ? 'badge-soft-warning' : 'badge-soft-success'}">${inv.estado}</span></td>
+                        <td class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-secundario btn-sm" onclick="abrirCapturaInventario(${inv.id_inventario}, ${inv.id_hospital}, '${inv.fecha}', '${inv.estado}')">
+                                <i class="bi bi-eye me-1"></i> Ver Equipos
+                            </button>
+                            <button class="btn btn-secundario btn-sm" onclick="descargarExcelInventario(${inv.id_inventario})" title="Descargar Excel de este inventario">
+                                <i class="bi bi-file-earmark-excel text-success me-1"></i> Excel
+                            </button>
+                            ${btnCancelar}
+                        </td>
+                    </tr>`;
+                }).join("");
         }
 
         function descargarExcelInventario(idInv) {
@@ -1319,11 +1484,36 @@
             document.getElementById("tabs-captura-equipos").classList.toggle("d-none", !esEditable);
             document.getElementById("contenido-captura-equipos").classList.toggle("d-none", !esEditable);
             document.getElementById("btn-finalizar-inv").classList.toggle("d-none", !esEditable);
+            document.getElementById("btn-cancelar-inv").classList.toggle("d-none", usuarioActual.rol !== "ADMIN");
 
             cargarEquiposDeInventarioActivo();
         }
 
         function cerrarPanelCaptura() { document.getElementById("panel-captura-inventario").classList.add("d-none"); idInventarioActivo = null; }
+
+        async function cancelarInventarioActual() {
+            if (!idInventarioActivo) return;
+            await eliminarInventarioDirecto(idInventarioActivo);
+        }
+
+        async function eliminarInventarioDirecto(idInv) {
+            const confirmar = confirm(`¿Estás seguro de cancelar y eliminar el Inventario #${idInv}?\n\nEsta acción borrará el registro del levantamiento y los equipos que se hayan capturado exclusivamente dentro de él.`);
+            if (!confirmar) return;
+
+            const res = await fetch(`/inventarios/${idInv}?id_admin=${usuarioActual.id_usuario}&eliminar_equipos_censados=true`, {
+                method: "DELETE"
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                if (idInventarioActivo === idInv) cerrarPanelCaptura();
+                await cargarCatalogosBase();
+                cargarInventarios();
+                cargarAlertas(false);
+            } else {
+                alert(data.detail || "No se pudo cancelar el inventario.");
+            }
+        }
 
         function toggleFechaGarantia() {
             const tiene = document.getElementById("eq-garantia").value === "true";
@@ -1395,7 +1585,7 @@
             if (res.ok) { alert("Inventario finalizado."); cerrarPanelCaptura(); cargarInventarios(); }
         }
 
-        // ================= MÓDULO 3: EQUIPOS FILTRADOS Y EXCEL =================
+        // ================= MÓDULO 3: EQUIPOS MÉDICOS (EDICIÓN Y BAJA) =================
         function obtenerParametrosFiltroEquipos() {
             const params = new URLSearchParams();
             const texto = document.getElementById("filtro-eq-texto").value.trim();
@@ -1449,8 +1639,18 @@
                 }
 
                 tbody.innerHTML = listaEquiposActuales.map(eq => {
+                    const nombreSeguro = (eq.nombre_equipo || `Equipo #${eq.id_equipo}`).replace(/'/g, "");
                     const colAccion = esAdmin 
-                        ? `<td><button class="btn btn-secundario btn-sm" onclick="abrirModalEditarEquipo(${eq.id_equipo})" title="Editar equipo"><i class="bi bi-pencil"></i></button></td>` 
+                        ? `<td>
+                               <div class="d-flex gap-1">
+                                   <button class="btn btn-secundario btn-sm" onclick="abrirModalEditarEquipo(${eq.id_equipo})" title="Editar equipo">
+                                       <i class="bi bi-pencil"></i>
+                                   </button>
+                                   <button class="btn btn-secundario btn-sm text-danger" onclick="eliminarEquipo(${eq.id_equipo}, '${nombreSeguro}')" title="Dar de baja / Eliminar equipo">
+                                       <i class="bi bi-trash"></i>
+                                   </button>
+                               </div>
+                           </td>` 
                         : "";
                     const textoProv = eq.id_proveedor ? (mapaProveedores[eq.id_proveedor] || `Prov #${eq.id_proveedor}`) : "Sin proveedor";
                     return `<tr>
@@ -1466,6 +1666,24 @@
                 }).join("");
             } catch (err) {
                 tbody.innerHTML = `<tr><td colspan="${numCols}" class="text-center text-danger py-3">Error al cargar equipos.</td></tr>`;
+            }
+        }
+
+        async function eliminarEquipo(idEquipo, nombreEquipo) {
+            const confirmar = confirm(`¿Estás seguro de dar de baja y eliminar permanentemente el equipo "${nombreEquipo}"?\n\nNota: Si solo deseas marcarlo como fuera de operación conservando su historial, puedes editarlo y cambiar su Estatus Funcional a "Inactivo".`);
+            if (!confirmar) return;
+
+            const res = await fetch(`/equipos/${idEquipo}?id_admin=${usuarioActual.id_usuario}`, {
+                method: "DELETE"
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                await cargarCatalogosBase();
+                cargarEquiposFiltrados();
+                cargarAlertas(false);
+            } else {
+                alert(data.detail || "No se pudo eliminar el equipo.");
             }
         }
 
@@ -1551,7 +1769,7 @@
             }
         });
 
-        // ================= MÓDULO 4: MANTENIMIENTOS =================
+        // ================= MÓDULO 4: MANTENIMIENTOS (ALTA, EDICIÓN Y BAJA) =================
         async function toggleFormMantenimiento() {
             const panel = document.getElementById("panel-crear-mant");
             panel.classList.toggle("d-none");
@@ -1571,26 +1789,47 @@
             await cargarCatalogosBase();
             const res = await fetch("/mantenimientos/");
             const lista = await res.json();
-            document.getElementById("tabla-lista-mantenimientos").innerHTML = lista.length === 0 
-                ? `<tr><td colspan="7" class="text-center text-muted py-3">Sin mantenimientos registrados.</td></tr>` 
-                : lista.map(m => `<tr>
-                    <td>#${m.id_mantenimiento}</td>
-                    <td class="fw-medium">${mapaEquipos[m.id_equipo] || 'Equipo #' + m.id_equipo}</td>
-                    <td>${mapaProveedores[m.id_proveedor] || 'Proveedor #' + m.id_proveedor}</td>
-                    <td><span class="badge-soft-neutral">${limpiarTexto(m.tipo_mantenimiento)}</span></td>
-                    <td>${limpiarTexto(m.fecha)}</td>
-                    <td>${limpiarTexto(m.prox_fecha)}</td>
-                    <td>${limpiarTexto(m.observaciones)}</td>
-                </tr>`).join("");
+            listaMantenimientosActuales = Array.isArray(lista) ? lista : [];
+            const esAdmin = usuarioActual.rol === "ADMIN";
+            const numCols = esAdmin ? 8 : 7;
+
+            document.getElementById("tabla-lista-mantenimientos").innerHTML = listaMantenimientosActuales.length === 0 
+                ? `<tr><td colspan="${numCols}" class="text-center text-muted py-3">Sin mantenimientos registrados.</td></tr>` 
+                : listaMantenimientosActuales.map(m => {
+                    const colAccion = esAdmin
+                        ? `<td>
+                               <div class="d-flex gap-1">
+                                   <button class="btn btn-secundario btn-sm" onclick="abrirModalEditarMantenimiento(${m.id_mantenimiento})" title="Editar mantenimiento">
+                                       <i class="bi bi-pencil"></i>
+                                   </button>
+                                   <button class="btn btn-secundario btn-sm text-danger" onclick="eliminarMantenimiento(${m.id_mantenimiento})" title="Eliminar registro">
+                                       <i class="bi bi-trash"></i>
+                                   </button>
+                               </div>
+                           </td>`
+                        : "";
+                    const textoProv = m.id_proveedor ? (mapaProveedores[m.id_proveedor] || `Proveedor #${m.id_proveedor}`) : `<span class="text-muted small">Sin proveedor</span>`;
+                    return `<tr>
+                        <td>#${m.id_mantenimiento}</td>
+                        <td class="fw-medium">${mapaEquipos[m.id_equipo] || 'Equipo #' + m.id_equipo}</td>
+                        <td>${textoProv}</td>
+                        <td><span class="badge-soft-neutral">${limpiarTexto(m.tipo_mantenimiento)}</span></td>
+                        <td>${limpiarTexto(m.fecha)}</td>
+                        <td>${limpiarTexto(m.prox_fecha)}</td>
+                        <td>${limpiarTexto(m.observaciones)}</td>
+                        ${colAccion}
+                    </tr>`;
+                }).join("");
         }
 
         document.getElementById("form-registrar-mant").addEventListener("submit", async (e) => {
             e.preventDefault();
+            const provVal = document.getElementById("mant-id-proveedor").value;
             const res = await fetch("/mantenimientos/", {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     id_equipo: parseInt(document.getElementById("mant-id-equipo").value),
-                    id_proveedor: parseInt(document.getElementById("mant-id-proveedor").value),
+                    id_proveedor: provVal ? parseInt(provVal) : null,
                     tipo_mantenimiento: document.getElementById("mant-tipo").value,
                     fecha: document.getElementById("mant-fecha").value,
                     prox_fecha: document.getElementById("mant-prox-fecha").value || null,
@@ -1601,21 +1840,106 @@
             else { const d = await res.json(); alert(d.detail); }
         });
 
-        // ================= MÓDULO 5: PROVEEDORES =================
+        function abrirModalEditarMantenimiento(idMant) {
+            const m = listaMantenimientosActuales.find(item => item.id_mantenimiento === idMant);
+            if (!m) return;
+
+            const selEq = document.getElementById("edit-mant-equipo");
+            selEq.innerHTML = Object.entries(mapaEquipos).map(([id, texto]) => `<option value="${id}">${texto}</option>`).join("");
+
+            const selProv = document.getElementById("edit-mant-proveedor");
+            selProv.innerHTML = `<option value="">Sin proveedor</option>` + Object.entries(mapaProveedores).map(([id, texto]) => `<option value="${id}">${texto}</option>`).join("");
+
+            document.getElementById("edit-mant-id").value = m.id_mantenimiento;
+            selEq.value = m.id_equipo;
+            selProv.value = m.id_proveedor || "";
+            document.getElementById("edit-mant-tipo").value = m.tipo_mantenimiento;
+            document.getElementById("edit-mant-fecha").value = m.fecha || "";
+            document.getElementById("edit-mant-prox-fecha").value = m.prox_fecha || "";
+            document.getElementById("edit-mant-obs").value = m.observaciones || "";
+
+            modalMantInstancia.show();
+        }
+
+        document.getElementById("form-editar-mantenimiento").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const idMant = document.getElementById("edit-mant-id").value;
+            const provVal = document.getElementById("edit-mant-proveedor").value;
+
+            const datos = {
+                id_equipo: parseInt(document.getElementById("edit-mant-equipo").value),
+                id_proveedor: provVal ? parseInt(provVal) : null,
+                tipo_mantenimiento: document.getElementById("edit-mant-tipo").value,
+                fecha: document.getElementById("edit-mant-fecha").value,
+                prox_fecha: document.getElementById("edit-mant-prox-fecha").value || null,
+                observaciones: document.getElementById("edit-mant-obs").value.trim() || null
+            };
+
+            const res = await fetch(`/mantenimientos/${idMant}?id_admin=${usuarioActual.id_usuario}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(datos)
+            });
+
+            if (res.ok) {
+                modalMantInstancia.hide();
+                cargarMantenimientos();
+                cargarAlertas(false);
+            } else {
+                const d = await res.json();
+                alert(d.detail || "No se pudo actualizar el mantenimiento.");
+            }
+        });
+
+        async function eliminarMantenimiento(idMant) {
+            if (!confirm(`¿Estás seguro de eliminar el registro de Mantenimiento #${idMant}?`)) return;
+            const res = await fetch(`/mantenimientos/${idMant}?id_admin=${usuarioActual.id_usuario}`, {
+                method: "DELETE"
+            });
+            if (res.ok) {
+                cargarMantenimientos();
+                cargarAlertas(false);
+            } else {
+                const d = await res.json();
+                alert(d.detail || "No se pudo eliminar el mantenimiento.");
+            }
+        }
+
+        // ================= MÓDULO 5: PROVEEDORES (ALTA, EDICIÓN Y BAJA) =================
         function toggleFormProveedor() { document.getElementById("panel-crear-prov").classList.toggle("d-none"); }
 
         async function cargarProveedores() {
             const res = await fetch("/proveedores/");
             const lista = await res.json();
-            document.getElementById("tabla-lista-proveedores").innerHTML = lista.length === 0 
-                ? `<tr><td colspan="5" class="text-center text-muted py-3">Sin proveedores registrados.</td></tr>` 
-                : lista.map(p => `<tr>
-                    <td>#${p.id_proveedor}</td>
-                    <td class="fw-medium">${limpiarTexto(p.nombre_proveedor)}</td>
-                    <td>${limpiarTexto(p.nombre_contacto)}</td>
-                    <td>${limpiarTexto(p.correo)}</td>
-                    <td>${limpiarTexto(p.num_tel)}</td>
-                </tr>`).join("");
+            listaProveedoresActuales = Array.isArray(lista) ? lista : [];
+            const esAdmin = usuarioActual.rol === "ADMIN";
+            const numCols = esAdmin ? 6 : 5;
+
+            document.getElementById("tabla-lista-proveedores").innerHTML = listaProveedoresActuales.length === 0 
+                ? `<tr><td colspan="${numCols}" class="text-center text-muted py-3">Sin proveedores registrados.</td></tr>` 
+                : listaProveedoresActuales.map(p => {
+                    const nombreSeguro = (p.nombre_proveedor || "").replace(/'/g, "");
+                    const colAccion = esAdmin
+                        ? `<td>
+                               <div class="d-flex gap-1">
+                                   <button class="btn btn-secundario btn-sm" onclick="abrirModalEditarProveedor(${p.id_proveedor})" title="Editar proveedor">
+                                       <i class="bi bi-pencil"></i>
+                                   </button>
+                                   <button class="btn btn-secundario btn-sm text-danger" onclick="eliminarProveedor(${p.id_proveedor}, '${nombreSeguro}')" title="Eliminar proveedor">
+                                       <i class="bi bi-trash"></i>
+                                   </button>
+                               </div>
+                           </td>`
+                        : "";
+                    return `<tr>
+                        <td>#${p.id_proveedor}</td>
+                        <td class="fw-medium">${limpiarTexto(p.nombre_proveedor)}</td>
+                        <td>${limpiarTexto(p.nombre_contacto)}</td>
+                        <td>${limpiarTexto(p.correo)}</td>
+                        <td>${limpiarTexto(p.num_tel)}</td>
+                        ${colAccion}
+                    </tr>`;
+                }).join("");
         }
 
         document.getElementById("form-registrar-prov").addEventListener("submit", async (e) => {
@@ -1623,17 +1947,71 @@
             const res = await fetch("/proveedores/", {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    nombre_proveedor: document.getElementById("prov-nombre").value,
-                    correo: document.getElementById("prov-correo").value || null,
-                    num_tel: document.getElementById("prov-tel").value || null,
-                    nombre_contacto: document.getElementById("prov-contacto").value || null
+                    nombre_proveedor: document.getElementById("prov-nombre").value.trim(),
+                    correo: document.getElementById("prov-correo").value.trim() || null,
+                    num_tel: document.getElementById("prov-tel").value.trim() || null,
+                    nombre_contacto: document.getElementById("prov-contacto").value.trim() || null
                 })
             });
             if (res.ok) { document.getElementById("form-registrar-prov").reset(); toggleFormProveedor(); await cargarCatalogosBase(); cargarProveedores(); }
             else { const d = await res.json(); alert(d.detail); }
         });
 
-        // ================= MÓDULO 6: DOCUMENTOS =================
+        function abrirModalEditarProveedor(idProv) {
+            const p = listaProveedoresActuales.find(item => item.id_proveedor === idProv);
+            if (!p) return;
+
+            document.getElementById("edit-prov-id").value = p.id_proveedor;
+            document.getElementById("edit-prov-nombre").value = p.nombre_proveedor || "";
+            document.getElementById("edit-prov-contacto").value = p.nombre_contacto || "";
+            document.getElementById("edit-prov-correo").value = p.correo || "";
+            document.getElementById("edit-prov-tel").value = p.num_tel || "";
+
+            modalProvInstancia.show();
+        }
+
+        document.getElementById("form-editar-proveedor").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const idProv = document.getElementById("edit-prov-id").value;
+            const datos = {
+                nombre_proveedor: document.getElementById("edit-prov-nombre").value.trim(),
+                nombre_contacto: document.getElementById("edit-prov-contacto").value.trim() || null,
+                correo: document.getElementById("edit-prov-correo").value.trim() || null,
+                num_tel: document.getElementById("edit-prov-tel").value.trim() || null
+            };
+
+            const res = await fetch(`/proveedores/${idProv}?id_admin=${usuarioActual.id_usuario}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(datos)
+            });
+
+            if (res.ok) {
+                modalProvInstancia.hide();
+                await cargarCatalogosBase();
+                cargarProveedores();
+            } else {
+                const d = await res.json();
+                alert(d.detail || "No se pudo actualizar el proveedor.");
+            }
+        });
+
+        async function eliminarProveedor(idProv, nombreProv) {
+            if (!confirm(`¿Estás seguro de eliminar al proveedor "${nombreProv}"?\n\nLos equipos y mantenimientos asociados conservarán su historial quedando como "Sin proveedor".`)) return;
+
+            const res = await fetch(`/proveedores/${idProv}?id_admin=${usuarioActual.id_usuario}`, {
+                method: "DELETE"
+            });
+            if (res.ok) {
+                await cargarCatalogosBase();
+                cargarProveedores();
+            } else {
+                const d = await res.json();
+                alert(d.detail || "No se pudo eliminar el proveedor.");
+            }
+        }
+
+        // ================= MÓDULO 6: DOCUMENTOS (SUBIDA, EDICIÓN, REEMPLAZO Y BAJA) =================
         async function toggleFormDocumento() {
             const panel = document.getElementById("panel-subir-doc");
             panel.classList.toggle("d-none");
@@ -1642,9 +2020,9 @@
             }
         }
 
-        async function cambiarOpcionesAsociacionDoc() {
-            const tipo = document.getElementById("doc-tipo-asociacion").value;
-            const selectDestino = document.getElementById("doc-id-destino");
+        async function poblarSelectAsociacion(idSelectTipo, idSelectDestino) {
+            const tipo = document.getElementById(idSelectTipo).value;
+            const selectDestino = document.getElementById(idSelectDestino);
             await cargarCatalogosBase();
 
             if (tipo === "inventario") {
@@ -1660,13 +2038,24 @@
             }
         }
 
+        async function cambiarOpcionesAsociacionDoc() {
+            await poblarSelectAsociacion("doc-tipo-asociacion", "doc-id-destino");
+        }
+
+        async function cambiarOpcionesAsociacionModalDoc() {
+            await poblarSelectAsociacion("edit-doc-tipo", "edit-doc-destino");
+        }
+
         async function cargarDocumentos() {
             await cargarCatalogosBase();
             const res = await fetch("/documentos/");
             const lista = await res.json();
-            document.getElementById("tabla-lista-documentos").innerHTML = lista.length === 0 
+            listaDocumentosActuales = Array.isArray(lista) ? lista : [];
+            const esAdmin = usuarioActual.rol === "ADMIN";
+
+            document.getElementById("tabla-lista-documentos").innerHTML = listaDocumentosActuales.length === 0 
                 ? `<tr><td colspan="4" class="text-center text-muted py-3">Sin documentos registrados.</td></tr>` 
-                : lista.map(d => {
+                : listaDocumentosActuales.map(d => {
                     let asociado = "";
                     if (d.id_equipo) {
                         asociado = `<span class="badge-soft-neutral"><i class="bi bi-cpu me-1"></i>${mapaEquipos[d.id_equipo] || 'Equipo #' + d.id_equipo}</span>`;
@@ -1675,14 +2064,28 @@
                     } else {
                         asociado = `<span class="badge-soft-success"><i class="bi bi-clipboard2-check me-1"></i>${mapaInventarios[d.id_inventario] || 'Inventario #' + d.id_inventario}</span>`;
                     }
+
+                    const tituloSeguro = (d.nombredocumento || "").replace(/'/g, "");
+                    const botonesAdmin = esAdmin
+                        ? `<button class="btn btn-secundario btn-sm" onclick="abrirModalEditarDocumento(${d.id_documento})" title="Editar título o reemplazar archivo">
+                               <i class="bi bi-pencil"></i>
+                           </button>
+                           <button class="btn btn-secundario btn-sm text-danger" onclick="eliminarDocumento(${d.id_documento}, '${tituloSeguro}')" title="Eliminar documento">
+                               <i class="bi bi-trash"></i>
+                           </button>`
+                        : "";
+
                     return `<tr>
                         <td>#${d.id_documento}</td>
                         <td class="fw-medium">${limpiarTexto(d.nombredocumento)}</td>
                         <td>${asociado}</td>
                         <td class="text-end">
-                            <a href="/documentos/${d.id_documento}/ver" target="_blank" class="btn btn-secundario btn-sm">
-                                <i class="bi bi-eye me-1"></i> Visualizar Archivo
-                            </a>
+                            <div class="d-inline-flex gap-1">
+                                <a href="/documentos/${d.id_documento}/ver" target="_blank" class="btn btn-secundario btn-sm">
+                                    <i class="bi bi-eye me-1"></i> Visualizar
+                                </a>
+                                ${botonesAdmin}
+                            </div>
                         </td>
                     </tr>`;
                 }).join("");
@@ -1691,7 +2094,7 @@
         document.getElementById("form-subir-documento").addEventListener("submit", async (e) => {
             e.preventDefault();
             const formData = new FormData();
-            formData.append("nombre_documento", document.getElementById("doc-titulo").value);
+            formData.append("nombre_documento", document.getElementById("doc-titulo").value.trim());
             
             const tipo = document.getElementById("doc-tipo-asociacion").value;
             const idDestino = document.getElementById("doc-id-destino").value;
@@ -1705,6 +2108,72 @@
             if (res.ok) { document.getElementById("form-subir-documento").reset(); toggleFormDocumento(); cargarDocumentos(); alert("Documento subido con éxito."); }
             else { const d = await res.json(); alert(d.detail); }
         });
+
+        async function abrirModalEditarDocumento(idDoc) {
+            const d = listaDocumentosActuales.find(item => item.id_documento === idDoc);
+            if (!d) return;
+
+            document.getElementById("edit-doc-id").value = d.id_documento;
+            document.getElementById("edit-doc-titulo").value = d.nombredocumento || "";
+            document.getElementById("edit-doc-archivo").value = "";
+
+            const selTipo = document.getElementById("edit-doc-tipo");
+            if (d.id_equipo) selTipo.value = "equipo";
+            else if (d.id_mantenimiento) selTipo.value = "mantenimiento";
+            else selTipo.value = "inventario";
+
+            await cambiarOpcionesAsociacionModalDoc();
+
+            const selDestino = document.getElementById("edit-doc-destino");
+            selDestino.value = d.id_equipo || d.id_mantenimiento || d.id_inventario || "";
+
+            modalDocInstancia.show();
+        }
+
+        document.getElementById("form-editar-documento").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const idDoc = document.getElementById("edit-doc-id").value;
+            const formData = new FormData();
+            formData.append("nombre_documento", document.getElementById("edit-doc-titulo").value.trim());
+
+            const tipo = document.getElementById("edit-doc-tipo").value;
+            const idDestino = document.getElementById("edit-doc-destino").value;
+            if (tipo === "equipo") formData.append("id_equipo", idDestino);
+            if (tipo === "mantenimiento") formData.append("id_mantenimiento", idDestino);
+            if (tipo === "inventario") formData.append("id_inventario", idDestino);
+
+            const inputArchivo = document.getElementById("edit-doc-archivo");
+            if (inputArchivo.files[0]) {
+                formData.append("archivo", inputArchivo.files[0]);
+            }
+
+            const res = await fetch(`/documentos/${idDoc}?id_admin=${usuarioActual.id_usuario}`, {
+                method: "PUT",
+                body: formData
+            });
+
+            if (res.ok) {
+                modalDocInstancia.hide();
+                cargarDocumentos();
+            } else {
+                const d = await res.json();
+                alert(d.detail || "No se pudo actualizar el documento.");
+            }
+        });
+
+        async function eliminarDocumento(idDoc, tituloDoc) {
+            if (!confirm(`¿Estás seguro de eliminar permanentemente el documento "${tituloDoc}"?`)) return;
+
+            const res = await fetch(`/documentos/${idDoc}?id_admin=${usuarioActual.id_usuario}`, {
+                method: "DELETE"
+            });
+            if (res.ok) {
+                cargarDocumentos();
+            } else {
+                const d = await res.json();
+                alert(d.detail || "No se pudo eliminar el documento.");
+            }
+        }
 
         // ================= MÓDULO 7: MI PERFIL =================
         async function subirFotoDesdeExplorador() {
@@ -1847,7 +2316,6 @@
             }
         }
 
-        // Arrancar la interfaz al cargar el documento
         inicializarInterfaz();
     </script>
 </body>
