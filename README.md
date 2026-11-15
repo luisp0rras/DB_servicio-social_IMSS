@@ -1,96 +1,82 @@
 # Biomédica IMSS - Sistema de Gestión e Inventario de Activos Biomédicos
 
 ## 📋 Descripción General
-
 Proyecto *Full-Stack* desarrollado para la gestión, control y auditoría de equipo médico hospitalario en unidades del **IMSS** (Instituto Mexicano del Seguro Social).
 El sistema centraliza la información de hospitales, inventarios, usuarios, equipos médicos, proveedores, mantenimientos y un repositorio documental seguro, garantizando una operación concurrente, trazable y robusta entre el personal de Ingeniería Biomédica.
 
+---
+
 ## 🚀 Características Principales y Funcionalidades
 
-- **Control de Accesso Basado en Roles (RBAC):** Distinción estricta de privilegios entre **Administradores (`ADMIN`)** y **Empleados (`EMPLEADO`)**, con capacidad de bloqueo temporal (*Inactivo*) y eliminación segura de cuentas desde una sección dedicada.
-- **Flujo de Inventarios Hospitalarios (5 Pasos):** Asistente interactivo para la selección o creación de unidades médicas, asignación dinámica de participantes, captura manual o importación masiva mediante archivos **CSV** (con omisión automática de duplicados de SN/NNI), y cierre formal de inventarios.
-- **Catálogo Maestro y Reportes en Excel (`.xlsx`):** Motor de filtrado en tiempo real combinando inventarios, hospitales, proveedores, áreas, marcas, garantías y estatus funcional, con exportación a hojas de cálculo institucionales estilizadas mediante `openpyxl`.
-- **Motor de Alertas y Notificaciones:**
-    - Alertas visuales y de escritorio (**Web Notifications API**) para garantías y mantenimientos próximos a expirar (ventana de 30 días).
-    - Envío automatizado de reportes en formato **HTML** mediante servidor SMTP a todos los administradores registrados.
-- **Recuperación Segura de Contraseña (OTP):** Envío de códigos de verificación de 6 dígitos con vigencia temporal por correo electrónico para restablecer claves mediante cifrado `bcrypt`.
-- **Repositorio Documental Seguro:** Almacenamiento centralizado de minutas, manuales y reportes asociados de forma exclusiva a equipos, mantenimientos o inventarios, con nombres protegidos contra colisiones y visualización directa en navegador.
+- **Control de Acceso Basado en Roles (RBAC):** Distinción estricta de privilegios entre **Administradores (`ADMIN`)** y **Empleados (`EMPLEADO`)**, con capacidad de bloqueo temporal (*Inactivo*) y eliminación segura de cuentas desde un módulo dedicado.
+- **Gestión Completa (CRUD) por Administradores:**
+  - **Equipos Médicos:** Alta individual o masiva, edición de datos/garantías/estatus funcional y baja permanente con limpieza automática de historial y archivos asociados.
+  - **Inventarios Hospitalarios:** Asistente de apertura, captura manual o por CSV, cierre formal (`FINALIZADO`) y opción de cancelación/eliminación de levantamientos en curso.
+  - **Mantenimientos:** Registro, edición (cambio de proveedor, programación o actualización de próxima fecha y observaciones) y eliminación.
+  - **Proveedores:** Directorio con alta, edición de contacto/empresa y eliminación segura sin pérdida de historial en equipos vinculados.
+  - **Repositorio Documental:** Subida de minutas, manuales y reportes (PDF/imágenes), edición de título/asociación, reemplazo físico de archivos en servidor y eliminación.
+- **Acceso Global de Consulta y Reportes Excel para Empleados:** Cualquier usuario activo puede consultar el historial completo de inventarios de las unidades médicas, filtrar el catálogo maestro en tiempo real y descargar hojas de cálculo institucionales (`.xlsx`) estilizadas mediante `openpyxl`.
+- **Importación Masiva con Guía y Plantilla CSV:** Descarga directa de plantilla de ejemplo compatible con Excel y procesamiento automático de lotes omitiendo duplicados de Número de Serie (`SN`) o `NNI`.
+- **Motor de Alertas Autónomo (Segundo Plano):**
+  - Vigilante asíncrono (`asyncio` + `lifespan`) con persistencia diaria en disco que envía reportes HTML por correo SMTP a los administradores aunque el navegador esté cerrado.
+  - Notificaciones de escritorio (**Web Notifications API**) al iniciar sesión cuando existen garantías o mantenimientos próximos a vencer (ventana de 30 días).
+- **Recuperación Segura de Contraseña (OTP):** Envío de códigos de verificación de 6 dígitos con vigencia de 15 minutos por correo electrónico para restablecer claves mediante cifrado `bcrypt`.
+- **Interfaz Minimalista Adaptativa:** Diseño institucional en *Verde IMSS* (`#13322B`) y *Dorado Sutil* (`#A68250`), con menú lateral colapsable y vista optimizada para pantallas de laptop y dispositivos móviles.
+
+---
 
 ## 🛠️ Stack Tecnológico
 
 ### Backend
-
-- **Python 3.10+** & **FastAPI** (API REST asíncrona de alta velocidad).
-- **SQLAlchemy** (ORM para mapeo relacional).
-- **Pydantic v2** (Validación estricta de esquemas y validadores personalizados).
-- **Bcrypt** (Seguridad y encriptación de contraseñas).
-- **Openpyxl** (Generación de reportes nativos en Excel).
+- **Python 3.10+** & **FastAPI** (API REST asíncrona con tareas en segundo plano).
+- **SQLAlchemy** (ORM para mapeo relacional y control de sesiones con `pool_pre_ping`)[cite: 8].
+- **Pydantic v2** (Validación estricta de esquemas con `ConfigDict` y reglas de negocio)[cite: 8].
+- **Bcrypt** (Encriptación segura de contraseñas)[cite: 8].
+- **Openpyxl** (Generación dinámica de reportes nativos en Excel `.xlsx`)[cite: 8].
 
 ### Base de Datos y Persistencia
-
-- **PostgreSQL** (Base de datos relacional).
-- **pgAdmin 4** (Gestión de esquemas y consultas).
-- Sistema de archivos local estructurado para avatares y documentos PDF/imágenes.
+- **PostgreSQL** (Base de datos relacional)[cite: 8].
+- **pgAdmin 4** (Administración de esquemas y consultas)[cite: 8].
+- Sistema de archivos local estructurado (`archivos_subidos/`) con prefijos únicos de tiempo para evitar colisiones[cite: 8].
 
 ### Frontend
+- **HTML5**, **Bootstrap 5** & **Bootstrap Icons**[cite: 8].
+- **JavaScript (Vanilla)** modular y **CSS3** personalizado[cite: 8].
 
-- **HTML5**, **Bootstrap 5** & **Bootstrap Icons**.
-- **JavaScript (Vanilla)** modular con diseño minimalista e institucional (*Verde IMSS* `#13322B` y *Dorado Sutil* `#A68250`).
+---
 
 ## 📐 Arquitectura de la Base de Datos
 
-El modelo relacional en PostgreSQL consta de las siguientes entidades:
+El modelo relacional en PostgreSQL consta de 9 entidades principales[cite: 8]:
 
-1. **`hospital`**: Catálogo de unidades médicas (nombre, ciudad, estado).
-2. **`proveedor`**: Empresas externas de soporte biomédico (correo, teléfono con validación regular, contacto).
-3. **`usuarios`**: Personal del sistema (`primernombre`, `primerapellido`, `correo` único, `password_hash`, `username`, `foto_perfil` y `rol`).
-4. **`equipos`**: Activos biomédicos con número de serie (`sn`, único), NNI único, garantía, fechas de expiración y estatus funcional.
-5. **`inventarios`**: Censos hospitalarios con fecha de ejecución y estado (`EN_PROCESO` / `FINALIZADO`).
-6. **`mantenimientos`**: Historial de intervenciones preventivas, correctivas u otras (`mantenimiento_enum`).
-7. **`documentos`**: Metadatos de archivos adjuntos vinculados de forma exclusiva a equipos, mantenimientos o inventarios.
-8. **`inventario_equipo`**: Tabla intermedia (Muchos a Muchos) que mapea el historial de equipos por censo.
-9. **`inventario_usuario`**: Tabla intermedia que registra la participación del personal en cada inventario.
+1. **`hospital`**: Catálogo de unidades médicas (nombre, ciudad, estado)[cite: 8].
+2. **`proveedor`**: Empresas externas de soporte biomédico (correo, teléfono con validación regular, contacto)[cite: 8].
+3. **`usuarios`**: Personal del sistema (`primernombre`, `primerapellido`, `correo` único, `password_hash`, `username`, `foto_perfil` y `rol`)[cite: 8].
+4. **`equipos`**: Activos biomédicos con número de serie (`sn`, único), `nni` único, garantía, fechas de expiración y estatus funcional[cite: 8].
+5. **`inventarios`**: Censos hospitalarios con fecha de ejecución y estado (`EN_PROCESO` / `FINALIZADO`)[cite: 8].
+6. **`mantenimientos`**: Historial de intervenciones preventivas, correctivas u otras (`mantenimiento_enum`)[cite: 8].
+7. **`documentos`**: Metadatos de archivos adjuntos vinculados de forma exclusiva a equipos, mantenimientos o inventarios[cite: 8].
+8. **`inventario_equipo`**: Tabla intermedia (Muchos a Muchos) que mapea el historial de equipos por censo[cite: 8].
+9. **`inventario_usuario`**: Tabla intermedia que registra la participación del personal en cada inventario[cite: 8].
 
-## ⚙️ Guía de Instalación y Ejecución Local
+---
 
-### 1. Clonar el repositorio y configurar el entorno virtual
+## 📂 Estructura del Proyecto
 
-```
-git clone https://github.com/tu-usuario/DB_servicio-social_IMSS.git
-cd DB_servicio-social_IMSS
-python -m venv venv
-venv\Scripts\Activate
-```
-
-### 2. Instalar dependencias
-
-```
-pip install -r requirements.txt
-```
-
-### 3. Configurar variables de entorno (`.env`)
-
-Crea un archivo llamado `.env` en la raíz del proyecto con la siguiente estructura:
-
-```
-DATABASE_URL=postgresql://tu_usuario:tu_password@localhost:5432/biomedica_imss
-SMTP_SERVER=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=tu_correo@gmail.com
-SMTP_PASSWORD=tu_contraseña_de_aplicacion_de_16_caracteres
-```
-
-### 4. Ejecutar el servidor de desarrollo
-
-```
-uvicorn app.main:app --reload
-```
-
-Una vez encendido el servidor, abre tu navegador e ingresa a:
-👉 **`http://127.0.0.1:8000/app/login.html`**
-
-## 🔒 Seguridad y Buenas Prácticas Implementadas
-
-- **Integridad Transaccional:** Todas las operaciones críticas de inserción y modificación se ejecutan mediante sesiones controladas en SQLAlchemy.
-- **Protección de Llaves Foráneas:** Eliminación en cascada segura (`ondelete="CASCADE"`) y limpieza previa de relaciones intermedias al borrar registros.
-- **Blindaje de Credenciales:** Ocultamiento automático de hashes de contraseña en esquemas Pydantic y separación de credenciales mediante `.gitignore`.
+```text
+├── app/
+│   ├── __init__.py
+│   ├── database.py      # Conexión SQLAlchemy a PostgreSQL con pool_pre_ping
+│   ├── main.py          # Endpoints FastAPI, lógica de negocio, Excel, SMTP y tarea en segundo plano
+│   ├── models.py        # Modelos ORM de PostgreSQL con índices y borrado en cascada
+│   └── schemas.py       # Esquemas Pydantic v2 de entrada/salida y validadores
+├── frontend/
+│   ├── css/
+│   │   └── styles.css   # Estilos minimalistas institucionales y menú colapsable
+│   ├── dashboard.html   # Panel principal SPA (8 módulos y modales CRUD)
+│   └── login.html       # Inicio de sesión, registro y recuperación OTP por correo
+├── archivos_subidos/    # Almacenamiento local de PDFs, imágenes y avatares (ignorado en Git)
+├── .env                 # Variables de entorno (credenciales DB y SMTP, ignorado en Git)
+├── .gitignore
+├── README.md
+└── requirements.txt
