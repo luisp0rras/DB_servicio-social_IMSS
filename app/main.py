@@ -1,7 +1,7 @@
-import random
 import os
 import io
 import csv
+import random
 import shutil
 import smtplib
 from datetime import date, datetime, timedelta
@@ -17,56 +17,91 @@ from fastapi import FastAPI, Depends, HTTPException, status, Query, UploadFile, 
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import text, or_
 
 from .database import get_db
 from . import models, schemas
 
+# Cargar variables de entorno desde el archivo .env (credenciales DB y SMTP)
 load_dotenv()
 
 app = FastAPI(
     title="API - Gestión de Equipos Médicos IMSS",
-    description="Backend para el control de inventarios, mantenimientos y equipos médicos hospitalarios.",
-    version="0.4.0"
+    description="Backend para el control de inventarios, mantenimientos, usuarios y equipos médicos hospitalarios.",
+    version="1.0.0"
 )
 
-# Conectar carpetas estáticas para el Frontend y los Archivos Subidos
+# ==========================================================
+# CONFIGURACIÓN DE CARPETAS ESTÁTICAS (FRONTEND Y ARCHIVOS)
+# ==========================================================
+
+# Servir la interfaz web (HTML, CSS, JS) en la ruta /app
 os.makedirs("frontend", exist_ok=True)
 app.mount("/app", StaticFiles(directory="frontend"), name="frontend")
 
-os.makedirs("archivos_subidos/perfiles", exist_ok=True)
-app.mount("/archivos", StaticFiles(directory="archivos_subidos"), name="archivos")
+# Servir documentos y fotos de perfil guardados físicamente en el servidor
+CARPETA_DOCUMENTOS = "archivos_subidos"
+os.makedirs(os.path.join(CARPETA_DOCUMENTOS, "perfiles"), exist_ok=True)
+app.mount("/archivos", StaticFiles(directory=CARPETA_DOCUMENTOS), name="archivos")
 
 @app.get("/", include_in_schema=False)
 def pagina_principal():
-    """Al entrar a la raíz del servidor, redirige a la pantalla de Login."""
+    """Redirige automáticamente la raíz del servidor hacia la pantalla de Login."""
     return RedirectResponse(url="/app/login.html")
 
 
 # ==========================================================
-# FUNCIONES DE AYUDA PARA CONTRASEÑAS (CANDADOS)
+# FUNCIONES AUXILIARES DE SEGURIDAD Y VALIDACIÓN
 # ==========================================================
 
 def encriptar_password(password_plana: str) -> str:
+    """Genera un hash seguro con bcrypt para no guardar contraseñas en texto plano."""
     sal = bcrypt.gensalt()
-    encriptada = bcrypt.hashpw(password_plana.encode('utf-8'), sal)
-    return encriptada.decode('utf-8')
+    encriptada = bcrypt.hashpw(password_plana.encode("utf-8"), sal)
+    return encriptada.decode("utf-8")
 
 def verificar_password(password_plana: str, password_guardada: str) -> bool:
+    """Compara la contraseña ingresada contra el hash guardado (soporta texto plano legado)."""
     try:
         if password_guardada.startswith("$2b$"):
-            return bcrypt.checkpw(password_plana.encode('utf-8'), password_guardada.encode('utf-8'))
+            return bcrypt.checkpw(password_plana.encode("utf-8"), password_guardada.encode("utf-8"))
         return password_plana == password_guardada
     except Exception:
         return False
 
+def buscar_equipo_duplicado(
+    db: Session,
+    sn: Optional[str],
+    nni: Optional[str],
+    excluir_id_equipo: Optional[int] = None
+):
+    """
+    Verifica si ya existe un equipo con el mismo SN o NNI en la base de datos,
+    comparando únicamente los valores que no estén vacíos (evita falsos positivos con NULL).
+    """
+    condiciones = []
+    if sn and sn.strip():
+        condiciones.append(models.Equipo.sn == sn.strip())
+    if nni and nni.strip():
+        condiciones.append(models.Equipo.nni == nni.strip())
+
+    if not condiciones:
+        return None
+
+    consulta = db.query(models.Equipo).filter(or_(*condiciones))
+    if excluir_id_equipo is not None:
+        consulta = consulta.filter(models.Equipo.id_equipo != excluir_id_equipo)
+
+    return consulta.first()
+
 
 # ==========================================================
-# 1. RUTAS GENERALES (PRUEBA DE CONEXIÓN)
+# 1. RUTAS GENERALES (DIAGNÓSTICO DE BASE DE DATOS)
 # ==========================================================
 
 @app.get("/health-db", tags=["General"])
 def probar_conexion_bd(db: Session = Depends(get_db)):
+    """Verifica que FastAPI tenga conexión activa con PostgreSQL."""
     try:
         resultado = db.execute(text("SELECT current_database(), current_user;")).fetchone()
         return {
@@ -79,11 +114,12 @@ def probar_conexion_bd(db: Session = Depends(get_db)):
 
 
 # ==========================================================
-# 2. REGISTRO, LOGIN Y PERFIL DE USUARIOS
+# 2. REGISTRO, LOGIN, RECUPERACIÓN Y ADMINISTRACIÓN DE USUARIOS
 # ==========================================================
 
 @app.post("/usuarios/registro", response_model=schemas.UsuarioRespuesta, status_code=status.HTTP_201_CREATED, tags=["Usuarios y Login"])
 def registrar_usuario(datos: schemas.UsuarioRegistro, db: Session = Depends(get_db)):
+    """Crea una cuenta nueva con rol EMPLEADO por defecto."""
     correo_ocupado = db.query(models.Usuario).filter(models.Usuario.correo == datos.correo).first()
     if correo_ocupado:
         raise HTTPException(status_code=400, detail="Ese correo electrónico ya está registrado.")
@@ -111,6 +147,7 @@ def registrar_usuario(datos: schemas.UsuarioRegistro, db: Session = Depends(get_
 
 @app.post("/usuarios/login", tags=["Usuarios y Login"])
 def iniciar_sesion(credenciales: schemas.UsuarioLogin, db: Session = Depends(get_db)):
+    """Valida credenciales de acceso y bloquea el paso a cuentas marcadas como INACTIVO."""
     usuario = db.query(models.Usuario).filter(models.Usuario.correo == credenciales.correo).first()
     if not usuario or not verificar_password(credenciales.password, usuario.password_hash):
         raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos.")
@@ -123,13 +160,16 @@ def iniciar_sesion(credenciales: schemas.UsuarioLogin, db: Session = Depends(get
         "usuario": schemas.UsuarioRespuesta.model_validate(usuario)
     }
 
+
 @app.get("/usuarios/", response_model=List[schemas.UsuarioRespuesta], tags=["Usuarios y Login"])
 def listar_usuarios(db: Session = Depends(get_db)):
+    """Devuelve la lista completa de usuarios ordenada por su ID."""
     return db.query(models.Usuario).order_by(models.Usuario.id_usuario).all()
 
 
 @app.put("/usuarios/{id_usuario}/perfil", response_model=schemas.UsuarioRespuesta, tags=["Usuarios y Login"])
 def actualizar_perfil(id_usuario: int, datos: schemas.UsuarioActualizarPerfil, db: Session = Depends(get_db)):
+    """Permite al usuario cambiar su nombre de usuario (username) o ruta de foto."""
     usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
@@ -154,16 +194,17 @@ def actualizar_perfil(id_usuario: int, datos: schemas.UsuarioActualizarPerfil, d
 @app.post("/usuarios/{id_usuario}/foto", response_model=schemas.UsuarioRespuesta, tags=["Usuarios y Login"])
 def subir_foto_perfil(
     id_usuario: int,
-    foto: UploadFile = File(..., description="Selecciona una imagen (JPG, PNG) desde tu computadora"),
+    foto: UploadFile = File(..., description="Imagen JPG o PNG desde la computadora"),
     db: Session = Depends(get_db)
 ):
+    """Guarda físicamente la foto de perfil en archivos_subidos/perfiles/ y actualiza el usuario."""
     usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
     extension = os.path.splitext(foto.filename)[1] or ".png"
     nombre_archivo = f"avatar_usuario_{id_usuario}{extension}"
-    ruta_fisica = os.path.join("archivos_subidos", "perfiles", nombre_archivo)
+    ruta_fisica = os.path.join(CARPETA_DOCUMENTOS, "perfiles", nombre_archivo)
 
     with open(ruta_fisica, "wb") as buffer:
         shutil.copyfileobj(foto.file, buffer)
@@ -176,6 +217,7 @@ def subir_foto_perfil(
 
 @app.put("/usuarios/{id_usuario}/cambiar-password", tags=["Usuarios y Login"])
 def cambiar_password(id_usuario: int, datos: schemas.UsuarioCambiarPassword, db: Session = Depends(get_db)):
+    """Actualiza la contraseña desde el perfil tras verificar la contraseña actual."""
     usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
@@ -194,6 +236,7 @@ def convertir_en_administrador(
     id_admin_que_autoriza: int = Query(...), 
     db: Session = Depends(get_db)
 ):
+    """Otorga el rol ADMIN a otro usuario (exclusivo para Administradores)."""
     admin = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin_que_autoriza).first()
     if not admin or admin.rol != "ADMIN":
         raise HTTPException(status_code=403, detail="Solo un Administrador puede crear otros administradores.")
@@ -207,6 +250,7 @@ def convertir_en_administrador(
     db.refresh(usuario_objetivo)
     return usuario_objetivo
 
+
 @app.put("/usuarios/{id_usuario_objetivo}/cambiar-rol", response_model=schemas.UsuarioRespuesta, tags=["Usuarios y Login"])
 def cambiar_rol_o_estado_usuario(
     id_usuario_objetivo: int,
@@ -214,7 +258,7 @@ def cambiar_rol_o_estado_usuario(
     id_admin_que_autoriza: int = Query(...),
     db: Session = Depends(get_db)
 ):
-    """Permite a un Administrador cambiar el rol de un usuario o desactivar su acceso (INACTIVO)."""
+    """Permite a un Administrador cambiar el rol de un usuario o bloquear su acceso (INACTIVO)."""
     admin = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin_que_autoriza).first()
     if not admin or admin.rol != "ADMIN":
         raise HTTPException(status_code=403, detail="Solo un Administrador puede modificar roles de usuario.")
@@ -242,10 +286,7 @@ def eliminar_usuario(
     id_admin_que_autoriza: int = Query(...),
     db: Session = Depends(get_db)
 ):
-    """
-    Elimina permanentemente a un usuario del sistema (previa limpieza de su relación
-    en inventario_usuario para respetar las llaves foráneas de PostgreSQL).
-    """
+    """Elimina permanentemente a un usuario limpiando antes sus vínculos en inventario_usuario."""
     admin = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin_que_autoriza).first()
     if not admin or admin.rol != "ADMIN":
         raise HTTPException(status_code=403, detail="Solo un Administrador puede eliminar usuarios.")
@@ -257,34 +298,35 @@ def eliminar_usuario(
     if not usuario_objetivo:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
-    # 1. Limpiar participaciones en inventario_usuario para no romper la llave foránea
+    # 1. Eliminar relaciones en inventario_usuario para respetar la llave foránea
     db.query(models.InventarioUsuario).filter(
         models.InventarioUsuario.id_usuario == id_usuario_objetivo
     ).delete()
 
-    # 2. Eliminar foto de perfil física si tenía una personalizada
+    # 2. Borrar su foto de perfil del disco si tenía una subida
     if usuario_objetivo.foto_perfil and usuario_objetivo.foto_perfil.startswith("/archivos/perfiles/"):
-        ruta_foto = usuario_objetivo.foto_perfil.replace("/archivos/", "archivos_subidos/")
+        ruta_foto = usuario_objetivo.foto_perfil.replace("/archivos/", f"{CARPETA_DOCUMENTOS}/")
         if os.path.exists(ruta_foto):
             try:
                 os.remove(ruta_foto)
             except OSError:
                 pass
 
-    # 3. Eliminar al usuario de la base de datos
+    # 3. Eliminar registro del usuario
     nombre_borrado = f"{usuario_objetivo.primernombre} {usuario_objetivo.primerapellido}"
     db.delete(usuario_objetivo)
     db.commit()
 
     return {"mensaje": f"El usuario '{nombre_borrado}' fue eliminado permanentemente del sistema."}
 
-# Diccionario temporal en memoria para guardar códigos de recuperación:
+
+# Almacenamiento temporal en memoria para códigos OTP de recuperación:
 # { "correo@dominio.com": {"codigo": "123456", "expira": datetime} }
 codigos_recuperacion = {}
 
 @app.post("/usuarios/recuperar-password/solicitar", tags=["Usuarios y Login"])
 def solicitar_codigo_recuperacion(datos: schemas.RecuperarPasswordSolicitud, db: Session = Depends(get_db)):
-    """Genera un código de 6 dígitos válido por 15 minutos y lo envía al correo del usuario."""
+    """Envía un código OTP de 6 dígitos con vigencia de 15 minutos al correo del usuario."""
     usuario = db.query(models.Usuario).filter(models.Usuario.correo == datos.correo).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="No existe ninguna cuenta registrada con ese correo electrónico.")
@@ -300,7 +342,6 @@ def solicitar_codigo_recuperacion(datos: schemas.RecuperarPasswordSolicitud, db:
     if not smtp_user or not smtp_password or "tu_correo" in smtp_user:
         raise HTTPException(status_code=400, detail="El servidor aún no tiene configurado SMTP_USER y SMTP_PASSWORD en .env.")
 
-    # Generar código de 6 dígitos y vigencia de 15 minutos
     codigo = f"{random.randint(100000, 999999)}"
     codigos_recuperacion[usuario.correo] = {
         "codigo": codigo,
@@ -343,7 +384,7 @@ def solicitar_codigo_recuperacion(datos: schemas.RecuperarPasswordSolicitud, db:
 
 @app.post("/usuarios/recuperar-password/confirmar", tags=["Usuarios y Login"])
 def confirmar_recuperacion_password(datos: schemas.RecuperarPasswordConfirmacion, db: Session = Depends(get_db)):
-    """Valida el código de 6 dígitos y actualiza la contraseña del usuario."""
+    """Verifica el código OTP de 6 dígitos y guarda la nueva contraseña encriptada."""
     registro = codigos_recuperacion.get(datos.correo)
     if not registro:
         raise HTTPException(status_code=400, detail="No hay una solicitud activa para este correo o el código ya fue usado.")
@@ -362,13 +403,12 @@ def confirmar_recuperacion_password(datos: schemas.RecuperarPasswordConfirmacion
     usuario.password_hash = encriptar_password(datos.nueva_password)
     db.commit()
 
-    # Borrar el código para que no se pueda reutilizar
     del codigos_recuperacion[datos.correo]
     return {"mensaje": "Contraseña restablecida con éxito. Ya puedes iniciar sesión."}
 
 
 # ==========================================================
-# 3. HOSPITALES
+# 3. CATÁLOGO Y BUSCADOR DE HOSPITALES
 # ==========================================================
 
 @app.get("/hospitales/", response_model=List[schemas.HospitalRespuesta], tags=["Hospitales"])
@@ -376,6 +416,7 @@ def buscar_o_listar_hospitales(
     buscar: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
+    """Lista todos los hospitales o filtra por coincidencias en nombre o ciudad."""
     consulta = db.query(models.Hospital)
     if buscar:
         consulta = consulta.filter(
@@ -387,6 +428,7 @@ def buscar_o_listar_hospitales(
 
 @app.post("/hospitales/", response_model=schemas.HospitalRespuesta, status_code=status.HTTP_201_CREATED, tags=["Hospitales"])
 def registrar_hospital(hospital: schemas.HospitalCrear, db: Session = Depends(get_db)):
+    """Registra una nueva unidad médica hospitalaria."""
     nuevo_hospital = models.Hospital(**hospital.model_dump())
     db.add(nuevo_hospital)
     db.commit()
@@ -395,11 +437,12 @@ def registrar_hospital(hospital: schemas.HospitalCrear, db: Session = Depends(ge
 
 
 # ==========================================================
-# 4. FLUJO DE INVENTARIOS (PASOS 2, 3, 4 Y 5)
+# 4. FLUJO DE INVENTARIOS (CREACIÓN, CAPTURA Y CIERRE)
 # ==========================================================
 
 @app.post("/inventarios/", response_model=schemas.InventarioRespuesta, status_code=status.HTTP_201_CREATED, tags=["Inventarios"])
 def iniciar_inventario(datos: schemas.InventarioCrear, db: Session = Depends(get_db)):
+    """Abre un nuevo inventario en estado EN_PROCESO y vincula a los usuarios participantes."""
     admin = db.query(models.Usuario).filter(models.Usuario.id_usuario == datos.id_admin_creador).first()
     if not admin or admin.rol != "ADMIN":
         raise HTTPException(status_code=403, detail="Solo un Administrador puede iniciar un inventario.")
@@ -441,6 +484,7 @@ def registrar_equipo_en_inventario(
     equipo: schemas.EquipoCrear,
     db: Session = Depends(get_db)
 ):
+    """Agrega un equipo individual a un inventario activo y le asigna el hospital correspondiente."""
     inventario = db.query(models.Inventario).filter(models.Inventario.id_inventario == id_inventario).first()
     if not inventario:
         raise HTTPException(status_code=404, detail="El inventario no existe.")
@@ -448,9 +492,7 @@ def registrar_equipo_en_inventario(
     if inventario.estado == "FINALIZADO":
         raise HTTPException(status_code=400, detail="Este inventario ya fue FINALIZADO y no permite agregar más equipos.")
 
-    duplicado = db.query(models.Equipo).filter(
-        (models.Equipo.sn == equipo.sn) | (models.Equipo.nni == equipo.nni)
-    ).first()
+    duplicado = buscar_equipo_duplicado(db, equipo.sn, equipo.nni)
     if duplicado:
         raise HTTPException(status_code=400, detail="Ya existe un equipo registrado con ese Número de Serie (SN) o NNI.")
 
@@ -477,6 +519,7 @@ def finalizar_inventario(
     id_admin: int = Query(...),
     db: Session = Depends(get_db)
 ):
+    """Cambia el estado de un inventario a FINALIZADO para impedir futuras modificaciones."""
     admin = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin).first()
     if not admin or admin.rol != "ADMIN":
         raise HTTPException(status_code=403, detail="Solo un Administrador puede finalizar un inventario.")
@@ -498,6 +541,7 @@ def ver_inventarios(
     estado: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
+    """Devuelve todos los inventarios si consulta un ADMIN, o solo los asignados si consulta un EMPLEADO."""
     usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario_consulta).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
@@ -519,7 +563,7 @@ def ver_inventarios(
 
 
 # ==========================================================
-# 5. CONSULTA, FILTROS Y EXPORTACIÓN EXCEL DE EQUIPOS MÉDICOS
+# 5. CONSULTA, EDICIÓN Y EXPORTACIÓN EXCEL (.XLSX) DE EQUIPOS
 # ==========================================================
 
 def construir_consulta_equipos(
@@ -533,7 +577,7 @@ def construir_consulta_equipos(
     estatusfuncional: Optional[bool] = None,
     buscar_texto: Optional[str] = None
 ):
-    """Función reutilizable para aplicar exactamente los mismos filtros en pantalla y en el Excel."""
+    """Aplica los filtros combinados tanto para la tabla en pantalla como para el reporte Excel."""
     consulta = db.query(models.Equipo)
 
     if id_inventario is not None:
@@ -576,6 +620,7 @@ def filtrar_equipos(
     buscar_texto: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
+    """Endpoint de consulta filtrada en tiempo real para el catálogo de equipos médicos."""
     return construir_consulta_equipos(
         db, id_hospital, id_inventario, id_proveedor, area, marca, garantia, estatusfuncional, buscar_texto
     )
@@ -593,37 +638,31 @@ def exportar_equipos_excel(
     buscar_texto: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
-    """
-    Genera un archivo Excel (.xlsx) con estilo institucional IMSS que contiene
-    únicamente los equipos que coinciden con los filtros seleccionados o con un inventario específico.
-    """
+    """Genera un archivo Excel (.xlsx) con diseño institucional IMSS según los filtros activos."""
     equipos = construir_consulta_equipos(
         db, id_hospital, id_inventario, id_proveedor, area, marca, garantia, estatusfuncional, buscar_texto
     )
 
-    # Diccionarios para traducir IDs a nombres reales en el Excel
     hospitales = {h.id_hospital: f"{h.nombre} ({h.ciudad})" for h in db.query(models.Hospital).all()}
     proveedores = {p.id_proveedor: p.nombre_proveedor for p in db.query(models.Proveedor).all()}
 
-    # Crear libro de Excel
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Equipos Biomédicos"
 
-    # Estilos institucionales IMSS
     relleno_verde = PatternFill(start_color="13322B", end_color="13322B", fill_type="solid")
     relleno_subtitulo = PatternFill(start_color="EBF3F0", end_color="EBF3F0", fill_type="solid")
     fuente_titulo = Font(name="Calibri", size=13, bold=True, color="FFFFFF")
     fuente_encabezado = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
     fuente_subtitulo = Font(name="Calibri", size=10, italic=True, color="13322B")
     borde_fino = Border(
-        left=Side(style='thin', color='CBD5E1'),
-        right=Side(style='thin', color='CBD5E1'),
-        top=Side(style='thin', color='CBD5E1'),
-        bottom=Side(style='thin', color='CBD5E1')
+        left=Side(style="thin", color="CBD5E1"),
+        right=Side(style="thin", color="CBD5E1"),
+        top=Side(style="thin", color="CBD5E1"),
+        bottom=Side(style="thin", color="CBD5E1")
     )
 
-    # Fila 1: Banner Principal
+    # Fila 1: Título Institucional
     ws.merge_cells("A1:L1")
     ws["A1"] = "INSTITUTO MEXICANO DEL SEGURO SOCIAL - REPORTE DE EQUIPO BIOMÉDICO"
     ws["A1"].fill = relleno_verde
@@ -631,7 +670,7 @@ def exportar_equipos_excel(
     ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
     ws.row_dimensions[1].height = 26
 
-    # Fila 2: Resumen de los filtros aplicados
+    # Fila 2: Ficha de filtros aplicados
     resumen_filtros = []
     if id_inventario:
         inv = db.query(models.Inventario).filter(models.Inventario.id_inventario == id_inventario).first()
@@ -662,13 +701,13 @@ def exportar_equipos_excel(
     ws["A2"].alignment = Alignment(horizontal="left", vertical="center")
     ws.row_dimensions[2].height = 20
 
-    # Fila 4: Encabezados de la tabla
+    # Fila 4: Encabezados de columnas
     encabezados = [
         "ID", "Nombre del Equipo", "Hospital", "Área", "Subárea",
         "Marca", "Modelo", "NNI", "Número de Serie (SN)", "Proveedor",
         "Garantía / Vigencia", "Estatus Funcional"
     ]
-    ws.append([])  # Fila 3 vacía de separación
+    ws.append([])
     ws.append(encabezados)
     ws.row_dimensions[4].height = 22
 
@@ -678,7 +717,7 @@ def exportar_equipos_excel(
         celda.font = fuente_encabezado
         celda.alignment = Alignment(horizontal="center", vertical="center")
 
-    # Filas de datos
+    # Filas de registros
     for eq in equipos:
         vigencia = f"Vence: {eq.fecha_expgarantia}" if eq.garantia else "Sin garantía"
         estatus = "FUNCIONAL" if eq.estatusfuncional else "FUERA DE SERVICIO"
@@ -701,7 +740,7 @@ def exportar_equipos_excel(
         for col_num in range(1, len(encabezados) + 1):
             ws.cell(row=fila_actual, column=col_num).border = borde_fino
 
-    # Autoajustar el ancho de todas las columnas
+    # Autoajustar el ancho de cada columna
     for col in ws.columns:
         letra_col = openpyxl.utils.get_column_letter(col[0].column)
         max_len = 0
@@ -710,7 +749,6 @@ def exportar_equipos_excel(
                 max_len = max(max_len, len(str(celda.value)))
         ws.column_dimensions[letra_col].width = max(max_len + 4, 12)
 
-    # Preparar el archivo en memoria para descargarlo
     flujo = io.BytesIO()
     wb.save(flujo)
     flujo.seek(0)
@@ -730,6 +768,7 @@ def actualizar_equipo(
     id_admin: int = Query(...),
     db: Session = Depends(get_db)
 ):
+    """Permite a un Administrador editar la información, garantía o estado funcional de un equipo."""
     admin = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin).first()
     if not admin or admin.rol != "ADMIN":
         raise HTTPException(status_code=403, detail="Solo un Administrador puede modificar equipos.")
@@ -738,10 +777,7 @@ def actualizar_equipo(
     if not equipo:
         raise HTTPException(status_code=404, detail="Equipo no encontrado.")
 
-    duplicado = db.query(models.Equipo).filter(
-        models.Equipo.id_equipo != id_equipo,
-        (models.Equipo.sn == datos.sn) | (models.Equipo.nni == datos.nni)
-    ).first()
+    duplicado = buscar_equipo_duplicado(db, datos.sn, datos.nni, excluir_id_equipo=id_equipo)
     if duplicado:
         raise HTTPException(status_code=400, detail="Otro equipo ya tiene registrado ese Número de Serie (SN) o NNI.")
 
@@ -754,7 +790,7 @@ def actualizar_equipo(
 
 
 # ==========================================================
-# 6. PROVEEDORES
+# 6. DIRECTORIO DE PROVEEDORES
 # ==========================================================
 
 @app.get("/proveedores/", response_model=List[schemas.ProveedorRespuesta], tags=["Proveedores"])
@@ -762,6 +798,7 @@ def listar_proveedores(
     buscar: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
+    """Lista proveedores registrados o filtra por empresa/contacto."""
     consulta = db.query(models.Proveedor)
     if buscar:
         consulta = consulta.filter(
@@ -773,6 +810,7 @@ def listar_proveedores(
 
 @app.post("/proveedores/", response_model=schemas.ProveedorRespuesta, status_code=status.HTTP_201_CREATED, tags=["Proveedores"])
 def agregar_proveedor(proveedor: schemas.ProveedorCrear, db: Session = Depends(get_db)):
+    """Registra un nuevo proveedor externo de mantenimiento biomédico."""
     if proveedor.correo:
         existe = db.query(models.Proveedor).filter(models.Proveedor.correo == proveedor.correo).first()
         if existe:
@@ -786,11 +824,12 @@ def agregar_proveedor(proveedor: schemas.ProveedorCrear, db: Session = Depends(g
 
 
 # ==========================================================
-# 7. MANTENIMIENTOS
+# 7. CONTROL DE MANTENIMIENTOS
 # ==========================================================
 
 @app.post("/mantenimientos/", response_model=schemas.MantenimientoRespuesta, status_code=status.HTTP_201_CREATED, tags=["Mantenimientos"])
 def registrar_mantenimiento(datos: schemas.MantenimientoCrear, db: Session = Depends(get_db)):
+    """Registra una intervención de mantenimiento preventivo o correctivo."""
     equipo = db.query(models.Equipo).filter(models.Equipo.id_equipo == datos.id_equipo).first()
     if not equipo:
         raise HTTPException(status_code=404, detail="El equipo indicado no existe.")
@@ -812,6 +851,7 @@ def listar_mantenimientos(
     tipo: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
+    """Lista el historial de mantenimientos ordenado por fecha más reciente."""
     consulta = db.query(models.Mantenimiento)
     if id_equipo is not None:
         consulta = consulta.filter(models.Mantenimiento.id_equipo == id_equipo)
@@ -821,11 +861,8 @@ def listar_mantenimientos(
 
 
 # ==========================================================
-# 8. DOCUMENTOS
+# 8. REPOSITORIO DOCUMENTAL (SUBIDA Y VISUALIZACIÓN SEGURA)
 # ==========================================================
-
-CARPETA_DOCUMENTOS = "archivos_subidos"
-os.makedirs(CARPETA_DOCUMENTOS, exist_ok=True)
 
 @app.post("/documentos/subir", response_model=schemas.DocumentoRespuesta, status_code=status.HTTP_201_CREATED, tags=["Documentos"])
 def subir_documento(
@@ -836,6 +873,10 @@ def subir_documento(
     archivo: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
+    """
+    Recibe un archivo PDF o imagen, le asigna un prefijo único de tiempo para evitar
+    sobrescrituras en disco y lo vincula a un equipo, mantenimiento o inventario.
+    """
     ids_proporcionados = [x for x in [id_equipo, id_mantenimiento, id_inventario] if x is not None]
     if len(ids_proporcionados) != 1:
         raise HTTPException(
@@ -843,7 +884,11 @@ def subir_documento(
             detail="Debes asociar el documento a UNA SOLA entidad (equipo, mantenimiento o inventario)."
         )
 
-    ruta_guardado = os.path.join(CARPETA_DOCUMENTOS, archivo.filename)
+    # Agregar sello de tiempo al nombre físico para evitar que dos archivos con el mismo nombre se sobrescriban
+    nombre_limpio = os.path.basename(archivo.filename or "documento.pdf")
+    nombre_unico = f"{int(datetime.now().timestamp())}_{nombre_limpio}"
+    ruta_guardado = os.path.join(CARPETA_DOCUMENTOS, nombre_unico)
+
     with open(ruta_guardado, "wb") as buffer:
         shutil.copyfileobj(archivo.file, buffer)
 
@@ -867,6 +912,7 @@ def listar_documentos(
     id_inventario: Optional[int] = Query(None),
     db: Session = Depends(get_db)
 ):
+    """Lista los documentos registrados en el sistema."""
     consulta = db.query(models.Documento)
     if id_equipo is not None:
         consulta = consulta.filter(models.Documento.id_equipo == id_equipo)
@@ -874,11 +920,12 @@ def listar_documentos(
         consulta = consulta.filter(models.Documento.id_mantenimiento == id_mantenimiento)
     if id_inventario is not None:
         consulta = consulta.filter(models.Documento.id_inventario == id_inventario)
-    return consulta.all()
+    return consulta.order_by(models.Documento.id_documento.desc()).all()
 
 
 @app.get("/documentos/{id_documento}/ver", tags=["Documentos"])
 def ver_o_descargar_documento(id_documento: int, db: Session = Depends(get_db)):
+    """Abre o descarga el documento físico almacenado en el servidor."""
     doc = db.query(models.Documento).filter(models.Documento.id_documento == id_documento).first()
     if not doc:
         raise HTTPException(status_code=404, detail="El documento no existe en la base de datos.")
@@ -890,7 +937,7 @@ def ver_o_descargar_documento(id_documento: int, db: Session = Depends(get_db)):
 
 
 # ==========================================================
-# 9. SISTEMA DE ALERTAS Y NOTIFICACIONES POR CORREO A ADMINS
+# 9. MOTOR DE ALERTAS Y ENVÍO DE REPORTE POR CORREO A ADMINS
 # ==========================================================
 
 @app.get("/alertas/", tags=["Alertas"])
@@ -898,6 +945,7 @@ def obtener_alertas_proximas(
     dias_anticipacion: int = Query(30),
     db: Session = Depends(get_db)
 ):
+    """Calcula garantías vencidas/por vencer y mantenimientos próximos/atrasados."""
     hoy = date.today()
     fecha_limite = hoy + timedelta(days=dias_anticipacion)
 
@@ -954,10 +1002,7 @@ def enviar_alertas_correo_admins(
     id_admin_solicitante: int = Query(...),
     db: Session = Depends(get_db)
 ):
-    """
-    Recopila las alertas activas y las envía por correo electrónico
-    a todos los usuarios que tengan el rol de 'ADMIN'.
-    """
+    """Envía por correo SMTP el resumen HTML de alertas a todos los usuarios con rol ADMIN."""
     solicitante = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin_solicitante).first()
     if not solicitante or solicitante.rol != "ADMIN":
         raise HTTPException(status_code=403, detail="Solo un Administrador puede disparar el envío de alertas por correo.")
@@ -973,7 +1018,6 @@ def enviar_alertas_correo_admins(
             detail="Falta configurar SMTP_USER y SMTP_PASSWORD en tu archivo .env para poder enviar correos."
         )
 
-    # Buscar los correos de todos los administradores
     admins = db.query(models.Usuario).filter(models.Usuario.rol == "ADMIN").all()
     correos_destino = [a.correo for a in admins if a.correo]
     if not correos_destino:
@@ -1057,6 +1101,7 @@ def importar_equipos_csv(
     archivo_csv: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
+    """Importa lotes de equipos desde un archivo CSV omitiendo duplicados de SN o NNI de forma segura."""
     inventario = db.query(models.Inventario).filter(models.Inventario.id_inventario == id_inventario).first()
     if not inventario:
         raise HTTPException(status_code=404, detail="El inventario no existe.")
@@ -1083,10 +1128,7 @@ def importar_equipos_csv(
         if not sn and not nni:
             continue
 
-        duplicado = db.query(models.Equipo).filter(
-            (models.Equipo.sn == sn) | (models.Equipo.nni == nni)
-        ).first()
-
+        duplicado = buscar_equipo_duplicado(db, sn, nni)
         if duplicado:
             equipos_omitidos.append(f"Fila {num_fila}: NNI '{nni}' o SN '{sn}' ya registrado.")
             continue
