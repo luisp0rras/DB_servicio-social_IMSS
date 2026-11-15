@@ -12,24 +12,32 @@
 </head>
 <body>
 
+    <!-- Fondo semitransparente al abrir menú en pantallas pequeñas -->
+    <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="alternarMenuLateral()"></div>
+
     <!-- ==========================================================
-         BARRA LATERAL DE NAVEGACIÓN (SIDEBAR)
+         BARRA LATERAL DE NAVEGACIÓN (COLAPSABLE Y CON PIE FIJO)
          ========================================================== -->
-    <aside class="sidebar">
-        <!-- Encabezado con acceso directo al Panel de Inicio -->
-        <div class="sidebar-header" onclick="irAlInicio()" style="cursor: pointer;" title="Ir al Panel de Control y Alertas">
-            <div class="logo-insignia">
-                <i class="bi bi-heart-pulse"></i>
+    <aside id="sidebar-menu" class="sidebar">
+        <!-- Encabezado con acceso al inicio y botón para ocultar menú -->
+        <div class="sidebar-header">
+            <div class="sidebar-brand" onclick="irAlInicio()" title="Ir al Panel de Control y Alertas">
+                <div class="logo-insignia">
+                    <i class="bi bi-heart-pulse"></i>
+                </div>
+                <div class="text-truncate">
+                    <div class="fw-bold text-truncate" style="font-size: 0.92rem; color: var(--verde-imss);">Biomédica IMSS</div>
+                    <small class="text-muted d-block" style="font-size: 0.74rem;">Gestión de Activos</small>
+                </div>
             </div>
-            <div>
-                <div class="fw-bold" style="font-size: 0.95rem; color: var(--verde-imss);">Biomédica IMSS</div>
-                <small class="text-muted" style="font-size: 0.78rem;">Gestión de Activos</small>
-            </div>
+            <button type="button" class="btn-toggle-sidebar" onclick="alternarMenuLateral()" title="Ocultar menú lateral">
+                <i class="bi bi-layout-sidebar-inset"></i>
+            </button>
         </div>
 
-        <!-- Menú de navegación por módulos -->
+        <!-- Menú central con scroll independiente -->
         <nav class="nav-menu">
-            <div class="text-uppercase text-muted fw-semibold px-3 mb-2" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+            <div class="text-uppercase text-muted fw-semibold px-3 mb-1" style="font-size: 0.69rem; letter-spacing: 0.05em;">
                 Principal
             </div>
             <button class="nav-item-btn activo" onclick="cambiarVista('vista-inicio', this)">
@@ -42,7 +50,7 @@
                 <i class="bi bi-cpu"></i> Equipos Médicos
             </button>
 
-            <div class="text-uppercase text-muted fw-semibold px-3 mt-4 mb-2" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+            <div class="text-uppercase text-muted fw-semibold px-3 mt-3 mb-1" style="font-size: 0.69rem; letter-spacing: 0.05em;">
                 Operación
             </div>
             <button class="nav-item-btn" onclick="cambiarVista('vista-mantenimientos', this)">
@@ -55,26 +63,25 @@
                 <i class="bi bi-folder2-open"></i> Documentos
             </button>
 
-            <div class="text-uppercase text-muted fw-semibold px-3 mt-4 mb-2" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+            <div class="text-uppercase text-muted fw-semibold px-3 mt-3 mb-1" style="font-size: 0.69rem; letter-spacing: 0.05em;">
                 Cuenta y Acceso
             </div>
             <button class="nav-item-btn" onclick="cambiarVista('vista-perfil', this)">
                 <i class="bi bi-person-circle"></i> Mi Perfil
             </button>
-            <!-- Botón exclusivo para Administradores (oculto para Empleados) -->
             <button class="nav-item-btn solo-admin d-none" onclick="cambiarVista('vista-usuarios', this)">
                 <i class="bi bi-people"></i> Usuarios
             </button>
         </nav>
 
-        <!-- Tarjeta inferior con datos del usuario en sesión -->
-        <div class="p-3 border-top" style="border-color: var(--borde-fino) !important;">
+        <!-- Pie fijo (Siempre visible en cualquier resolución de laptop) -->
+        <div class="sidebar-footer">
             <div class="d-flex align-items-center gap-2 mb-2">
                 <img id="sidebar-avatar" src="https://ui-avatars.com/api/?name=User&background=13322B&color=fff" 
-                     alt="Avatar" class="rounded-circle" width="38" height="38" style="object-fit: cover;">
+                     alt="Avatar" class="rounded-circle flex-shrink-0" width="36" height="36" style="object-fit: cover;">
                 <div class="overflow-hidden">
-                    <div id="sidebar-nombre" class="fw-semibold text-truncate" style="font-size: 0.85rem;">Cargando...</div>
-                    <span id="sidebar-rol" class="badge-soft-neutral" style="font-size: 0.7rem; padding: 0.15rem 0.45rem;">...</span>
+                    <div id="sidebar-nombre" class="fw-semibold text-truncate" style="font-size: 0.84rem;">Cargando...</div>
+                    <span id="sidebar-rol" class="badge-soft-neutral" style="font-size: 0.68rem; padding: 0.12rem 0.42rem;">...</span>
                 </div>
             </div>
             <button onclick="cerrarSesion()" class="btn btn-secundario w-100 btn-sm text-danger">
@@ -86,31 +93,37 @@
     <!-- ==========================================================
          CONTENIDO PRINCIPAL DINÁMICO
          ========================================================== -->
-    <main class="main-content">
+    <main id="main-content" class="main-content">
+
+        <!-- Barra superior con botón para reabrir el menú cuando está oculto -->
+        <div id="barra-abrir-menu" class="topbar-control d-none">
+            <button type="button" class="btn btn-secundario btn-sm d-inline-flex align-items-center gap-2" 
+                    onclick="alternarMenuLateral()" title="Mostrar menú lateral">
+                <i class="bi bi-layout-sidebar"></i>
+                <span>Menú</span>
+            </button>
+        </div>
 
         <!-- ======================================================
-             VISTA 1: RESUMEN Y ALERTAS (NOTIFICACIONES PC Y CORREO)
+             VISTA 1: RESUMEN Y ALERTAS AUTOMÁTICAS
              ====================================================== -->
         <section id="vista-inicio" class="vista-panel">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
                 <div>
                     <h4 class="fw-bold mb-1">Panel de Control y Alertas</h4>
-                    <p class="text-muted small mb-0">Monitoreo de garantías y mantenimientos programados en unidades médicas</p>
+                    <p class="text-muted small mb-0">Monitoreo automático de garantías y mantenimientos programados (próximos 30 días)</p>
                 </div>
-                <div class="d-flex flex-wrap gap-2">
-                    <button class="btn btn-secundario btn-sm" onclick="solicitarNotificacionPC()" title="Recibir globo de aviso en Windows/Mac">
-                        <i class="bi bi-bell me-1"></i> Notificar en mi PC
-                    </button>
-                    <button class="btn btn-secundario btn-sm solo-admin d-none" onclick="enviarAlertasPorCorreo()">
-                        <i class="bi bi-envelope-paper me-1"></i> Enviar Reporte por Correo a Admins
-                    </button>
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <span id="estado-monitoreo-auto" class="badge-soft-neutral" title="Las alertas se verifican y notifican automáticamente al entrar al sistema">
+                        <i class="bi bi-broadcast"></i> Monitoreo automático activo
+                    </span>
                     <button class="btn btn-primario btn-sm solo-admin d-none" onclick="cambiarVista('vista-inventarios', document.querySelectorAll('.nav-item-btn')[1])">
                         <i class="bi bi-plus-lg me-1"></i> Nuevo Inventario
                     </button>
                 </div>
             </div>
 
-            <!-- Caja de estado para envío de correos -->
+            <!-- Aviso discreto cuando el sistema envía automáticamente el reporte diario -->
             <div id="alerta-notificaciones" class="alert d-none small py-2"></div>
 
             <!-- Tarjetas KPI de resumen -->
@@ -148,7 +161,7 @@
             <div class="card-clean">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="fw-bold mb-0"><i class="bi bi-shield-exclamation text-warning me-2"></i>Garantías Vencidas o Próximas a Expirar</h6>
-                    <button class="btn btn-secundario btn-sm" onclick="cargarAlertas(true)">
+                    <button class="btn btn-secundario btn-sm" onclick="cargarAlertas(false)">
                         <i class="bi bi-arrow-clockwise"></i> Actualizar
                     </button>
                 </div>
@@ -194,13 +207,13 @@
         </section>
 
         <!-- ======================================================
-             VISTA 2: INVENTARIOS (FLUJO DE 5 PASOS Y EXCEL)
+             VISTA 2: INVENTARIOS (FLUJO DE 5 PASOS, GUÍA CSV Y EXCEL)
              ====================================================== -->
         <section id="vista-inventarios" class="vista-panel d-none">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h4 class="fw-bold mb-1">Levantamiento e Historial de Inventarios</h4>
-                    <p class="text-muted small mb-0">Consulta inventarios realizados, descarga su reporte en Excel o inicia un nuevo censo</p>
+                    <p class="text-muted small mb-0">Consulta inventarios realizados, importa censos desde Excel/CSV o descarga reportes</p>
                 </div>
                 <button class="btn btn-primario solo-admin d-none" onclick="toggleNuevoInventario()">
                     <i class="bi bi-plus-lg me-1"></i> Iniciar Nuevo Inventario
@@ -236,7 +249,6 @@
                             <input type="date" class="form-control" id="inventario-fecha" required>
                         </div>
 
-                        <!-- Subformulario rápido para dar de alta un hospital nuevo sin salir del flujo -->
                         <div id="subpanel-nuevo-hospital" class="col-12 d-none">
                             <div class="p-3 rounded" style="background-color: var(--bg-fondo); border: 1px dashed var(--borde-fino);">
                                 <div class="fw-semibold small mb-2">Registrar Unidad Médica Nueva</div>
@@ -271,7 +283,7 @@
                 </form>
             </div>
 
-            <!-- Panel Paso 4 y 5: Captura de equipos (Manual / CSV) y Cierre de Inventario -->
+            <!-- Panel Paso 4 y 5: Captura de equipos (Manual / CSV con Guía) y Cierre -->
             <div id="panel-captura-inventario" class="card-clean d-none" style="border-left: 4px solid var(--dorado-sutil);">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom">
                     <div>
@@ -291,7 +303,7 @@
 
                 <ul class="nav nav-tabs mb-3 small fw-semibold" id="tabs-captura-equipos">
                     <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-eq-manual">4A. Registro Manual</button></li>
-                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-eq-csv">4B. Importación CSV</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-eq-csv">4B. Importación Masiva desde Excel / CSV</button></li>
                 </ul>
 
                 <div class="tab-content mb-4" id="contenido-captura-equipos">
@@ -360,15 +372,52 @@
                         </form>
                     </div>
 
-                    <!-- Pestaña 4B: Subida masiva por CSV -->
+                    <!-- Pestaña 4B: Subida masiva por CSV con Instrucciones y Plantilla Descargable -->
                     <div class="tab-pane fade" id="tab-eq-csv">
+                        <div class="guia-csv-box">
+                            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                                <div>
+                                    <div class="fw-semibold small" style="color: var(--verde-imss);">
+                                        <i class="bi bi-info-circle me-1"></i> Instrucciones para preparar tu Excel / CSV
+                                    </div>
+                                    <p class="text-muted small mb-2">
+                                        Si ya tienes un inventario en Excel, asegúrate de que la <strong>primera fila (encabezados)</strong> tenga exactamente estos nombres de columna y guárdalo como <strong>CSV UTF-8 (delimitado por comas) (*.csv)</strong>:
+                                    </p>
+                                </div>
+                                <button type="button" class="btn btn-secundario btn-sm" onclick="descargarPlantillaCSV()">
+                                    <i class="bi bi-download me-1"></i> Descargar Plantilla CSV de Ejemplo
+                                </button>
+                            </div>
+                            <div class="mb-2 d-flex flex-wrap gap-1">
+                                <code>nombre_equipo</code>
+                                <code>area</code>
+                                <code>subarea</code>
+                                <code>marca</code>
+                                <code>modelo</code>
+                                <code>sn</code>
+                                <code>nni</code>
+                                <code>garantia</code>
+                                <code>fecha_expgarantia</code>
+                                <code>estatusfuncional</code>
+                                <code>observaciones</code>
+                            </div>
+                            <ul class="text-muted mb-0 ps-3" style="font-size: 0.78rem;">
+                                <li><strong>sn / nni:</strong> Al menos uno de los dos debe venir lleno por fila (los equipos duplicados se omiten automáticamente).</li>
+                                <li><strong>garantia:</strong> Escribe <code>SI</code> o <code>TRUE</code> si tiene garantía vigente, o <code>NO</code> / <code>FALSE</code> si no tiene.</li>
+                                <li><strong>fecha_expgarantia:</strong> Formato <code>AAAA-MM-DD</code> (ej. <code>2027-06-30</code>) solo cuando <code>garantia</code> sea <code>SI</code>.</li>
+                                <li><strong>estatusfuncional:</strong> Escribe <code>SI</code> / <code>FUNCIONAL</code> si opera correctamente, o <code>NO</code> si está fuera de servicio.</li>
+                            </ul>
+                        </div>
+
                         <form id="form-subir-csv" class="row g-2 align-items-end">
                             <div class="col-md-8">
-                                <label class="form-label small text-muted">Selecciona tu archivo .csv</label>
+                                <label class="form-label small text-muted">Selecciona tu archivo .csv preparado</label>
                                 <input type="file" class="form-control form-control-sm" id="archivo-csv-input" accept=".csv" required>
                             </div>
                             <div class="col-md-4">
-                                <button type="submit" class="btn btn-primario btn-sm w-100">Importar CSV</button>
+                                <button type="submit" class="btn btn-primario btn-sm w-100">
+                                    <i class="bi bi-cloud-arrow-up me-1"></i> Importar Equipos desde CSV
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -418,7 +467,6 @@
                 </div>
             </div>
 
-            <!-- Barra de Filtros Combinables -->
             <div class="card-clean">
                 <div class="row g-2 align-items-end">
                     <div class="col-md-3">
@@ -478,7 +526,6 @@
                 </div>
             </div>
 
-            <!-- Tabla de resultados de equipos -->
             <div class="card-clean">
                 <div class="table-responsive">
                     <table class="table-clean">
@@ -840,12 +887,12 @@
                                 <input type="text" class="form-control form-control-sm" id="edit-eq-modelo">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label small fw-semibold">Número de Serie (SN) *</label>
-                                <input type="text" class="form-control form-control-sm" id="edit-eq-sn" required>
+                                <label class="form-label small fw-semibold">Número de Serie (SN)</label>
+                                <input type="text" class="form-control form-control-sm" id="edit-eq-sn">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label small fw-semibold">NNI *</label>
-                                <input type="text" class="form-control form-control-sm" id="edit-eq-nni" required>
+                                <label class="form-label small fw-semibold">NNI</label>
+                                <input type="text" class="form-control form-control-sm" id="edit-eq-nni">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-semibold">¿Tiene Garantía?</label>
@@ -893,7 +940,6 @@
         let modalEditarInstancia = null;
         let resumenAlertasActual = { garantias: 0, mantenimientos: 0 };
 
-        // Función auxiliar para reemplazar valores null o vacíos por una etiqueta limpia
         function limpiarTexto(valor, esCodigo = false) {
             if (valor === null || valor === undefined || valor === "" || valor === "null") {
                 return `<span class="text-muted small">Sin información</span>`;
@@ -901,7 +947,6 @@
             return esCodigo ? `<code>${valor}</code>` : valor;
         }
 
-        // Alternar visibilidad de campos de contraseña
         function alternarPassword(idInput, boton) {
             const input = document.getElementById(idInput);
             const icono = boton.querySelector("i");
@@ -910,8 +955,51 @@
             input.focus();
         }
 
-        // 2. Inicializar datos del usuario, permisos de rol y catálogos base
+        // Control para ocultar o mostrar el menú lateral (Sidebar)
+        function alternarMenuLateral() {
+            const sidebar = document.getElementById("sidebar-menu");
+            const main = document.getElementById("main-content");
+            const barraAbrir = document.getElementById("barra-abrir-menu");
+            const backdrop = document.getElementById("sidebar-backdrop");
+
+            const estaColapsado = sidebar.classList.toggle("colapsado");
+            main.classList.toggle("expandido", estaColapsado);
+            barraAbrir.classList.toggle("d-none", !estaColapsado);
+
+            if (window.innerWidth <= 992) {
+                backdrop.classList.toggle("visible", !estaColapsado);
+            } else {
+                backdrop.classList.remove("visible");
+            }
+        }
+
+        // Descargar plantilla CSV de ejemplo para orientar al usuario
+        function descargarPlantillaCSV() {
+            const encabezados = "nombre_equipo,area,subarea,marca,modelo,sn,nni,garantia,fecha_expgarantia,estatusfuncional,observaciones\n";
+            const filaEjemplo1 = "Monitor de Signos Vitales,Urgencias,Choque,Philips,IntelliVue MX450,SN-998877,NNI-2026001,SI,2027-12-31,SI,Equipo nuevo con sensores completos\n";
+            const filaEjemplo2 = "Desfibrilador Bifásico,Terapia Intensiva,Cubículo 2,Zoll,R Series,SN-445566,NNI-2026002,NO,,SI,Operando al 100%\n";
+            const contenido = "\uFEFF" + encabezados + filaEjemplo1 + filaEjemplo2;
+
+            const blob = new Blob([contenido], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "Plantilla_Importacion_Equipos_IMSS.csv";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 2. Inicializar interfaz, permisos de rol y alertas automáticas
         async function inicializarInterfaz() {
+            // Si la pantalla es pequeña (<992px), iniciar con el menú contraído para dar espacio
+            if (window.innerWidth <= 992) {
+                document.getElementById("sidebar-menu").classList.add("colapsado");
+                document.getElementById("main-content").classList.add("expandido");
+                document.getElementById("barra-abrir-menu").classList.remove("d-none");
+            }
+
             const nombreCompleto = `${usuarioActual.primernombre} ${usuarioActual.primerapellido}`;
             document.getElementById("sidebar-nombre").textContent = usuarioActual.username || nombreCompleto;
             document.getElementById("sidebar-rol").textContent = usuarioActual.rol;
@@ -927,7 +1015,6 @@
             document.getElementById("perfil-correo").value = usuarioActual.correo;
             document.getElementById("perfil-username").value = usuarioActual.username || "";
 
-            // Desbloquear controles exclusivos si el usuario es ADMIN
             if (usuarioActual.rol === "ADMIN") {
                 document.querySelectorAll(".solo-admin").forEach(el => el.classList.remove("d-none"));
                 cargarListaUsuariosAdmin();
@@ -936,23 +1023,26 @@
             modalEditarInstancia = new bootstrap.Modal(document.getElementById("modalEditarEquipo"));
 
             await cargarCatalogosBase();
-            await cargarAlertas(false);
+            await cargarAlertas(true);
+            await ejecutarMonitoreoAutomaticoDiario();
         }
 
-        // Redirigir al panel principal al hacer clic en el logo superior izquierdo
         function irAlInicio() {
             const botonInicio = document.querySelector(".nav-menu .nav-item-btn");
             cambiarVista('vista-inicio', botonInicio);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // Cambiar entre las 8 vistas del sistema sin recargar la página
         function cambiarVista(idVista, botonPresionado) {
             document.querySelectorAll(".vista-panel").forEach(sec => sec.classList.add("d-none"));
             document.getElementById(idVista).classList.remove("d-none");
 
             document.querySelectorAll(".nav-item-btn").forEach(btn => btn.classList.remove("activo"));
             if (botonPresionado) botonPresionado.classList.add("activo");
+
+            if (window.innerWidth <= 992 && !document.getElementById("sidebar-menu").classList.contains("colapsado")) {
+                alternarMenuLateral();
+            }
 
             if (idVista === "vista-inventarios") cargarInventarios();
             if (idVista === "vista-equipos") cargarEquiposFiltrados();
@@ -1025,8 +1115,8 @@
             }
         }
 
-        // ================= MÓDULO 1: ALERTAS Y NOTIFICACIONES =================
-        async function cargarAlertas(forzarNotificacionPC = false) {
+        // ================= MÓDULO 1: ALERTAS Y NOTIFICACIONES AUTOMÁTICAS =================
+        async function cargarAlertas(dispararNotificacionPC = false) {
             const res = await fetch("/alertas/?dias_anticipacion=30");
             const data = await res.json();
 
@@ -1065,49 +1155,52 @@
                     </tr>`;
                 }).join("");
 
-            if (forzarNotificacionPC && Notification.permission === "granted") {
-                lanzarGloboNotificacion();
-            }
-        }
+            // Notificación automática de escritorio (1 vez al día si existen alertas activas)
+            const totalPendientes = resumenAlertasActual.garantias + resumenAlertasActual.mantenimientos;
+            if (dispararNotificacionPC && totalPendientes > 0 && "Notification" in window) {
+                const hoyStr = new Date().toISOString().slice(0, 10);
+                const ultimoAvisoPC = localStorage.getItem("ultima_notif_pc_imss");
 
-        function solicitarNotificacionPC() {
-            if (!("Notification" in window)) {
-                return alert("Tu navegador no soporta notificaciones de escritorio.");
-            }
-            Notification.requestPermission().then(permiso => {
-                if (permiso === "granted") {
-                    lanzarGloboNotificacion();
-                } else {
-                    alert("Debes permitir las notificaciones en el navegador para recibir avisos en tu computadora.");
+                if (ultimoAvisoPC !== hoyStr) {
+                    if (Notification.permission === "granted") {
+                        lanzarGloboNotificacion();
+                        localStorage.setItem("ultima_notif_pc_imss", hoyStr);
+                    } else if (Notification.permission !== "denied") {
+                        Notification.requestPermission().then(permiso => {
+                            if (permiso === "granted") {
+                                lanzarGloboNotificacion();
+                                localStorage.setItem("ultima_notif_pc_imss", hoyStr);
+                            }
+                        });
+                    }
                 }
-            });
+            }
         }
 
         function lanzarGloboNotificacion() {
             const cuerpo = `Tienes ${resumenAlertasActual.garantias} alerta(s) de garantía y ${resumenAlertasActual.mantenimientos} mantenimiento(s) próximos en los siguientes 30 días.`;
-            new Notification("Biomédica IMSS - Monitoreo de Activos", {
+            new Notification("Biomédica IMSS - Monitoreo Automático", {
                 body: cuerpo,
                 icon: "https://ui-avatars.com/api/?name=IMSS&background=13322B&color=fff"
             });
         }
 
-        async function enviarAlertasPorCorreo() {
-            const alertaBox = document.getElementById("alerta-notificaciones");
-            alertaBox.textContent = "Enviando reporte por correo a los administradores...";
-            alertaBox.className = "alert alert-info small py-2";
-            alertaBox.classList.remove("d-none");
-
-            const res = await fetch(`/alertas/enviar-correo?id_admin_solicitante=${usuarioActual.id_usuario}`, {
-                method: "POST"
-            });
-            const data = await res.json();
-
-            if (res.ok) {
-                alertaBox.textContent = data.mensaje;
-                alertaBox.className = "alert alert-success small py-2";
-            } else {
-                alertaBox.textContent = data.detail || "No se pudo enviar el correo.";
-                alertaBox.className = "alert alert-warning small py-2";
+        // Sincronización automática de correo diario para Administradores (sin botón manual)
+        async function ejecutarMonitoreoAutomaticoDiario() {
+            if (usuarioActual.rol !== "ADMIN") return;
+            try {
+                const res = await fetch(`/alertas/auto-notificar-diario?id_usuario=${usuarioActual.id_usuario}`, {
+                    method: "POST"
+                });
+                const data = await res.json();
+                if (res.ok && data.enviado) {
+                    const alertaBox = document.getElementById("alerta-notificaciones");
+                    alertaBox.textContent = data.mensaje;
+                    alertaBox.className = "alert alert-success small py-2";
+                    alertaBox.classList.remove("d-none");
+                }
+            } catch (err) {
+                // Falla silenciosa en caso de no tener SMTP configurado aún
             }
         }
 
@@ -1259,7 +1352,7 @@
                     observaciones: document.getElementById("eq-obs").value || null
                 })
             });
-            if (res.ok) { document.getElementById("form-agregar-equipo").reset(); toggleFechaGarantia(); await cargarCatalogosBase(); cargarEquiposDeInventarioActivo(); }
+            if (res.ok) { document.getElementById("form-agregar-equipo").reset(); toggleFechaGarantia(); await cargarCatalogosBase(); cargarEquiposDeInventarioActivo(); cargarAlertas(false); }
             else { const d = await res.json(); alert(d.detail); }
         });
 
@@ -1270,8 +1363,15 @@
             const formData = new FormData(); formData.append("archivo_csv", archivo);
             const res = await fetch(`/inventarios/${idInventarioActivo}/importar-csv`, { method: "POST", body: formData });
             const data = await res.json();
-            if (res.ok) { alert(`Carga completada: ${data.equipos_registrados} agregados.`); document.getElementById("form-subir-csv").reset(); await cargarCatalogosBase(); cargarEquiposDeInventarioActivo(); }
-            else { alert(data.detail); }
+            if (res.ok) {
+                alert(`Importación completada:\n• Equipos registrados: ${data.equipos_registrados}\n• Duplicados omitidos: ${data.duplicados_omitidos}`);
+                document.getElementById("form-subir-csv").reset();
+                await cargarCatalogosBase();
+                cargarEquiposDeInventarioActivo();
+                cargarAlertas(false);
+            } else {
+                alert(data.detail);
+            }
         });
 
         async function cargarEquiposDeInventarioActivo() {
@@ -1426,8 +1526,8 @@
                 subarea: document.getElementById("edit-eq-subarea").value || null,
                 marca: document.getElementById("edit-eq-marca").value,
                 modelo: document.getElementById("edit-eq-modelo").value || null,
-                sn: document.getElementById("edit-eq-sn").value,
-                nni: document.getElementById("edit-eq-nni").value,
+                sn: document.getElementById("edit-eq-sn").value.trim() || null,
+                nni: document.getElementById("edit-eq-nni").value.trim() || null,
                 garantia: tieneGarantia,
                 fecha_expgarantia: tieneGarantia ? document.getElementById("edit-eq-fecha-garantia").value : null,
                 estatusfuncional: document.getElementById("edit-eq-estatus").value === "true",
@@ -1685,7 +1785,6 @@
                 if (u.rol === "ADMIN") claseBadge = "badge-soft-success";
                 if (u.rol === "INACTIVO") claseBadge = "badge-soft-danger";
 
-                // Proteger la fila de la cuenta con la que el administrador está conectado actualmente
                 if (u.id_usuario === usuarioActual.id_usuario) {
                     return `<tr>
                         <td>#${u.id_usuario}</td>

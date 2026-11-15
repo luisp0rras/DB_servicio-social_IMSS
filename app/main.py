@@ -4,6 +4,8 @@ import csv
 import random
 import shutil
 import smtplib
+import asyncio
+from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -19,29 +21,91 @@ from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text, or_
 
-from .database import get_db
+from .database import get_db, SessionLocal
 from . import models, schemas
 
 # Cargar variables de entorno desde el archivo .env (credenciales DB y SMTP)
 load_dotenv()
 
+# ==========================================================
+# CONFIGURACIÓN DE CARPETAS Y CONTROL DE ENVÍO DIARIO
+# ==========================================================
+
+CARPETA_DOCUMENTOS = "archivos_subidos"
+os.makedirs(os.path.join(CARPETA_DOCUMENTOS, "perfiles"), exist_ok=True)
+os.makedirs("frontend", exist_ok=True)
+
+# Archivo oculto para recordar la fecha del último correo automático (persiste ante reinicios)
+ARCHIVO_CONTROL_CORREO = os.path.join(CARPETA_DOCUMENTOS, ".ultimo_envio_alertas.txt")
+
+def leer_fecha_ultimo_correo() -> Optional[date]:
+    """Lee del disco la fecha del último reporte diario enviado automáticamente."""
+    if os.path.exists(ARCHIVO_CONTROL_CORREO):
+        try:
+            with open(ARCHIVO_CONTROL_CORREO, "r", encoding="utf-8") as f:
+                return date.fromisoformat(f.read().strip())
+        except Exception:
+            return None
+    return None
+
+def guardar_fecha_ultimo_correo(fecha_envio: date) -> None:
+    """Registra en disco la fecha en que se envió el reporte automático del día."""
+    try:
+        with open(ARCHIVO_CONTROL_CORREO, "w", encoding="utf-8") as f:
+            f.write(fecha_envio.isoformat())
+    except Exception:
+        pass
+
+
+# ==========================================================
+# TAREA EN SEGUNDO PLANO (MONITOREO AUTÓNOMO SIN WEBAPP ABIERTA)
+# ==========================================================
+
+async def tarea_vigilante_alertas():
+    """
+    Corrutina que se ejecuta en segundo plano mientras el servidor FastAPI esté encendido.
+    Verifica cada hora si existen alertas próximas (30 días) y envía el correo diario
+    a los Administradores aunque nadie tenga abierta la aplicación en el navegador.
+    """
+    # Breve espera inicial para asegurar que el servidor terminó de arrancar
+    await asyncio.sleep(5)
+    while True:
+        try:
+            hoy = date.today()
+            if leer_fecha_ultimo_correo() != hoy:
+                db = SessionLocal()
+                try:
+                    exito, detalle = procesar_envio_correo_alertas(db)
+                    if exito:
+                        guardar_fecha_ultimo_correo(hoy)
+                        print(f"[Auto-Alertas IMSS] {detalle}")
+                finally:
+                    db.close()
+        except Exception as e:
+            print(f"[Auto-Alertas IMSS] Aviso en monitoreo automático: {e}")
+
+        # Esperar 1 hora (3600 segundos) antes de la siguiente verificación
+        await asyncio.sleep(3600)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Administra el ciclo de vida de FastAPI iniciando y cerrando el vigilante de alertas."""
+    tarea_bg = asyncio.create_task(tarea_vigilante_alertas())
+    yield
+    tarea_bg.cancel()
+
+
+# Inicializar aplicación FastAPI conectada al ciclo de vida automático
 app = FastAPI(
     title="API - Gestión de Equipos Médicos IMSS",
     description="Backend para el control de inventarios, mantenimientos, usuarios y equipos médicos hospitalarios.",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
-# ==========================================================
-# CONFIGURACIÓN DE CARPETAS ESTÁTICAS (FRONTEND Y ARCHIVOS)
-# ==========================================================
-
-# Servir la interfaz web (HTML, CSS, JS) en la ruta /app
-os.makedirs("frontend", exist_ok=True)
+# Montar carpetas estáticas para el Frontend (/app) y los Archivos Subidos (/archivos)
 app.mount("/app", StaticFiles(directory="frontend"), name="frontend")
-
-# Servir documentos y fotos de perfil guardados físicamente en el servidor
-CARPETA_DOCUMENTOS = "archivos_subidos"
-os.makedirs(os.path.join(CARPETA_DOCUMENTOS, "perfiles"), exist_ok=True)
 app.mount("/archivos", StaticFiles(directory=CARPETA_DOCUMENTOS), name="archivos")
 
 @app.get("/", include_in_schema=False)
@@ -884,7 +948,6 @@ def subir_documento(
             detail="Debes asociar el documento a UNA SOLA entidad (equipo, mantenimiento o inventario)."
         )
 
-    # Agregar sello de tiempo al nombre físico para evitar que dos archivos con el mismo nombre se sobrescriban
     nombre_limpio = os.path.basename(archivo.filename or "documento.pdf")
     nombre_unico = f"{int(datetime.now().timestamp())}_{nombre_limpio}"
     ruta_guardado = os.path.join(CARPETA_DOCUMENTOS, nombre_unico)
@@ -937,7 +1000,7 @@ def ver_o_descargar_documento(id_documento: int, db: Session = Depends(get_db)):
 
 
 # ==========================================================
-# 9. MOTOR DE ALERTAS Y ENVÍO DE REPORTE POR CORREO A ADMINS
+# 9. MOTOR DE ALERTAS Y ENVÍO AUTOMÁTICO / MANUAL POR CORREO
 # ==========================================================
 
 @app.get("/alertas/", tags=["Alertas"])
@@ -997,33 +1060,34 @@ def obtener_alertas_proximas(
     }
 
 
-@app.post("/alertas/enviar-correo", tags=["Alertas"])
-def enviar_alertas_correo_admins(
-    id_admin_solicitante: int = Query(...),
-    db: Session = Depends(get_db)
-):
-    """Envía por correo SMTP el resumen HTML de alertas a todos los usuarios con rol ADMIN."""
-    solicitante = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin_solicitante).first()
-    if not solicitante or solicitante.rol != "ADMIN":
-        raise HTTPException(status_code=403, detail="Solo un Administrador puede disparar el envío de alertas por correo.")
-
+def procesar_envio_correo_alertas(db: Session) -> tuple[bool, str]:
+    """
+    Función central reutilizable que construye y envía el correo HTML de alertas
+    a todos los usuarios con rol ADMIN cuando existen garantías o mantenimientos próximos.
+    """
     smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
     smtp_user = os.getenv("SMTP_USER")
     smtp_password = os.getenv("SMTP_PASSWORD")
 
     if not smtp_user or not smtp_password or "tu_correo" in smtp_user:
-        raise HTTPException(
-            status_code=400,
-            detail="Falta configurar SMTP_USER y SMTP_PASSWORD en tu archivo .env para poder enviar correos."
-        )
+        return False, "Falta configurar SMTP_USER y SMTP_PASSWORD en el archivo .env."
 
     admins = db.query(models.Usuario).filter(models.Usuario.rol == "ADMIN").all()
     correos_destino = [a.correo for a in admins if a.correo]
     if not correos_destino:
-        raise HTTPException(status_code=404, detail="No hay administradores con correo registrado.")
+        return False, "No hay administradores con correo registrado."
 
     datos_alertas = obtener_alertas_proximas(dias_anticipacion=30, db=db)
+    total_pendientes = datos_alertas["total_alertas_garantia"] + datos_alertas["total_alertas_mantenimiento"]
+    if total_pendientes == 0:
+        return False, "No hay alertas pendientes en los próximos 30 días."
+
+    # Mapa auxiliar para mostrar el nombre real del equipo en la tabla de mantenimientos
+    mapa_equipos = {
+        e.id_equipo: f"{e.nombre_equipo or 'Equipo #' + str(e.id_equipo)} (NNI: {e.nni or 'S/N'})"
+        for e in db.query(models.Equipo).all()
+    }
 
     filas_garantias = "".join([
         f"<tr><td style='padding:6px;border:1px solid #ddd;'>{g['nombre_equipo'] or 'S/N'}</td>"
@@ -1034,7 +1098,7 @@ def enviar_alertas_correo_admins(
     ]) or "<tr><td colspan='4' style='padding:8px;'>Sin alertas de garantía</td></tr>"
 
     filas_mant = "".join([
-        f"<tr><td style='padding:6px;border:1px solid #ddd;'>Equipo #{m['id_equipo']}</td>"
+        f"<tr><td style='padding:6px;border:1px solid #ddd;'>{mapa_equipos.get(m['id_equipo'], 'Equipo #' + str(m['id_equipo']))}</td>"
         f"<td style='padding:6px;border:1px solid #ddd;'>{m['tipo_mantenimiento']}</td>"
         f"<td style='padding:6px;border:1px solid #ddd;'>{m['proxima_fecha']}</td>"
         f"<td style='padding:6px;border:1px solid #ddd;'>{m['dias_restantes']} días ({m['semaforo']})</td></tr>"
@@ -1084,11 +1148,52 @@ def enviar_alertas_correo_admins(
             server.starttls()
             server.login(smtp_user, smtp_password)
             server.sendmail(smtp_user, correos_destino, msg.as_string())
-        return {
-            "mensaje": f"Reporte enviado con éxito a {len(correos_destino)} administrador(es): {', '.join(correos_destino)}"
-        }
+        return True, f"Reporte enviado con éxito a {len(correos_destino)} administrador(es): {', '.join(correos_destino)}"
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"No se pudo enviar el correo: {str(e)}")
+        return False, f"No se pudo enviar el correo: {str(e)}"
+
+
+@app.post("/alertas/auto-notificar-diario", tags=["Alertas"])
+def auto_notificar_alertas_diarias(
+    id_usuario: int = Query(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Endpoint invocado silenciosamente al abrir el panel web.
+    Si el vigilante en segundo plano aún no ha enviado el correo de hoy, lo dispara una sola vez.
+    """
+    hoy = date.today()
+    usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
+    if not usuario or usuario.rol != "ADMIN":
+        return {"enviado": False, "detalle": "Modo consulta (Empleado)."}
+
+    if leer_fecha_ultimo_correo() == hoy:
+        return {"enviado": False, "detalle": f"El reporte automático del día ({hoy}) ya fue enviado."}
+
+    exito, detalle = procesar_envio_correo_alertas(db)
+    if exito:
+        guardar_fecha_ultimo_correo(hoy)
+        return {"enviado": True, "mensaje": f"Sincronización diaria automática: {detalle}"}
+
+    return {"enviado": False, "detalle": detalle}
+
+
+@app.post("/alertas/enviar-correo", tags=["Alertas"])
+def enviar_alertas_correo_admins(
+    id_admin_solicitante: int = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Permite forzar manualmente el envío del reporte de alertas desde Swagger (/docs) si se requiere."""
+    solicitante = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_admin_solicitante).first()
+    if not solicitante or solicitante.rol != "ADMIN":
+        raise HTTPException(status_code=403, detail="Solo un Administrador puede disparar el envío de alertas por correo.")
+
+    exito, detalle = procesar_envio_correo_alertas(db)
+    if not exito:
+        raise HTTPException(status_code=400, detail=detalle)
+
+    guardar_fecha_ultimo_correo(date.today())
+    return {"mensaje": detalle}
 
 
 # ==========================================================
