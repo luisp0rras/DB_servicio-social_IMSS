@@ -4,16 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Principal - Biomédica IMSS</title>
+    <!-- Bootstrap 5 e Iconos Institucionales -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Hoja de estilos minimalista institucional -->
     <link rel="stylesheet" href="/app/css/styles.css">
 </head>
 <body>
 
     <!-- ==========================================================
-         BARRA LATERAL DE NAVEGACIÓN
+         BARRA LATERAL DE NAVEGACIÓN (SIDEBAR)
          ========================================================== -->
     <aside class="sidebar">
+        <!-- Encabezado con acceso directo al Panel de Inicio -->
         <div class="sidebar-header" onclick="irAlInicio()" style="cursor: pointer;" title="Ir al Panel de Control y Alertas">
             <div class="logo-insignia">
                 <i class="bi bi-heart-pulse"></i>
@@ -24,6 +27,7 @@
             </div>
         </div>
 
+        <!-- Menú de navegación por módulos -->
         <nav class="nav-menu">
             <div class="text-uppercase text-muted fw-semibold px-3 mb-2" style="font-size: 0.72rem; letter-spacing: 0.05em;">
                 Principal
@@ -57,11 +61,13 @@
             <button class="nav-item-btn" onclick="cambiarVista('vista-perfil', this)">
                 <i class="bi bi-person-circle"></i> Mi Perfil
             </button>
+            <!-- Botón exclusivo para Administradores (oculto para Empleados) -->
             <button class="nav-item-btn solo-admin d-none" onclick="cambiarVista('vista-usuarios', this)">
                 <i class="bi bi-people"></i> Usuarios
             </button>
         </nav>
 
+        <!-- Tarjeta inferior con datos del usuario en sesión -->
         <div class="p-3 border-top" style="border-color: var(--borde-fino) !important;">
             <div class="d-flex align-items-center gap-2 mb-2">
                 <img id="sidebar-avatar" src="https://ui-avatars.com/api/?name=User&background=13322B&color=fff" 
@@ -78,12 +84,12 @@
     </aside>
 
     <!-- ==========================================================
-         CONTENIDO PRINCIPAL
+         CONTENIDO PRINCIPAL DINÁMICO
          ========================================================== -->
     <main class="main-content">
 
         <!-- ======================================================
-             VISTA 1: RESUMEN Y ALERTAS (CON NOTIFICACIONES PC Y CORREO)
+             VISTA 1: RESUMEN Y ALERTAS (NOTIFICACIONES PC Y CORREO)
              ====================================================== -->
         <section id="vista-inicio" class="vista-panel">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
@@ -104,8 +110,10 @@
                 </div>
             </div>
 
+            <!-- Caja de estado para envío de correos -->
             <div id="alerta-notificaciones" class="alert d-none small py-2"></div>
 
+            <!-- Tarjetas KPI de resumen -->
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
                     <div class="stat-card">
@@ -136,6 +144,7 @@
                 </div>
             </div>
 
+            <!-- Tabla de Garantías Vencidas o por Vencer -->
             <div class="card-clean">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="fw-bold mb-0"><i class="bi bi-shield-exclamation text-warning me-2"></i>Garantías Vencidas o Próximas a Expirar</h6>
@@ -162,6 +171,7 @@
                 </div>
             </div>
 
+            <!-- Tabla de Mantenimientos Próximos o Atrasados -->
             <div class="card-clean">
                 <h6 class="fw-bold mb-3"><i class="bi bi-wrench text-danger me-2"></i>Mantenimientos Próximos o Atrasados</h6>
                 <div class="table-responsive">
@@ -184,7 +194,7 @@
         </section>
 
         <!-- ======================================================
-             VISTA 2: INVENTARIOS (CON DESCARGA DE EXCEL POR INVENTARIO)
+             VISTA 2: INVENTARIOS (FLUJO DE 5 PASOS Y EXCEL)
              ====================================================== -->
         <section id="vista-inventarios" class="vista-panel d-none">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -197,6 +207,7 @@
                 </button>
             </div>
 
+            <!-- Asistente Paso 1, 2 y 3: Crear nuevo inventario (Exclusivo ADMIN) -->
             <div id="panel-crear-inventario" class="card-clean d-none" style="border-left: 4px solid var(--verde-imss);">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="fw-bold mb-0">Nuevo Levantamiento de Inventario</h6>
@@ -225,6 +236,7 @@
                             <input type="date" class="form-control" id="inventario-fecha" required>
                         </div>
 
+                        <!-- Subformulario rápido para dar de alta un hospital nuevo sin salir del flujo -->
                         <div id="subpanel-nuevo-hospital" class="col-12 d-none">
                             <div class="p-3 rounded" style="background-color: var(--bg-fondo); border: 1px dashed var(--borde-fino);">
                                 <div class="fw-semibold small mb-2">Registrar Unidad Médica Nueva</div>
@@ -259,6 +271,7 @@
                 </form>
             </div>
 
+            <!-- Panel Paso 4 y 5: Captura de equipos (Manual / CSV) y Cierre de Inventario -->
             <div id="panel-captura-inventario" class="card-clean d-none" style="border-left: 4px solid var(--dorado-sutil);">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom">
                     <div>
@@ -282,6 +295,7 @@
                 </ul>
 
                 <div class="tab-content mb-4" id="contenido-captura-equipos">
+                    <!-- Pestaña 4A: Captura Manual -->
                     <div class="tab-pane fade show active" id="tab-eq-manual">
                         <form id="form-agregar-equipo" class="row g-2">
                             <div class="col-md-4">
@@ -346,6 +360,7 @@
                         </form>
                     </div>
 
+                    <!-- Pestaña 4B: Subida masiva por CSV -->
                     <div class="tab-pane fade" id="tab-eq-csv">
                         <form id="form-subir-csv" class="row g-2 align-items-end">
                             <div class="col-md-8">
@@ -370,6 +385,7 @@
                 </div>
             </div>
 
+            <!-- Tabla histórica de inventarios -->
             <div class="card-clean">
                 <h6 class="fw-bold mb-3">Inventarios Registrados</h6>
                 <div class="table-responsive">
@@ -386,7 +402,7 @@
         </section>
 
         <!-- ======================================================
-             VISTA 3: EQUIPOS MÉDICOS (FILTROS AVANZADOS Y EXCEL FILTRADO)
+             VISTA 3: EQUIPOS MÉDICOS (FILTROS EN VIVO Y EXCEL)
              ====================================================== -->
         <section id="vista-equipos" class="vista-panel d-none">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
@@ -462,6 +478,7 @@
                 </div>
             </div>
 
+            <!-- Tabla de resultados de equipos -->
             <div class="card-clean">
                 <div class="table-responsive">
                     <table class="table-clean">
@@ -604,7 +621,7 @@
         </section>
 
         <!-- ======================================================
-             VISTA 6: REPOSITORIO DOCUMENTAL (SIN RUTA DE ARCHIVO)
+             VISTA 6: REPOSITORIO DOCUMENTAL (SIN RUTA FÍSICA)
              ====================================================== -->
         <section id="vista-documentos" class="vista-panel d-none">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -666,7 +683,7 @@
         </section>
 
         <!-- ======================================================
-             VISTA 7: MI PERFIL (SOLO DATOS PERSONALES)
+             VISTA 7: MI PERFIL (SOLO INFORMACIÓN PERSONAL)
              ====================================================== -->
         <section id="vista-perfil" class="vista-panel d-none">
             <div class="mb-4">
@@ -856,12 +873,17 @@
         </div>
     </div>
 
+    <!-- ==========================================================
+         LÓGICA JAVASCRIPT Y CONEXIÓN CON FASTAPI
+         ========================================================== -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // 1. Verificar sesión activa en el navegador
         const usuarioGuardado = localStorage.getItem("usuario_imss");
         if (!usuarioGuardado) window.location.href = "/app/login.html";
         let usuarioActual = JSON.parse(usuarioGuardado);
 
+        // Diccionarios en memoria para traducir IDs a nombres legibles
         let mapaHospitales = {};
         let mapaEquipos = {};
         let mapaProveedores = {};
@@ -871,6 +893,7 @@
         let modalEditarInstancia = null;
         let resumenAlertasActual = { garantias: 0, mantenimientos: 0 };
 
+        // Función auxiliar para reemplazar valores null o vacíos por una etiqueta limpia
         function limpiarTexto(valor, esCodigo = false) {
             if (valor === null || valor === undefined || valor === "" || valor === "null") {
                 return `<span class="text-muted small">Sin información</span>`;
@@ -878,6 +901,7 @@
             return esCodigo ? `<code>${valor}</code>` : valor;
         }
 
+        // Alternar visibilidad de campos de contraseña
         function alternarPassword(idInput, boton) {
             const input = document.getElementById(idInput);
             const icono = boton.querySelector("i");
@@ -886,6 +910,7 @@
             input.focus();
         }
 
+        // 2. Inicializar datos del usuario, permisos de rol y catálogos base
         async function inicializarInterfaz() {
             const nombreCompleto = `${usuarioActual.primernombre} ${usuarioActual.primerapellido}`;
             document.getElementById("sidebar-nombre").textContent = usuarioActual.username || nombreCompleto;
@@ -902,6 +927,7 @@
             document.getElementById("perfil-correo").value = usuarioActual.correo;
             document.getElementById("perfil-username").value = usuarioActual.username || "";
 
+            // Desbloquear controles exclusivos si el usuario es ADMIN
             if (usuarioActual.rol === "ADMIN") {
                 document.querySelectorAll(".solo-admin").forEach(el => el.classList.remove("d-none"));
                 cargarListaUsuariosAdmin();
@@ -913,12 +939,14 @@
             await cargarAlertas(false);
         }
 
+        // Redirigir al panel principal al hacer clic en el logo superior izquierdo
         function irAlInicio() {
             const botonInicio = document.querySelector(".nav-menu .nav-item-btn");
             cambiarVista('vista-inicio', botonInicio);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
+        // Cambiar entre las 8 vistas del sistema sin recargar la página
         function cambiarVista(idVista, botonPresionado) {
             document.querySelectorAll(".vista-panel").forEach(sec => sec.classList.add("d-none"));
             document.getElementById(idVista).classList.remove("d-none");
@@ -939,6 +967,7 @@
             window.location.href = "/app/login.html";
         }
 
+        // 3. Cargar catálogos de Hospitales, Proveedores, Inventarios y Equipos
         async function cargarCatalogosBase() {
             const [resHosp, resEq, resProv, resInv] = await Promise.all([
                 fetch("/hospitales/"),
@@ -951,7 +980,6 @@
             const proveedores = await resProv.json();
             const inventarios = await resInv.json();
 
-            // Poblar Hospitales
             const selectFiltroHosp = document.getElementById("filtro-eq-hospital");
             const selectEditHosp = document.getElementById("edit-eq-hospital");
             selectFiltroHosp.innerHTML = `<option value="">Todos los hospitales</option>`;
@@ -963,7 +991,6 @@
                 selectEditHosp.innerHTML += `<option value="${h.id_hospital}">${h.nombre} - ${h.ciudad}</option>`;
             });
 
-            // Poblar Proveedores
             const selectFiltroProv = document.getElementById("filtro-eq-proveedor");
             const selectEditProv = document.getElementById("edit-eq-proveedor");
             const selectAltaEqProv = document.getElementById("eq-proveedor");
@@ -981,7 +1008,6 @@
                 });
             }
 
-            // Poblar Inventarios en el filtro de Equipos
             const selectFiltroInv = document.getElementById("filtro-eq-inventario");
             selectFiltroInv.innerHTML = `<option value="">Cualquier inventario</option>`;
             if (Array.isArray(inventarios)) {
@@ -999,7 +1025,7 @@
             }
         }
 
-        // ================= ALERTAS Y NOTIFICACIONES (PC Y CORREO) =================
+        // ================= MÓDULO 1: ALERTAS Y NOTIFICACIONES =================
         async function cargarAlertas(forzarNotificacionPC = false) {
             const res = await fetch("/alertas/?dias_anticipacion=30");
             const data = await res.json();
@@ -1085,7 +1111,7 @@
             }
         }
 
-        // ================= INVENTARIOS =================
+        // ================= MÓDULO 2: INVENTARIOS =================
         function toggleNuevoInventario() {
             const panel = document.getElementById("panel-crear-inventario");
             panel.classList.toggle("d-none");
@@ -1269,7 +1295,7 @@
             if (res.ok) { alert("Inventario finalizado."); cerrarPanelCaptura(); cargarInventarios(); }
         }
 
-        // ================= EQUIPOS FILTRADOS + EXPORTACIÓN EXCEL =================
+        // ================= MÓDULO 3: EQUIPOS FILTRADOS Y EXCEL =================
         function obtenerParametrosFiltroEquipos() {
             const params = new URLSearchParams();
             const texto = document.getElementById("filtro-eq-texto").value.trim();
@@ -1307,6 +1333,8 @@
         async function cargarEquiposFiltrados() {
             const tbody = document.getElementById("tabla-catalogo-equipos");
             const esAdmin = usuarioActual.rol === "ADMIN";
+            const numCols = esAdmin ? 8 : 7;
+
             try {
                 const params = obtenerParametrosFiltroEquipos();
                 const res = await fetch(`/equipos/?${params.toString()}`);
@@ -1316,7 +1344,7 @@
                 document.getElementById("contador-equipos-filtrados").textContent = `${listaEquiposActuales.length} equipo(s)`;
 
                 if (listaEquiposActuales.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">Sin resultados para los filtros seleccionados.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="${numCols}" class="text-center text-muted py-3">Sin resultados para los filtros seleccionados.</td></tr>`;
                     return;
                 }
 
@@ -1337,7 +1365,7 @@
                     </tr>`;
                 }).join("");
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">Error al cargar equipos.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${numCols}" class="text-center text-danger py-3">Error al cargar equipos.</td></tr>`;
             }
         }
 
@@ -1423,7 +1451,7 @@
             }
         });
 
-        // ================= MANTENIMIENTOS =================
+        // ================= MÓDULO 4: MANTENIMIENTOS =================
         async function toggleFormMantenimiento() {
             const panel = document.getElementById("panel-crear-mant");
             panel.classList.toggle("d-none");
@@ -1473,7 +1501,7 @@
             else { const d = await res.json(); alert(d.detail); }
         });
 
-        // ================= PROVEEDORES =================
+        // ================= MÓDULO 5: PROVEEDORES =================
         function toggleFormProveedor() { document.getElementById("panel-crear-prov").classList.toggle("d-none"); }
 
         async function cargarProveedores() {
@@ -1505,7 +1533,7 @@
             else { const d = await res.json(); alert(d.detail); }
         });
 
-        // ================= DOCUMENTOS (SIN MOSTRAR RUTA INTERNA) =================
+        // ================= MÓDULO 6: DOCUMENTOS =================
         async function toggleFormDocumento() {
             const panel = document.getElementById("panel-subir-doc");
             panel.classList.toggle("d-none");
@@ -1578,7 +1606,7 @@
             else { const d = await res.json(); alert(d.detail); }
         });
 
-        // ================= PERFIL =================
+        // ================= MÓDULO 7: MI PERFIL =================
         async function subirFotoDesdeExplorador() {
             const inputFoto = document.getElementById("input-archivo-foto");
             const alerta = document.getElementById("alerta-perfil");
@@ -1629,6 +1657,7 @@
             alerta.classList.remove("d-none");
         });
 
+        // ================= MÓDULO 8: GESTIÓN DE USUARIOS (SOLO ADMIN) =================
         async function cargarListaUsuariosAdmin() {
             const res = await fetch("/usuarios/");
             let usuarios = await res.json();
@@ -1646,11 +1675,17 @@
                 );
             }
 
+            if (usuarios.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No se encontraron usuarios con ese criterio.</td></tr>`;
+                return;
+            }
+
             tbody.innerHTML = usuarios.map(u => {
                 let claseBadge = "badge-soft-neutral";
                 if (u.rol === "ADMIN") claseBadge = "badge-soft-success";
                 if (u.rol === "INACTIVO") claseBadge = "badge-soft-danger";
 
+                // Proteger la fila de la cuenta con la que el administrador está conectado actualmente
                 if (u.id_usuario === usuarioActual.id_usuario) {
                     return `<tr>
                         <td>#${u.id_usuario}</td>
@@ -1713,6 +1748,7 @@
             }
         }
 
+        // Arrancar la interfaz al cargar el documento
         inicializarInterfaz();
     </script>
 </body>
