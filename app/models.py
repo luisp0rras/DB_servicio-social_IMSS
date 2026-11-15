@@ -1,35 +1,52 @@
-# Importamos los tipos de datos que existen en una base de datos (Números, Textos, Fechas, etc.)
 from sqlalchemy import Column, Integer, String, Boolean, Date, Text, ForeignKey
 from sqlalchemy.dialects.postgresql import ENUM
 from .database import Base
 
-# Le avisamos a Python que en PostgreSQL ya existe una lista fija para tipos de mantenimiento
-mantenimiento_enum = ENUM('PREVENTIVO', 'CORRECTIVO', 'OTRO', name='mantenimiento_enum', create_type=False)
+# Tipo enumerado nativo de PostgreSQL para clasificar intervenciones de mantenimiento
+mantenimiento_enum = ENUM(
+    "PREVENTIVO",
+    "CORRECTIVO",
+    "OTRO",
+    name="mantenimiento_enum",
+    create_type=False
+)
 
 
-# 1. TABLA DE HOSPITALES
+# ==========================================================
+# 1. TABLA DE HOSPITALES (UNIDADES MÉDICAS)
+# ==========================================================
 class Hospital(Base):
-    __tablename__ = "hospital"  # Nombre exacto de la tabla en PostgreSQL
+    """Representa una unidad médica u hospital del IMSS (ej. UMF 33, HGR 66, HGZ 11)."""
+    __tablename__ = "hospital"
 
-    id_hospital = Column(Integer, primary_key=True, index=True) # Número único de hospital (se crea solo)
-    nombre = Column(String(100))                                # Nombre (ej. HGR 66, UMF 33)
-    ciudad = Column(String(100))                                # Ciudad (ej. Delicias, Chihuahua)
-    estado = Column(String(100))                                # Estado (ej. Chihuahua)
+    id_hospital = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String(100), nullable=False, index=True)
+    ciudad = Column(String(100), nullable=False)
+    estado = Column(String(100), nullable=False, default="Chihuahua")
 
 
-# 2. TABLA DE PROVEEDORES
+# ==========================================================
+# 2. TABLA DE PROVEEDORES EXTERNOS
+# ==========================================================
 class Proveedor(Base):
+    """Directorio de empresas externas encargadas de soporte, garantías y mantenimiento."""
     __tablename__ = "proveedor"
 
     id_proveedor = Column(Integer, primary_key=True, index=True)
-    nombre_proveedor = Column(String(100), nullable=False)      # nullable=False significa que es OBLIGATORIO
-    correo = Column(String(100), unique=True)                   # unique=True significa que NO se puede repetir
-    num_tel = Column(String(20))
-    nombre_contacto = Column(String(100), nullable=True)        # nullable=True significa que es OPCIONAL
+    nombre_proveedor = Column(String(100), nullable=False, index=True)
+    correo = Column(String(100), unique=True, nullable=True)
+    num_tel = Column(String(20), nullable=True)
+    nombre_contacto = Column(String(100), nullable=True)
 
 
-# 3. TABLA DE USUARIOS
+# ==========================================================
+# 3. TABLA DE USUARIOS Y CONTROL DE ACCESO
+# ==========================================================
 class Usuario(Base):
+    """
+    Usuarios registrados en la plataforma.
+    Niveles de rol soportados: 'ADMIN' (control total), 'EMPLEADO' (consulta) e 'INACTIVO' (bloqueado).
+    """
     __tablename__ = "usuarios"
 
     id_usuario = Column(Integer, primary_key=True, index=True)
@@ -38,82 +55,98 @@ class Usuario(Base):
     primerapellido = Column(String(30), nullable=False)
     segundoapellido = Column(String(30), nullable=True)
     correo = Column(String(100), unique=True, nullable=False, index=True)
-    password_hash = Column(Text, nullable=False)                # Aquí se guarda la contraseña encriptada
-    
-    # Columnas nuevas para el perfil y permisos del sistema:
-    username = Column(String(50), unique=True, nullable=True)   # Nombre de usuario (opcional al inicio)
-    foto_perfil = Column(String(255), nullable=True)            # Ruta o enlace a su foto
-    rol = Column(String(20), nullable=False, default="EMPLEADO")# Puede ser 'ADMIN' o 'EMPLEADO'
+    password_hash = Column(Text, nullable=False)
+
+    # Atributos de perfil y permisos de navegación
+    username = Column(String(50), unique=True, nullable=True, index=True)
+    foto_perfil = Column(String(255), nullable=True)
+    rol = Column(String(20), nullable=False, default="EMPLEADO")
 
 
-# 4. TABLA DE EQUIPOS MÉDICOS
+# ==========================================================
+# 4. TABLA MAESTRA DE EQUIPOS MÉDICOS
+# ==========================================================
 class Equipo(Base):
+    """Catálogo de activos biomédicos con trazabilidad de serie, NNI, garantía y estado funcional."""
     __tablename__ = "equipos"
 
     id_equipo = Column(Integer, primary_key=True, index=True)
-    # ForeignKey conecta este equipo con el hospital y el proveedor al que pertenece
-    id_hospital = Column(Integer, ForeignKey("hospital.id_hospital"))
-    id_proveedor = Column(Integer, ForeignKey("proveedor.id_proveedor"), nullable=True)
-    nombre_equipo = Column(String(100))
-    area = Column(String(60))
+    id_hospital = Column(Integer, ForeignKey("hospital.id_hospital", ondelete="SET NULL"), nullable=True, index=True)
+    id_proveedor = Column(Integer, ForeignKey("proveedor.id_proveedor", ondelete="SET NULL"), nullable=True, index=True)
+    nombre_equipo = Column(String(100), nullable=True, index=True)
+    area = Column(String(60), nullable=True, index=True)
     subarea = Column(String(60), nullable=True)
-    marca = Column(String(60))
+    marca = Column(String(60), nullable=True, index=True)
     modelo = Column(String(60), nullable=True)
-    sn = Column(String(60), unique=True)                        # Número de Serie (no se puede repetir)
-    nni = Column(String(60), unique=True)                       # Número Nacional de Inventario (no se puede repetir)
-    garantia = Column(Boolean, nullable=False)                  # True (Sí tiene) o False (No tiene)
-    fecha_expgarantia = Column(Date, nullable=True)             # Fecha en que vence la garantía
-    estatusfuncional = Column(Boolean, nullable=False)          # True (Funciona) o False (Falla/Fuera de servicio)
+    sn = Column(String(60), unique=True, nullable=True, index=True)
+    nni = Column(String(60), unique=True, nullable=True, index=True)
+    garantia = Column(Boolean, nullable=False, default=False)
+    fecha_expgarantia = Column(Date, nullable=True, index=True)
+    estatusfuncional = Column(Boolean, nullable=False, default=True)
     observaciones = Column(Text, nullable=True)
 
 
-# 5. TABLA DE INVENTARIOS
+# ==========================================================
+# 5. TABLA DE INVENTARIOS (CENSOS HOSPITALARIOS)
+# ==========================================================
 class Inventario(Base):
+    """
+    Registro de levantamientos de inventario por hospital y fecha.
+    Estados posibles: 'EN_PROCESO' (admite captura de equipos) o 'FINALIZADO' (cerrado).
+    """
     __tablename__ = "inventarios"
 
     id_inventario = Column(Integer, primary_key=True, index=True)
-    id_hospital = Column(Integer, ForeignKey("hospital.id_hospital"), nullable=False)
-    fecha = Column(Date, nullable=False)
-    # Columna nueva para saber si siguen capturando equipos o ya se cerró:
-    estado = Column(String(20), nullable=False, default="EN_PROCESO") # 'EN_PROCESO' o 'FINALIZADO'
+    id_hospital = Column(Integer, ForeignKey("hospital.id_hospital", ondelete="CASCADE"), nullable=False, index=True)
+    fecha = Column(Date, nullable=False, index=True)
+    estado = Column(String(20), nullable=False, default="EN_PROCESO")
 
 
-# 6. TABLA DE MANTENIMIENTOS
+# ==========================================================
+# 6. TABLA DE MANTENIMIENTOS PREVENTIVOS Y CORRECTIVOS
+# ==========================================================
 class Mantenimiento(Base):
+    """Historial y programación de mantenimientos realizados a los equipos médicos."""
     __tablename__ = "mantenimientos"
 
     id_mantenimiento = Column(Integer, primary_key=True, index=True)
-    id_proveedor = Column(Integer, ForeignKey("proveedor.id_proveedor"))
-    id_equipo = Column(Integer, ForeignKey("equipos.id_equipo"))
+    id_proveedor = Column(Integer, ForeignKey("proveedor.id_proveedor", ondelete="SET NULL"), nullable=True)
+    id_equipo = Column(Integer, ForeignKey("equipos.id_equipo", ondelete="CASCADE"), nullable=False, index=True)
     tipo_mantenimiento = Column(mantenimiento_enum, nullable=False)
     fecha = Column(Date, nullable=False)
-    prox_fecha = Column(Date, nullable=True)
+    prox_fecha = Column(Date, nullable=True, index=True)
     observaciones = Column(Text, nullable=True)
 
 
-# 7. TABLA DE DOCUMENTOS (PDFs, manuales, minutas)
+# ==========================================================
+# 7. TABLA DE REPOSITORIO DOCUMENTAL (PDFs E IMÁGENES)
+# ==========================================================
 class Documento(Base):
+    """Archivos físicos guardados en el servidor asociados a un equipo, mantenimiento o inventario."""
     __tablename__ = "documentos"
 
     id_documento = Column(Integer, primary_key=True, index=True)
-    id_mantenimiento = Column(Integer, ForeignKey("mantenimientos.id_mantenimiento"), nullable=True)
-    id_equipo = Column(Integer, ForeignKey("equipos.id_equipo"), nullable=True)
-    id_inventario = Column(Integer, ForeignKey("inventarios.id_inventario"), nullable=True)
+    id_mantenimiento = Column(Integer, ForeignKey("mantenimientos.id_mantenimiento", ondelete="CASCADE"), nullable=True)
+    id_equipo = Column(Integer, ForeignKey("equipos.id_equipo", ondelete="CASCADE"), nullable=True)
+    id_inventario = Column(Integer, ForeignKey("inventarios.id_inventario", ondelete="CASCADE"), nullable=True)
     nombredocumento = Column(String(100), nullable=False)
     rutaarchivo = Column(String(255), nullable=False)
 
 
-# 8. TABLA INTERMEDIA: Qué equipos pertenecen a qué inventario
+# ==========================================================
+# 8. TABLAS INTERMEDIAS (RELACIONES MUCHOS A MUCHOS)
+# ==========================================================
 class InventarioEquipo(Base):
+    """Vincula cada equipo médico con el inventario en el que fue censado."""
     __tablename__ = "inventario_equipo"
 
-    id_inventario = Column(Integer, ForeignKey("inventarios.id_inventario"), primary_key=True)
-    id_equipo = Column(Integer, ForeignKey("equipos.id_equipo"), primary_key=True)
+    id_inventario = Column(Integer, ForeignKey("inventarios.id_inventario", ondelete="CASCADE"), primary_key=True)
+    id_equipo = Column(Integer, ForeignKey("equipos.id_equipo", ondelete="CASCADE"), primary_key=True)
 
 
-# 9. TABLA INTERMEDIA: Qué usuarios participaron en qué inventario
 class InventarioUsuario(Base):
+    """Registra qué usuarios (Administradores y Empleados) participaron en cada inventario."""
     __tablename__ = "inventario_usuario"
 
-    id_inventario = Column(Integer, ForeignKey("inventarios.id_inventario"), primary_key=True)
-    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario"), primary_key=True)
+    id_inventario = Column(Integer, ForeignKey("inventarios.id_inventario", ondelete="CASCADE"), primary_key=True)
+    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario", ondelete="CASCADE"), primary_key=True)
