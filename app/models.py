@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Date, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, Date, Text, ForeignKey, DateTime, func
 from sqlalchemy.dialects.postgresql import ENUM
 from .database import Base
 
@@ -150,3 +150,20 @@ class InventarioUsuario(Base):
 
     id_inventario = Column(Integer, ForeignKey("inventarios.id_inventario", ondelete="CASCADE"), primary_key=True)
     id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario", ondelete="CASCADE"), primary_key=True)
+
+
+# ==========================================================
+# 8. TABLA DE TRANSFERENCIAS DE EQUIPOS ENTRE HOSPITALES
+# ==========================================================
+
+class TransferenciaEquipo(Base):
+    """Bitácora histórica de reubicaciones y préstamos de equipos entre unidades médicas."""
+    __tablename__ = "transferencias_equipo"
+
+    id_transferencia = Column(Integer, primary_key=True, index=True)
+    id_equipo = Column(Integer, ForeignKey("equipos.id_equipo", ondelete="CASCADE"), nullable=False, index=True)
+    id_hospital_origen = Column(Integer, ForeignKey("hospital.id_hospital", ondelete="RESTRICT"), nullable=False)
+    id_hospital_destino = Column(Integer, ForeignKey("hospital.id_hospital", ondelete="RESTRICT"), nullable=False)
+    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario", ondelete="SET NULL"), nullable=True)
+    fecha = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    motivo = Column(String(300), nullable=False)

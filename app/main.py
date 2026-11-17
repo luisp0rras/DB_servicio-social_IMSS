@@ -10,7 +10,6 @@ from datetime import date, datetime, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import List, Optional
-
 import bcrypt
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -20,17 +19,19 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text, or_
-
-from .database import get_db, SessionLocal
+from .database import get_db, SessionLocal, engine
 from . import models, schemas
 
 # Cargar variables de entorno desde el archivo .env (credenciales DB y SMTP)
 load_dotenv()
 
+# Verifica y crea tablas nuevas (como transferencias_equipo) si aún no existen en PostgreSQL.
+# Si ya las creaste en pgAdmin, las detecta y continúa sin lanzar error ni alterar datos.
+models.Base.metadata.create_all(bind=engine)
+
 # ==========================================================
 # CONFIGURACIÓN DE CARPETAS Y CONTROL DE ENVÍO DIARIO
 # ==========================================================
-
 CARPETA_DOCUMENTOS = "archivos_subidos"
 os.makedirs(os.path.join(CARPETA_DOCUMENTOS, "perfiles"), exist_ok=True)
 os.makedirs("frontend", exist_ok=True)
@@ -56,11 +57,9 @@ def guardar_fecha_ultimo_correo(fecha_envio: date) -> None:
     except Exception:
         pass
 
-
 # ==========================================================
 # TAREA EN SEGUNDO PLANO (MONITOREO AUTÓNOMO SIN WEBAPP ABIERTA)
 # ==========================================================
-
 async def tarea_vigilante_alertas():
     """
     Corrutina que se ejecuta en segundo plano mientras el servidor FastAPI esté encendido.
@@ -82,9 +81,7 @@ async def tarea_vigilante_alertas():
                     db.close()
         except Exception as e:
             print(f"[Auto-Alertas IMSS] Aviso en monitoreo automático: {e}")
-
         await asyncio.sleep(3600)
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -93,11 +90,10 @@ async def lifespan(app: FastAPI):
     yield
     tarea_bg.cancel()
 
-
 app = FastAPI(
     title="API - Gestión de Equipos Médicos IMSS",
-    description="Backend para el control de inventarios, mantenimientos, usuarios y equipos médicos hospitalarios.",
-    version="1.1.0",
+    description="Backend para el control de inventarios, mantenimientos, transferencias, usuarios y equipos médicos hospitalarios.",
+    version="1.2.0",
     lifespan=lifespan
 )
 
@@ -109,11 +105,9 @@ def pagina_principal():
     """Redirige automáticamente la raíz del servidor hacia la pantalla de Login."""
     return RedirectResponse(url="/app/login.html")
 
-
 # ==========================================================
 # FUNCIONES AUXILIARES DE SEGURIDAD Y VALIDACIÓN
 # ==========================================================
-
 def encriptar_password(password_plana: str) -> str:
     """Genera un hash seguro con bcrypt para no guardar contraseñas en texto plano."""
     sal = bcrypt.gensalt()
@@ -154,14 +148,11 @@ def buscar_equipo_duplicado(
         condiciones.append(models.Equipo.sn == sn.strip())
     if nni and nni.strip():
         condiciones.append(models.Equipo.nni == nni.strip())
-
     if not condiciones:
         return None
-
     consulta = db.query(models.Equipo).filter(or_(*condiciones))
     if excluir_id_equipo is not None:
         consulta = consulta.filter(models.Equipo.id_equipo != excluir_id_equipo)
-
     return consulta.first()
 
 def eliminar_archivo_fisico_seguro(ruta_archivo: Optional[str]) -> None:
@@ -172,11 +163,9 @@ def eliminar_archivo_fisico_seguro(ruta_archivo: Optional[str]) -> None:
         except OSError:
             pass
 
-
 # ==========================================================
 # 1. RUTAS GENERALES (DIAGNÓSTICO DE BASE DE DATOS)
 # ==========================================================
-
 @app.get("/health-db", tags=["General"])
 def probar_conexion_bd(db: Session = Depends(get_db)):
     """Verifica que FastAPI tenga conexión activa con PostgreSQL."""
@@ -190,11 +179,9 @@ def probar_conexion_bd(db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al conectar con la base de datos: {str(e)}")
 
-
 # ==========================================================
 # 2. REGISTRO, LOGIN, RECUPERACIÓN Y ADMINISTRACIÓN DE USUARIOS
 # ==========================================================
-
 @app.post("/usuarios/registro", response_model=schemas.UsuarioRespuesta, status_code=status.HTTP_201_CREATED, tags=["Usuarios y Login"])
 def registrar_usuario(datos: schemas.UsuarioRegistro, db: Session = Depends(get_db)):
     """Crea una cuenta nueva con rol EMPLEADO por defecto."""
@@ -222,7 +209,6 @@ def registrar_usuario(datos: schemas.UsuarioRegistro, db: Session = Depends(get_
     db.refresh(nuevo_usuario)
     return nuevo_usuario
 
-
 @app.post("/usuarios/login", tags=["Usuarios y Login"])
 def iniciar_sesion(credenciales: schemas.UsuarioLogin, db: Session = Depends(get_db)):
     """Valida credenciales de acceso y bloquea el paso a cuentas marcadas como INACTIVO."""
@@ -238,12 +224,10 @@ def iniciar_sesion(credenciales: schemas.UsuarioLogin, db: Session = Depends(get
         "usuario": schemas.UsuarioRespuesta.model_validate(usuario)
     }
 
-
 @app.get("/usuarios/", response_model=List[schemas.UsuarioRespuesta], tags=["Usuarios y Login"])
 def listar_usuarios(db: Session = Depends(get_db)):
     """Devuelve la lista completa de usuarios ordenada por su ID."""
     return db.query(models.Usuario).order_by(models.Usuario.id_usuario).all()
-
 
 @app.put("/usuarios/{id_usuario}/perfil", response_model=schemas.UsuarioRespuesta, tags=["Usuarios y Login"])
 def actualizar_perfil(id_usuario: int, datos: schemas.UsuarioActualizarPerfil, db: Session = Depends(get_db)):
@@ -251,7 +235,6 @@ def actualizar_perfil(id_usuario: int, datos: schemas.UsuarioActualizarPerfil, d
     usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
-
     if datos.username is not None:
         otro = db.query(models.Usuario).filter(
             models.Usuario.id_usuario != id_usuario,
@@ -260,14 +243,11 @@ def actualizar_perfil(id_usuario: int, datos: schemas.UsuarioActualizarPerfil, d
         if otro:
             raise HTTPException(status_code=400, detail="Ese nombre de usuario ya está ocupado.")
         usuario.username = datos.username
-
     if datos.foto_perfil is not None:
         usuario.foto_perfil = datos.foto_perfil
-
     db.commit()
     db.refresh(usuario)
     return usuario
-
 
 @app.post("/usuarios/{id_usuario}/foto", response_model=schemas.UsuarioRespuesta, tags=["Usuarios y Login"])
 def subir_foto_perfil(
@@ -279,19 +259,15 @@ def subir_foto_perfil(
     usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
-
     extension = os.path.splitext(foto.filename)[1] or ".png"
     nombre_archivo = f"avatar_usuario_{id_usuario}{extension}"
     ruta_fisica = os.path.join(CARPETA_DOCUMENTOS, "perfiles", nombre_archivo)
-
     with open(ruta_fisica, "wb") as buffer:
         shutil.copyfileobj(foto.file, buffer)
-
     usuario.foto_perfil = f"/archivos/perfiles/{nombre_archivo}"
     db.commit()
     db.refresh(usuario)
     return usuario
-
 
 @app.put("/usuarios/{id_usuario}/cambiar-password", tags=["Usuarios y Login"])
 def cambiar_password(id_usuario: int, datos: schemas.UsuarioCambiarPassword, db: Session = Depends(get_db)):
@@ -299,14 +275,11 @@ def cambiar_password(id_usuario: int, datos: schemas.UsuarioCambiarPassword, db:
     usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
-
     if not verificar_password(datos.password_actual, usuario.password_hash):
         raise HTTPException(status_code=400, detail="La contraseña actual es incorrecta.")
-
     usuario.password_hash = encriptar_password(datos.password_nueva)
     db.commit()
     return {"mensaje": "Contraseña actualizada exitosamente."}
-
 
 @app.put("/usuarios/{id_usuario_objetivo}/hacer-admin", response_model=schemas.UsuarioRespuesta, tags=["Usuarios y Login"])
 def convertir_en_administrador(
@@ -326,7 +299,6 @@ def convertir_en_administrador(
     db.refresh(usuario_objetivo)
     return usuario_objetivo
 
-
 @app.put("/usuarios/{id_usuario_objetivo}/cambiar-rol", response_model=schemas.UsuarioRespuesta, tags=["Usuarios y Login"])
 def cambiar_rol_o_estado_usuario(
     id_usuario_objetivo: int,
@@ -336,23 +308,18 @@ def cambiar_rol_o_estado_usuario(
 ):
     """Permite a un Administrador cambiar el rol de un usuario o bloquear su acceso (INACTIVO)."""
     verificar_es_admin(db, id_admin_que_autoriza)
-
     if id_usuario_objetivo == id_admin_que_autoriza and nuevo_rol != "ADMIN":
         raise HTTPException(status_code=400, detail="No puedes quitarte el rol de Administrador ni desactivar tu propia cuenta.")
-
     nuevo_rol = nuevo_rol.upper().strip()
     if nuevo_rol not in ["ADMIN", "EMPLEADO", "INACTIVO"]:
         raise HTTPException(status_code=400, detail="Rol no válido. Usa ADMIN, EMPLEADO o INACTIVO.")
-
     usuario_objetivo = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario_objetivo).first()
     if not usuario_objetivo:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
-
     usuario_objetivo.rol = nuevo_rol
     db.commit()
     db.refresh(usuario_objetivo)
     return usuario_objetivo
-
 
 @app.delete("/usuarios/{id_usuario_objetivo}", tags=["Usuarios y Login"])
 def eliminar_usuario(
@@ -362,28 +329,27 @@ def eliminar_usuario(
 ):
     """Elimina permanentemente a un usuario limpiando antes sus vínculos en inventario_usuario."""
     verificar_es_admin(db, id_admin_que_autoriza)
-
     if id_usuario_objetivo == id_admin_que_autoriza:
         raise HTTPException(status_code=400, detail="Por seguridad, no puedes eliminar tu propia cuenta de Administrador.")
-
     usuario_objetivo = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario_objetivo).first()
     if not usuario_objetivo:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
-
+    
+    # Desvincular de inventarios y transferencias antes de eliminar
     db.query(models.InventarioUsuario).filter(
         models.InventarioUsuario.id_usuario == id_usuario_objetivo
     ).delete()
+    db.query(models.TransferenciaEquipo).filter(
+        models.TransferenciaEquipo.id_usuario == id_usuario_objetivo
+    ).update({"id_usuario": None})
 
     if usuario_objetivo.foto_perfil and usuario_objetivo.foto_perfil.startswith("/archivos/perfiles/"):
         ruta_foto = usuario_objetivo.foto_perfil.replace("/archivos/", f"{CARPETA_DOCUMENTOS}/")
         eliminar_archivo_fisico_seguro(ruta_foto)
-
     nombre_borrado = f"{usuario_objetivo.primernombre} {usuario_objetivo.primerapellido}"
     db.delete(usuario_objetivo)
     db.commit()
-
     return {"mensaje": f"El usuario '{nombre_borrado}' fue eliminado permanentemente del sistema."}
-
 
 codigos_recuperacion = {}
 
@@ -396,21 +362,17 @@ def solicitar_codigo_recuperacion(datos: schemas.RecuperarPasswordSolicitud, db:
     
     if usuario.rol == "INACTIVO":
         raise HTTPException(status_code=403, detail="Esta cuenta está desactivada. Contacta a un Administrador.")
-
     smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
     smtp_user = os.getenv("SMTP_USER")
     smtp_password = os.getenv("SMTP_PASSWORD")
-
     if not smtp_user or not smtp_password or "tu_correo" in smtp_user:
         raise HTTPException(status_code=400, detail="El servidor aún no tiene configurado SMTP_USER y SMTP_PASSWORD en .env.")
-
     codigo = f"{random.randint(100000, 999999)}"
     codigos_recuperacion[usuario.correo] = {
         "codigo": codigo,
         "expira": datetime.now() + timedelta(minutes=15)
     }
-
     cuerpo_html = f"""
     <html>
     <body style="font-family: Arial, sans-serif; color: #1E293B;">
@@ -428,13 +390,11 @@ def solicitar_codigo_recuperacion(datos: schemas.RecuperarPasswordSolicitud, db:
     </body>
     </html>
     """
-
     msg = MIMEMultipart("alternative")
     msg["Subject"] = "[Biomédica IMSS] Código para restablecer tu contraseña"
     msg["From"] = smtp_user
     msg["To"] = usuario.correo
     msg.attach(MIMEText(cuerpo_html, "html"))
-
     try:
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
@@ -444,36 +404,28 @@ def solicitar_codigo_recuperacion(datos: schemas.RecuperarPasswordSolicitud, db:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"No se pudo enviar el correo de recuperación: {str(e)}")
 
-
 @app.post("/usuarios/recuperar-password/confirmar", tags=["Usuarios y Login"])
 def confirmar_recuperacion_password(datos: schemas.RecuperarPasswordConfirmacion, db: Session = Depends(get_db)):
     """Verifica el código OTP de 6 dígitos y guarda la nueva contraseña encriptada."""
     registro = codigos_recuperacion.get(datos.correo)
     if not registro:
         raise HTTPException(status_code=400, detail="No hay una solicitud activa para este correo o el código ya fue usado.")
-
     if datetime.now() > registro["expira"]:
         del codigos_recuperacion[datos.correo]
         raise HTTPException(status_code=400, detail="El código ha expirado. Solicita uno nuevo.")
-
     if datos.codigo.strip() != registro["codigo"]:
         raise HTTPException(status_code=400, detail="El código ingresado es incorrecto.")
-
     usuario = db.query(models.Usuario).filter(models.Usuario.correo == datos.correo).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
-
     usuario.password_hash = encriptar_password(datos.nueva_password)
     db.commit()
-
     del codigos_recuperacion[datos.correo]
     return {"mensaje": "Contraseña restablecida con éxito. Ya puedes iniciar sesión."}
-
 
 # ==========================================================
 # 3. CATÁLOGO Y BUSCADOR DE HOSPITALES
 # ==========================================================
-
 @app.get("/hospitales/", response_model=List[schemas.HospitalRespuesta], tags=["Hospitales"])
 def buscar_o_listar_hospitales(
     buscar: Optional[str] = Query(None),
@@ -488,7 +440,6 @@ def buscar_o_listar_hospitales(
         )
     return consulta.order_by(models.Hospital.nombre).all()
 
-
 @app.post("/hospitales/", response_model=schemas.HospitalRespuesta, status_code=status.HTTP_201_CREATED, tags=["Hospitales"])
 def registrar_hospital(hospital: schemas.HospitalCrear, db: Session = Depends(get_db)):
     """Registra una nueva unidad médica hospitalaria."""
@@ -498,20 +449,16 @@ def registrar_hospital(hospital: schemas.HospitalCrear, db: Session = Depends(ge
     db.refresh(nuevo_hospital)
     return nuevo_hospital
 
-
 # ==========================================================
 # 4. FLUJO DE INVENTARIOS (CREACIÓN, CAPTURA, CIERRE Y CANCELACIÓN)
 # ==========================================================
-
 @app.post("/inventarios/", response_model=schemas.InventarioRespuesta, status_code=status.HTTP_201_CREATED, tags=["Inventarios"])
 def iniciar_inventario(datos: schemas.InventarioCrear, db: Session = Depends(get_db)):
     """Abre un nuevo inventario en estado EN_PROCESO y vincula a los usuarios participantes."""
     verificar_es_admin(db, datos.id_admin_creador)
-
     hospital = db.query(models.Hospital).filter(models.Hospital.id_hospital == datos.id_hospital).first()
     if not hospital:
         raise HTTPException(status_code=404, detail="El hospital seleccionado no existe.")
-
     nuevo_inventario = models.Inventario(
         id_hospital=datos.id_hospital,
         fecha=datos.fecha,
@@ -519,10 +466,8 @@ def iniciar_inventario(datos: schemas.InventarioCrear, db: Session = Depends(get
     )
     db.add(nuevo_inventario)
     db.flush()
-
     todos_los_participantes = set(datos.ids_usuarios_participantes)
     todos_los_participantes.add(datos.id_admin_creador)
-
     for id_usr in todos_los_participantes:
         usuario_existe = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usr).first()
         if not usuario_existe:
@@ -533,11 +478,9 @@ def iniciar_inventario(datos: schemas.InventarioCrear, db: Session = Depends(get
             id_usuario=id_usr
         )
         db.add(vinculo_usuario)
-
     db.commit()
     db.refresh(nuevo_inventario)
     return nuevo_inventario
-
 
 @app.post("/inventarios/{id_inventario}/equipos/", response_model=schemas.EquipoRespuesta, status_code=status.HTTP_201_CREATED, tags=["Inventarios"])
 def registrar_equipo_en_inventario(
@@ -549,21 +492,20 @@ def registrar_equipo_en_inventario(
     inventario = db.query(models.Inventario).filter(models.Inventario.id_inventario == id_inventario).first()
     if not inventario:
         raise HTTPException(status_code=404, detail="El inventario no existe.")
-
     if inventario.estado == "FINALIZADO":
         raise HTTPException(status_code=400, detail="Este inventario ya fue FINALIZADO y no permite agregar más equipos.")
-
     duplicado = buscar_equipo_duplicado(db, equipo.sn, equipo.nni)
     if duplicado:
         raise HTTPException(status_code=400, detail="Ya existe un equipo registrado con ese Número de Serie (SN) o NNI.")
-
+    
+    # Se excluye id_hospital del esquema para usar siempre el hospital del inventario activo
+    datos_equipo = equipo.model_dump(exclude={"id_hospital"})
     nuevo_equipo = models.Equipo(
-        **equipo.model_dump(),
+        **datos_equipo,
         id_hospital=inventario.id_hospital
     )
     db.add(nuevo_equipo)
     db.flush()
-
     vinculo_equipo = models.InventarioEquipo(
         id_inventario=id_inventario,
         id_equipo=nuevo_equipo.id_equipo
@@ -573,7 +515,6 @@ def registrar_equipo_en_inventario(
     db.refresh(nuevo_equipo)
     return nuevo_equipo
 
-
 @app.put("/inventarios/{id_inventario}/finalizar", response_model=schemas.InventarioRespuesta, tags=["Inventarios"])
 def finalizar_inventario(
     id_inventario: int,
@@ -582,16 +523,13 @@ def finalizar_inventario(
 ):
     """Cambia el estado de un inventario a FINALIZADO para impedir futuras modificaciones."""
     verificar_es_admin(db, id_admin)
-
     inventario = db.query(models.Inventario).filter(models.Inventario.id_inventario == id_inventario).first()
     if not inventario:
         raise HTTPException(status_code=404, detail="Inventario no encontrado.")
-
     inventario.estado = "FINALIZADO"
     db.commit()
     db.refresh(inventario)
     return inventario
-
 
 @app.delete("/inventarios/{id_inventario}", tags=["Inventarios"])
 def cancelar_o_eliminar_inventario(
@@ -605,17 +543,14 @@ def cancelar_o_eliminar_inventario(
     Limpia participantes, documentos asociados y opcionalmente los equipos que se estaban capturando.
     """
     verificar_es_admin(db, id_admin)
-
     inventario = db.query(models.Inventario).filter(models.Inventario.id_inventario == id_inventario).first()
     if not inventario:
         raise HTTPException(status_code=404, detail="El inventario no existe.")
-
     # 1. Obtener los IDs de los equipos vinculados a este inventario
     vinculos_eq = db.query(models.InventarioEquipo).filter(
         models.InventarioEquipo.id_inventario == id_inventario
     ).all()
     ids_equipos = [v.id_equipo for v in vinculos_eq]
-
     # 2. Eliminar vínculos en inventario_equipo e inventario_usuario
     db.query(models.InventarioEquipo).filter(
         models.InventarioEquipo.id_inventario == id_inventario
@@ -623,13 +558,11 @@ def cancelar_o_eliminar_inventario(
     db.query(models.InventarioUsuario).filter(
         models.InventarioUsuario.id_inventario == id_inventario
     ).delete()
-
     # 3. Eliminar documentos vinculados directamente a este inventario
     docs_inv = db.query(models.Documento).filter(models.Documento.id_inventario == id_inventario).all()
     for d in docs_inv:
         eliminar_archivo_fisico_seguro(d.rutaarchivo)
         db.delete(d)
-
     # 4. Si se indicó eliminar los equipos que se estaban registrando en este levantamiento
     if eliminar_equipos_censados and ids_equipos:
         for id_eq in ids_equipos:
@@ -643,14 +576,12 @@ def cancelar_o_eliminar_inventario(
                     eliminar_archivo_fisico_seguro(deq.rutaarchivo)
                     db.delete(deq)
                 db.query(models.Mantenimiento).filter(models.Mantenimiento.id_equipo == id_eq).delete()
+                db.query(models.TransferenciaEquipo).filter(models.TransferenciaEquipo.id_equipo == id_eq).delete()
                 db.query(models.Equipo).filter(models.Equipo.id_equipo == id_eq).delete()
-
     # 5. Eliminar el registro del inventario
     db.delete(inventario)
     db.commit()
-
     return {"mensaje": f"El Inventario #{id_inventario} fue cancelado y eliminado correctamente."}
-
 
 @app.get("/inventarios/", response_model=List[schemas.InventarioRespuesta], tags=["Inventarios"])
 def ver_inventarios(
@@ -669,21 +600,16 @@ def ver_inventarios(
             raise HTTPException(status_code=404, detail="Usuario no encontrado.")
         if usuario.rol == "INACTIVO":
             raise HTTPException(status_code=403, detail="Cuenta inactiva.")
-
     consulta = db.query(models.Inventario)
-
     if id_hospital is not None:
         consulta = consulta.filter(models.Inventario.id_hospital == id_hospital)
     if estado is not None:
         consulta = consulta.filter(models.Inventario.estado == estado)
-
     return consulta.order_by(models.Inventario.fecha.desc(), models.Inventario.id_inventario.desc()).all()
 
-
 # ==========================================================
-# 5. CONSULTA, EDICIÓN, BAJA Y EXPORTACIÓN EXCEL (.XLSX) DE EQUIPOS
+# 5. CONSULTA, ALTA INDIVIDUAL, TRANSFERENCIAS, EDICIÓN Y BAJA DE EQUIPOS
 # ==========================================================
-
 def construir_consulta_equipos(
     db: Session,
     id_hospital: Optional[int] = None,
@@ -697,13 +623,11 @@ def construir_consulta_equipos(
 ):
     """Aplica los filtros combinados tanto para la tabla en pantalla como para el reporte Excel."""
     consulta = db.query(models.Equipo)
-
     if id_inventario is not None:
         consulta = consulta.join(
             models.InventarioEquipo,
             models.Equipo.id_equipo == models.InventarioEquipo.id_equipo
         ).filter(models.InventarioEquipo.id_inventario == id_inventario)
-
     if id_hospital is not None:
         consulta = consulta.filter(models.Equipo.id_hospital == id_hospital)
     if id_proveedor is not None:
@@ -722,9 +646,7 @@ def construir_consulta_equipos(
             (models.Equipo.nni.ilike(f"%{buscar_texto}%")) |
             (models.Equipo.sn.ilike(f"%{buscar_texto}%"))
         )
-
     return consulta.order_by(models.Equipo.id_equipo).all()
-
 
 @app.get("/equipos/", response_model=List[schemas.EquipoRespuesta], tags=["Equipos"])
 def filtrar_equipos(
@@ -743,6 +665,151 @@ def filtrar_equipos(
         db, id_hospital, id_inventario, id_proveedor, area, marca, garantia, estatusfuncional, buscar_texto
     )
 
+@app.post("/equipos/", response_model=schemas.EquipoRespuesta, status_code=status.HTTP_201_CREATED, tags=["Equipos"])
+def registrar_equipo_individual(
+    equipo: schemas.EquipoCrear,
+    id_admin: int = Query(..., description="ID del Administrador que da de alta la nueva adquisición"),
+    db: Session = Depends(get_db)
+):
+    """
+    Da de alta un equipo médico de forma individual (ej. nuevas adquisiciones)
+    asignándolo directamente a un hospital sin requerir un inventario en curso.
+    """
+    verificar_es_admin(db, id_admin)
+
+    if not equipo.id_hospital:
+        raise HTTPException(
+            status_code=400,
+            detail="Debes seleccionar el hospital al que se asignará el nuevo equipo."
+        )
+
+    hospital = db.query(models.Hospital).filter(models.Hospital.id_hospital == equipo.id_hospital).first()
+    if not hospital:
+        raise HTTPException(status_code=404, detail="El hospital seleccionado no existe.")
+
+    if equipo.id_proveedor is not None:
+        proveedor = db.query(models.Proveedor).filter(models.Proveedor.id_proveedor == equipo.id_proveedor).first()
+        if not proveedor:
+            raise HTTPException(status_code=404, detail="El proveedor seleccionado no existe.")
+
+    duplicado = buscar_equipo_duplicado(db, equipo.sn, equipo.nni)
+    if duplicado:
+        raise HTTPException(
+            status_code=400,
+            detail="Ya existe un equipo registrado con ese Número de Serie (SN) o NNI."
+        )
+
+    nuevo_equipo = models.Equipo(**equipo.model_dump())
+    db.add(nuevo_equipo)
+    db.commit()
+    db.refresh(nuevo_equipo)
+    return nuevo_equipo
+
+@app.post("/equipos/{id_equipo}/transferir", response_model=schemas.TransferenciaRespuesta, status_code=status.HTTP_201_CREATED, tags=["Equipos"])
+def transferir_equipo_hospital(
+    id_equipo: int,
+    datos: schemas.TransferenciaCrear,
+    id_admin: int = Query(..., description="ID del Administrador que autoriza la transferencia"),
+    db: Session = Depends(get_db)
+):
+    """
+    Transfiere un equipo médico de su hospital actual hacia otra unidad médica,
+    actualizando su ubicación en tiempo real y guardando el movimiento en la bitácora histórica.
+    """
+    admin = verificar_es_admin(db, id_admin)
+
+    equipo = db.query(models.Equipo).filter(models.Equipo.id_equipo == id_equipo).first()
+    if not equipo:
+        raise HTTPException(status_code=404, detail="El equipo médico no existe.")
+
+    if not equipo.id_hospital:
+        raise HTTPException(
+            status_code=400,
+            detail="Este equipo no tiene un hospital origen asignado actualmente.Asígnale uno desde Editar primero."
+        )
+
+    if equipo.id_hospital == datos.id_hospital_destino:
+        raise HTTPException(
+            status_code=400,
+            detail="El hospital destino debe ser diferente al hospital donde ya se encuentra el equipo."
+        )
+
+    hospital_origen = db.query(models.Hospital).filter(models.Hospital.id_hospital == equipo.id_hospital).first()
+    hospital_destino = db.query(models.Hospital).filter(models.Hospital.id_hospital == datos.id_hospital_destino).first()
+    if not hospital_destino:
+        raise HTTPException(status_code=404, detail="El hospital destino seleccionado no existe.")
+
+    # 1. Crear el registro en la bitácora histórica de transferencias
+    id_usr_registro = datos.id_usuario or id_admin
+    nueva_transferencia = models.TransferenciaEquipo(
+        id_equipo=id_equipo,
+        id_hospital_origen=equipo.id_hospital,
+        id_hospital_destino=datos.id_hospital_destino,
+        id_usuario=id_usr_registro,
+        motivo=datos.motivo.strip()
+    )
+    db.add(nueva_transferencia)
+
+    # 2. Actualizar el hospital actual en la tabla maestra de equipos
+    equipo.id_hospital = datos.id_hospital_destino
+
+    db.commit()
+    db.refresh(nueva_transferencia)
+
+    nombre_usr = f"{admin.primernombre} {admin.primerapellido}"
+    return schemas.TransferenciaRespuesta(
+        id_transferencia=nueva_transferencia.id_transferencia,
+        id_equipo=nueva_transferencia.id_equipo,
+        id_hospital_origen=nueva_transferencia.id_hospital_origen,
+        hospital_origen_nombre=f"{hospital_origen.nombre} ({hospital_origen.ciudad})" if hospital_origen else f"Hospital #{nueva_transferencia.id_hospital_origen}",
+        id_hospital_destino=nueva_transferencia.id_hospital_destino,
+        hospital_destino_nombre=f"{hospital_destino.nombre} ({hospital_destino.ciudad})",
+        id_usuario=nueva_transferencia.id_usuario,
+        usuario_nombre=nombre_usr,
+        fecha=nueva_transferencia.fecha,
+        motivo=nueva_transferencia.motivo
+    )
+
+@app.get("/equipos/{id_equipo}/transferencias", response_model=List[schemas.TransferenciaRespuesta], tags=["Equipos"])
+def obtener_historial_transferencias_equipo(
+    id_equipo: int,
+    db: Session = Depends(get_db)
+):
+    """Devuelve la bitácora histórica de transferencias de un equipo específico, de la más reciente a la más antigua."""
+    equipo = db.query(models.Equipo).filter(models.Equipo.id_equipo == id_equipo).first()
+    if not equipo:
+        raise HTTPException(status_code=404, detail="Equipo no encontrado.")
+
+    hospitales = {
+        h.id_hospital: f"{h.nombre} ({h.ciudad})"
+        for h in db.query(models.Hospital).all()
+    }
+    usuarios = {
+        u.id_usuario: f"{u.primernombre} {u.primerapellido}"
+        for u in db.query(models.Usuario).all()
+    }
+
+    registros = db.query(models.TransferenciaEquipo).filter(
+        models.TransferenciaEquipo.id_equipo == id_equipo
+    ).order_by(models.TransferenciaEquipo.fecha.desc(), models.TransferenciaEquipo.id_transferencia.desc()).all()
+
+    respuesta = []
+    for r in registros:
+        respuesta.append(
+            schemas.TransferenciaRespuesta(
+                id_transferencia=r.id_transferencia,
+                id_equipo=r.id_equipo,
+                id_hospital_origen=r.id_hospital_origen,
+                hospital_origen_nombre=hospitales.get(r.id_hospital_origen, f"Hospital #{r.id_hospital_origen}"),
+                id_hospital_destino=r.id_hospital_destino,
+                hospital_destino_nombre=hospitales.get(r.id_hospital_destino, f"Hospital #{r.id_hospital_destino}"),
+                id_usuario=r.id_usuario,
+                usuario_nombre=usuarios.get(r.id_usuario, "Usuario eliminado") if r.id_usuario else "Sistema",
+                fecha=r.fecha,
+                motivo=r.motivo
+            )
+        )
+    return respuesta
 
 @app.get("/exportar/equipos-excel", tags=["Equipos"])
 def exportar_equipos_excel(
@@ -760,14 +827,11 @@ def exportar_equipos_excel(
     equipos = construir_consulta_equipos(
         db, id_hospital, id_inventario, id_proveedor, area, marca, garantia, estatusfuncional, buscar_texto
     )
-
     hospitales = {h.id_hospital: f"{h.nombre} ({h.ciudad})" for h in db.query(models.Hospital).all()}
     proveedores = {p.id_proveedor: p.nombre_proveedor for p in db.query(models.Proveedor).all()}
-
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Equipos Biomédicos"
-
     relleno_verde = PatternFill(start_color="13322B", end_color="13322B", fill_type="solid")
     relleno_subtitulo = PatternFill(start_color="EBF3F0", end_color="EBF3F0", fill_type="solid")
     fuente_titulo = Font(name="Calibri", size=13, bold=True, color="FFFFFF")
@@ -779,14 +843,12 @@ def exportar_equipos_excel(
         top=Side(style="thin", color="CBD5E1"),
         bottom=Side(style="thin", color="CBD5E1")
     )
-
     ws.merge_cells("A1:L1")
     ws["A1"] = "INSTITUTO MEXICANO DEL SEGURO SOCIAL - REPORTE DE EQUIPO BIOMÉDICO"
     ws["A1"].fill = relleno_verde
     ws["A1"].font = fuente_titulo
     ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
     ws.row_dimensions[1].height = 26
-
     resumen_filtros = []
     if id_inventario:
         inv = db.query(models.Inventario).filter(models.Inventario.id_inventario == id_inventario).first()
@@ -808,7 +870,6 @@ def exportar_equipos_excel(
         resumen_filtros.append(f"Estatus: {'Funcional' if estatusfuncional else 'Inactivo'}")
     if buscar_texto:
         resumen_filtros.append(f"Búsqueda: '{buscar_texto}'")
-
     texto_criterios = " | ".join(resumen_filtros) if resumen_filtros else "Catálogo General"
     ws.merge_cells("A2:L2")
     ws["A2"] = f"Fecha de emisión: {date.today()}   —   Criterios aplicados: {texto_criterios}   —   Total de equipos: {len(equipos)}"
@@ -816,7 +877,6 @@ def exportar_equipos_excel(
     ws["A2"].font = fuente_subtitulo
     ws["A2"].alignment = Alignment(horizontal="left", vertical="center")
     ws.row_dimensions[2].height = 20
-
     encabezados = [
         "ID", "Nombre del Equipo", "Hospital", "Área", "Subárea",
         "Marca", "Modelo", "NNI", "Número de Serie (SN)", "Proveedor",
@@ -825,13 +885,11 @@ def exportar_equipos_excel(
     ws.append([])
     ws.append(encabezados)
     ws.row_dimensions[4].height = 22
-
     for col_num in range(1, len(encabezados) + 1):
         celda = ws.cell(row=4, column=col_num)
         celda.fill = relleno_verde
         celda.font = fuente_encabezado
         celda.alignment = Alignment(horizontal="center", vertical="center")
-
     for eq in equipos:
         vigencia = f"Vence: {eq.fecha_expgarantia}" if eq.garantia else "Sin garantía"
         estatus = "FUNCIONAL" if eq.estatusfuncional else "FUERA DE SERVICIO"
@@ -853,7 +911,6 @@ def exportar_equipos_excel(
         fila_actual = ws.max_row
         for col_num in range(1, len(encabezados) + 1):
             ws.cell(row=fila_actual, column=col_num).border = borde_fino
-
     for col in ws.columns:
         letra_col = openpyxl.utils.get_column_letter(col[0].column)
         max_len = 0
@@ -861,18 +918,15 @@ def exportar_equipos_excel(
             if celda.row >= 4 and celda.value:
                 max_len = max(max_len, len(str(celda.value)))
         ws.column_dimensions[letra_col].width = max(max_len + 4, 12)
-
     flujo = io.BytesIO()
     wb.save(flujo)
     flujo.seek(0)
-
     nombre_archivo = f"Inventario_{id_inventario}_{date.today()}.xlsx" if id_inventario else f"Equipos_Filtrados_{date.today()}.xlsx"
     return StreamingResponse(
         flujo,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename={nombre_archivo}"}
     )
-
 
 @app.put("/equipos/{id_equipo}", response_model=schemas.EquipoRespuesta, tags=["Equipos"])
 def actualizar_equipo(
@@ -883,22 +937,17 @@ def actualizar_equipo(
 ):
     """Permite a un Administrador editar la información, garantía o estado funcional de un equipo."""
     verificar_es_admin(db, id_admin)
-
     equipo = db.query(models.Equipo).filter(models.Equipo.id_equipo == id_equipo).first()
     if not equipo:
         raise HTTPException(status_code=404, detail="Equipo no encontrado.")
-
     duplicado = buscar_equipo_duplicado(db, datos.sn, datos.nni, excluir_id_equipo=id_equipo)
     if duplicado:
         raise HTTPException(status_code=400, detail="Otro equipo ya tiene registrado ese Número de Serie (SN) o NNI.")
-
     for campo, valor in datos.model_dump().items():
         setattr(equipo, campo, valor)
-
     db.commit()
     db.refresh(equipo)
     return equipo
-
 
 @app.delete("/equipos/{id_equipo}", tags=["Equipos"])
 def eliminar_equipo(
@@ -908,20 +957,17 @@ def eliminar_equipo(
 ):
     """
     Da de baja (elimina permanentemente) un equipo médico del sistema (exclusivo para Administradores).
-    Limpia previamente sus vínculos en inventarios, mantenimientos y documentos asociados.
+    Limpia previamente sus vínculos en inventarios, transferencias, mantenimientos y documentos asociados.
     """
     verificar_es_admin(db, id_admin)
-
     equipo = db.query(models.Equipo).filter(models.Equipo.id_equipo == id_equipo).first()
     if not equipo:
         raise HTTPException(status_code=404, detail="Equipo no encontrado.")
-
     # 1. Eliminar documentos asociados a este equipo (y sus archivos físicos)
     docs_eq = db.query(models.Documento).filter(models.Documento.id_equipo == id_equipo).all()
     for doc in docs_eq:
         eliminar_archivo_fisico_seguro(doc.rutaarchivo)
         db.delete(doc)
-
     # 2. Eliminar documentos asociados a los mantenimientos de este equipo
     mants_eq = db.query(models.Mantenimiento).filter(models.Mantenimiento.id_equipo == id_equipo).all()
     for m in mants_eq:
@@ -930,22 +976,18 @@ def eliminar_equipo(
             eliminar_archivo_fisico_seguro(dm.rutaarchivo)
             db.delete(dm)
         db.delete(m)
-
-    # 3. Eliminar relación en inventario_equipo
+    # 3. Eliminar relación en inventario_equipo y en historial de transferencias
     db.query(models.InventarioEquipo).filter(models.InventarioEquipo.id_equipo == id_equipo).delete()
-
+    db.query(models.TransferenciaEquipo).filter(models.TransferenciaEquipo.id_equipo == id_equipo).delete()
     # 4. Eliminar el equipo
     nombre_eq = equipo.nombre_equipo or f"#{id_equipo}"
     db.delete(equipo)
     db.commit()
-
     return {"mensaje": f"El equipo '{nombre_eq}' fue dado de baja y eliminado del sistema."}
-
 
 # ==========================================================
 # 6. DIRECTORIO DE PROVEEDORES (ALTA, EDICIÓN Y BAJA)
 # ==========================================================
-
 @app.get("/proveedores/", response_model=List[schemas.ProveedorRespuesta], tags=["Proveedores"])
 def listar_proveedores(
     buscar: Optional[str] = Query(None),
@@ -960,7 +1002,6 @@ def listar_proveedores(
         )
     return consulta.order_by(models.Proveedor.nombre_proveedor).all()
 
-
 @app.post("/proveedores/", response_model=schemas.ProveedorRespuesta, status_code=status.HTTP_201_CREATED, tags=["Proveedores"])
 def agregar_proveedor(proveedor: schemas.ProveedorCrear, db: Session = Depends(get_db)):
     """Registra un nuevo proveedor externo de mantenimiento biomédico."""
@@ -968,13 +1009,11 @@ def agregar_proveedor(proveedor: schemas.ProveedorCrear, db: Session = Depends(g
         existe = db.query(models.Proveedor).filter(models.Proveedor.correo == proveedor.correo).first()
         if existe:
             raise HTTPException(status_code=400, detail="Ya existe un proveedor con ese correo electrónico.")
-
     nuevo_proveedor = models.Proveedor(**proveedor.model_dump())
     db.add(nuevo_proveedor)
     db.commit()
     db.refresh(nuevo_proveedor)
     return nuevo_proveedor
-
 
 @app.put("/proveedores/{id_proveedor}", response_model=schemas.ProveedorRespuesta, tags=["Proveedores"])
 def actualizar_proveedor(
@@ -985,11 +1024,9 @@ def actualizar_proveedor(
 ):
     """Permite a un Administrador modificar los datos de contacto o empresa de un proveedor."""
     verificar_es_admin(db, id_admin)
-
     proveedor = db.query(models.Proveedor).filter(models.Proveedor.id_proveedor == id_proveedor).first()
     if not proveedor:
         raise HTTPException(status_code=404, detail="Proveedor no encontrado.")
-
     if datos.correo:
         correo_duplicado = db.query(models.Proveedor).filter(
             models.Proveedor.id_proveedor != id_proveedor,
@@ -997,14 +1034,11 @@ def actualizar_proveedor(
         ).first()
         if correo_duplicado:
             raise HTTPException(status_code=400, detail="Otro proveedor ya tiene registrado ese correo electrónico.")
-
     for campo, valor in datos.model_dump().items():
         setattr(proveedor, campo, valor)
-
     db.commit()
     db.refresh(proveedor)
     return proveedor
-
 
 @app.delete("/proveedores/{id_proveedor}", tags=["Proveedores"])
 def eliminar_proveedor(
@@ -1017,43 +1051,34 @@ def eliminar_proveedor(
     Desvincula previamente sus equipos y mantenimientos (poniendo id_proveedor = NULL) para no perder historial.
     """
     verificar_es_admin(db, id_admin)
-
     proveedor = db.query(models.Proveedor).filter(models.Proveedor.id_proveedor == id_proveedor).first()
     if not proveedor:
         raise HTTPException(status_code=404, detail="Proveedor no encontrado.")
-
     db.query(models.Equipo).filter(models.Equipo.id_proveedor == id_proveedor).update({"id_proveedor": None})
     db.query(models.Mantenimiento).filter(models.Mantenimiento.id_proveedor == id_proveedor).update({"id_proveedor": None})
-
     nombre_prov = proveedor.nombre_proveedor
     db.delete(proveedor)
     db.commit()
-
     return {"mensaje": f"El proveedor '{nombre_prov}' fue eliminado correctamente."}
-
 
 # ==========================================================
 # 7. CONTROL DE MANTENIMIENTOS (ALTA, EDICIÓN Y BAJA)
 # ==========================================================
-
 @app.post("/mantenimientos/", response_model=schemas.MantenimientoRespuesta, status_code=status.HTTP_201_CREATED, tags=["Mantenimientos"])
 def registrar_mantenimiento(datos: schemas.MantenimientoCrear, db: Session = Depends(get_db)):
     """Registra una intervención de mantenimiento preventivo o correctivo."""
     equipo = db.query(models.Equipo).filter(models.Equipo.id_equipo == datos.id_equipo).first()
     if not equipo:
         raise HTTPException(status_code=404, detail="El equipo indicado no existe.")
-
     if datos.id_proveedor is not None:
         proveedor = db.query(models.Proveedor).filter(models.Proveedor.id_proveedor == datos.id_proveedor).first()
         if not proveedor:
             raise HTTPException(status_code=404, detail="El proveedor indicado no existe.")
-
     nuevo_mant = models.Mantenimiento(**datos.model_dump())
     db.add(nuevo_mant)
     db.commit()
     db.refresh(nuevo_mant)
     return nuevo_mant
-
 
 @app.get("/mantenimientos/", response_model=List[schemas.MantenimientoRespuesta], tags=["Mantenimientos"])
 def listar_mantenimientos(
@@ -1069,7 +1094,6 @@ def listar_mantenimientos(
         consulta = consulta.filter(models.Mantenimiento.tipo_mantenimiento == tipo)
     return consulta.order_by(models.Mantenimiento.fecha.desc(), models.Mantenimiento.id_mantenimiento.desc()).all()
 
-
 @app.put("/mantenimientos/{id_mantenimiento}", response_model=schemas.MantenimientoRespuesta, tags=["Mantenimientos"])
 def actualizar_mantenimiento(
     id_mantenimiento: int,
@@ -1079,27 +1103,21 @@ def actualizar_mantenimiento(
 ):
     """Permite a un Administrador modificar proveedor, fechas u observaciones de un mantenimiento."""
     verificar_es_admin(db, id_admin)
-
     mant = db.query(models.Mantenimiento).filter(models.Mantenimiento.id_mantenimiento == id_mantenimiento).first()
     if not mant:
         raise HTTPException(status_code=404, detail="Registro de mantenimiento no encontrado.")
-
     equipo = db.query(models.Equipo).filter(models.Equipo.id_equipo == datos.id_equipo).first()
     if not equipo:
         raise HTTPException(status_code=404, detail="El equipo seleccionado no existe.")
-
     if datos.id_proveedor is not None:
         proveedor = db.query(models.Proveedor).filter(models.Proveedor.id_proveedor == datos.id_proveedor).first()
         if not proveedor:
             raise HTTPException(status_code=404, detail="El proveedor seleccionado no existe.")
-
     for campo, valor in datos.model_dump().items():
         setattr(mant, campo, valor)
-
     db.commit()
     db.refresh(mant)
     return mant
-
 
 @app.delete("/mantenimientos/{id_mantenimiento}", tags=["Mantenimientos"])
 def eliminar_mantenimiento(
@@ -1109,25 +1127,20 @@ def eliminar_mantenimiento(
 ):
     """Elimina un registro de mantenimiento y sus documentos asociados (exclusivo para Administradores)."""
     verificar_es_admin(db, id_admin)
-
     mant = db.query(models.Mantenimiento).filter(models.Mantenimiento.id_mantenimiento == id_mantenimiento).first()
     if not mant:
         raise HTTPException(status_code=404, detail="Mantenimiento no encontrado.")
-
     docs_mant = db.query(models.Documento).filter(models.Documento.id_mantenimiento == id_mantenimiento).all()
     for d in docs_mant:
         eliminar_archivo_fisico_seguro(d.rutaarchivo)
         db.delete(d)
-
     db.delete(mant)
     db.commit()
     return {"mensaje": f"El Mantenimiento #{id_mantenimiento} fue eliminado correctamente."}
 
-
 # ==========================================================
 # 8. REPOSITORIO DOCUMENTAL (SUBIDA, EDICIÓN, REEMPLAZO Y BAJA)
 # ==========================================================
-
 @app.post("/documentos/subir", response_model=schemas.DocumentoRespuesta, status_code=status.HTTP_201_CREATED, tags=["Documentos"])
 def subir_documento(
     nombre_documento: str = Form(...),
@@ -1147,14 +1160,11 @@ def subir_documento(
             status_code=400, 
             detail="Debes asociar el documento a UNA SOLA entidad (equipo, mantenimiento o inventario)."
         )
-
     nombre_limpio = os.path.basename(archivo.filename or "documento.pdf")
     nombre_unico = f"{int(datetime.now().timestamp())}_{nombre_limpio}"
     ruta_guardado = os.path.join(CARPETA_DOCUMENTOS, nombre_unico)
-
     with open(ruta_guardado, "wb") as buffer:
         shutil.copyfileobj(archivo.file, buffer)
-
     nuevo_doc = models.Documento(
         nombredocumento=nombre_documento,
         rutaarchivo=ruta_guardado,
@@ -1166,7 +1176,6 @@ def subir_documento(
     db.commit()
     db.refresh(nuevo_doc)
     return nuevo_doc
-
 
 @app.put("/documentos/{id_documento}", response_model=schemas.DocumentoRespuesta, tags=["Documentos"])
 def actualizar_o_reemplazar_documento(
@@ -1184,23 +1193,19 @@ def actualizar_o_reemplazar_documento(
     (inventario, equipo o mantenimiento) y opcionalmente reemplazar el archivo físico en el servidor.
     """
     verificar_es_admin(db, id_admin)
-
     doc = db.query(models.Documento).filter(models.Documento.id_documento == id_documento).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Documento no encontrado.")
-
     ids_proporcionados = [x for x in [id_equipo, id_mantenimiento, id_inventario] if x is not None]
     if len(ids_proporcionados) != 1:
         raise HTTPException(
             status_code=400,
             detail="El documento debe estar asociado exactamente a una entidad (equipo, mantenimiento o inventario)."
         )
-
     doc.nombredocumento = nombre_documento.strip()
     doc.id_equipo = id_equipo
     doc.id_mantenimiento = id_mantenimiento
     doc.id_inventario = id_inventario
-
     # Si el administrador subió un archivo nuevo para reemplazar el anterior
     if archivo and archivo.filename:
         eliminar_archivo_fisico_seguro(doc.rutaarchivo)
@@ -1210,11 +1215,9 @@ def actualizar_o_reemplazar_documento(
         with open(nueva_ruta, "wb") as buffer:
             shutil.copyfileobj(archivo.file, buffer)
         doc.rutaarchivo = nueva_ruta
-
     db.commit()
     db.refresh(doc)
     return doc
-
 
 @app.delete("/documentos/{id_documento}", tags=["Documentos"])
 def eliminar_documento(
@@ -1224,18 +1227,14 @@ def eliminar_documento(
 ):
     """Elimina un documento de la base de datos y borra su archivo físico del servidor."""
     verificar_es_admin(db, id_admin)
-
     doc = db.query(models.Documento).filter(models.Documento.id_documento == id_documento).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Documento no encontrado.")
-
     eliminar_archivo_fisico_seguro(doc.rutaarchivo)
     titulo = doc.nombredocumento
     db.delete(doc)
     db.commit()
-
     return {"mensaje": f"El documento '{titulo}' fue eliminado permanentemente."}
-
 
 @app.get("/documentos/", response_model=List[schemas.DocumentoRespuesta], tags=["Documentos"])
 def listar_documentos(
@@ -1254,7 +1253,6 @@ def listar_documentos(
         consulta = consulta.filter(models.Documento.id_inventario == id_inventario)
     return consulta.order_by(models.Documento.id_documento.desc()).all()
 
-
 @app.get("/documentos/{id_documento}/ver", tags=["Documentos"])
 def ver_o_descargar_documento(id_documento: int, db: Session = Depends(get_db)):
     """Abre o descarga el documento físico almacenado en el servidor."""
@@ -1267,11 +1265,9 @@ def ver_o_descargar_documento(id_documento: int, db: Session = Depends(get_db)):
     
     return FileResponse(doc.rutaarchivo)
 
-
 # ==========================================================
 # 9. MOTOR DE ALERTAS Y ENVÍO AUTOMÁTICO / MANUAL POR CORREO
 # ==========================================================
-
 @app.get("/alertas/", tags=["Alertas"])
 def obtener_alertas_proximas(
     dias_anticipacion: int = Query(30),
@@ -1280,13 +1276,11 @@ def obtener_alertas_proximas(
     """Calcula garantías vencidas/por vencer y mantenimientos próximos/atrasados."""
     hoy = date.today()
     fecha_limite = hoy + timedelta(days=dias_anticipacion)
-
     equipos_alerta_garantia = db.query(models.Equipo).filter(
         models.Equipo.garantia == True,
         models.Equipo.fecha_expgarantia != None,
         models.Equipo.fecha_expgarantia <= fecha_limite
     ).order_by(models.Equipo.fecha_expgarantia).all()
-
     alertas_garantias = []
     for eq in equipos_alerta_garantia:
         dias_restantes = (eq.fecha_expgarantia - hoy).days
@@ -1300,12 +1294,10 @@ def obtener_alertas_proximas(
             "dias_restantes": dias_restantes,
             "semaforo": estado_alerta
         })
-
     mantenimientos_alerta = db.query(models.Mantenimiento).filter(
         models.Mantenimiento.prox_fecha != None,
         models.Mantenimiento.prox_fecha <= fecha_limite
     ).order_by(models.Mantenimiento.prox_fecha).all()
-
     alertas_mantenimientos = []
     for mant in mantenimientos_alerta:
         dias_restantes = (mant.prox_fecha - hoy).days
@@ -1318,7 +1310,6 @@ def obtener_alertas_proximas(
             "dias_restantes": dias_restantes,
             "semaforo": estado_alerta
         })
-
     return {
         "fecha_consulta": hoy,
         "dias_anticipacion_configurados": dias_anticipacion,
@@ -1327,7 +1318,6 @@ def obtener_alertas_proximas(
         "total_alertas_mantenimiento": len(alertas_mantenimientos),
         "alertas_mantenimientos": alertas_mantenimientos
     }
-
 
 def procesar_envio_correo_alertas(db: Session) -> tuple[bool, str]:
     """
@@ -1338,25 +1328,20 @@ def procesar_envio_correo_alertas(db: Session) -> tuple[bool, str]:
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
     smtp_user = os.getenv("SMTP_USER")
     smtp_password = os.getenv("SMTP_PASSWORD")
-
     if not smtp_user or not smtp_password or "tu_correo" in smtp_user:
         return False, "Falta configurar SMTP_USER y SMTP_PASSWORD en el archivo .env."
-
     admins = db.query(models.Usuario).filter(models.Usuario.rol == "ADMIN").all()
     correos_destino = [a.correo for a in admins if a.correo]
     if not correos_destino:
         return False, "No hay administradores con correo registrado."
-
     datos_alertas = obtener_alertas_proximas(dias_anticipacion=30, db=db)
     total_pendientes = datos_alertas["total_alertas_garantia"] + datos_alertas["total_alertas_mantenimiento"]
     if total_pendientes == 0:
         return False, "No hay alertas pendientes en los próximos 30 días."
-
     mapa_equipos = {
         e.id_equipo: f"{e.nombre_equipo or 'Equipo #' + str(e.id_equipo)} (NNI: {e.nni or 'S/N'})"
         for e in db.query(models.Equipo).all()
     }
-
     filas_garantias = "".join([
         f"<tr><td style='padding:6px;border:1px solid #ddd;'>{g['nombre_equipo'] or 'S/N'}</td>"
         f"<td style='padding:6px;border:1px solid #ddd;'>{g['nni'] or 'Sin información'}</td>"
@@ -1364,7 +1349,6 @@ def procesar_envio_correo_alertas(db: Session) -> tuple[bool, str]:
         f"<td style='padding:6px;border:1px solid #ddd;'>{g['dias_restantes']} días ({g['semaforo']})</td></tr>"
         for g in datos_alertas["alertas_garantias"]
     ]) or "<tr><td colspan='4' style='padding:8px;'>Sin alertas de garantía</td></tr>"
-
     filas_mant = "".join([
         f"<tr><td style='padding:6px;border:1px solid #ddd;'>{mapa_equipos.get(m['id_equipo'], 'Equipo #' + str(m['id_equipo']))}</td>"
         f"<td style='padding:6px;border:1px solid #ddd;'>{m['tipo_mantenimiento']}</td>"
@@ -1372,7 +1356,6 @@ def procesar_envio_correo_alertas(db: Session) -> tuple[bool, str]:
         f"<td style='padding:6px;border:1px solid #ddd;'>{m['dias_restantes']} días ({m['semaforo']})</td></tr>"
         for m in datos_alertas["alertas_mantenimientos"]
     ]) or "<tr><td colspan='4' style='padding:8px;'>Sin mantenimientos próximos</td></tr>"
-
     cuerpo_html = f"""
     <html>
     <body style="font-family: Arial, sans-serif; color: #1E293B;">
@@ -1404,13 +1387,11 @@ def procesar_envio_correo_alertas(db: Session) -> tuple[bool, str]:
     </body>
     </html>
     """
-
     msg = MIMEMultipart("alternative")
     msg["Subject"] = f"[Biomédica IMSS] Alertas de Garantías y Mantenimiento ({date.today()})"
     msg["From"] = smtp_user
     msg["To"] = ", ".join(correos_destino)
     msg.attach(MIMEText(cuerpo_html, "html"))
-
     try:
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
@@ -1419,7 +1400,6 @@ def procesar_envio_correo_alertas(db: Session) -> tuple[bool, str]:
         return True, f"Reporte enviado con éxito a {len(correos_destino)} administrador(es): {', '.join(correos_destino)}"
     except Exception as e:
         return False, f"No se pudo enviar el correo: {str(e)}"
-
 
 @app.post("/alertas/auto-notificar-diario", tags=["Alertas"])
 def auto_notificar_alertas_diarias(
@@ -1434,17 +1414,13 @@ def auto_notificar_alertas_diarias(
     usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
     if not usuario or usuario.rol != "ADMIN":
         return {"enviado": False, "detalle": "Modo consulta (Empleado)."}
-
     if leer_fecha_ultimo_correo() == hoy:
         return {"enviado": False, "detalle": f"El reporte automático del día ({hoy}) ya fue enviado."}
-
     exito, detalle = procesar_envio_correo_alertas(db)
     if exito:
         guardar_fecha_ultimo_correo(hoy)
         return {"enviado": True, "mensaje": f"Sincronización diaria automática: {detalle}"}
-
     return {"enviado": False, "detalle": detalle}
-
 
 @app.post("/alertas/enviar-correo", tags=["Alertas"])
 def enviar_alertas_correo_admins(
@@ -1453,19 +1429,15 @@ def enviar_alertas_correo_admins(
 ):
     """Permite forzar manualmente el envío del reporte de alertas desde Swagger (/docs) si se requiere."""
     verificar_es_admin(db, id_admin_solicitante)
-
     exito, detalle = procesar_envio_correo_alertas(db)
     if not exito:
         raise HTTPException(status_code=400, detail=detalle)
-
     guardar_fecha_ultimo_correo(date.today())
     return {"mensaje": detalle}
-
 
 # ==========================================================
 # 10. IMPORTACIÓN MASIVA DE EQUIPOS DESDE CSV
 # ==========================================================
-
 @app.post("/inventarios/{id_inventario}/importar-csv", tags=["Inventarios"])
 def importar_equipos_csv(
     id_inventario: int,
@@ -1478,40 +1450,29 @@ def importar_equipos_csv(
         raise HTTPException(status_code=404, detail="El inventario no existe.")
     if inventario.estado == "FINALIZADO":
         raise HTTPException(status_code=400, detail="Este inventario ya está FINALIZADO y no admite más equipos.")
-
     contenido_bytes = archivo_csv.file.read()
     try:
         texto_csv = contenido_bytes.decode("utf-8-sig")
     except UnicodeDecodeError:
         texto_csv = contenido_bytes.decode("latin-1")
-
     lector = csv.DictReader(io.StringIO(texto_csv))
-
     equipos_insertados = 0
     equipos_omitidos = []
-
     for num_fila, fila in enumerate(lector, start=2):
         fila_limpia = {k.strip().lower(): (v.strip() if v else None) for k, v in fila.items() if k}
-
         sn = fila_limpia.get("sn")
         nni = fila_limpia.get("nni")
-
         if not sn and not nni:
             continue
-
         duplicado = buscar_equipo_duplicado(db, sn, nni)
         if duplicado:
             equipos_omitidos.append(f"Fila {num_fila}: NNI '{nni}' o SN '{sn}' ya registrado.")
             continue
-
         garantia_txt = str(fila_limpia.get("garantia", "")).upper()
         tiene_garantia = garantia_txt in ["TRUE", "1", "SI", "SÍ", "T", "YES"]
-
         estatus_txt = str(fila_limpia.get("estatusfuncional", "TRUE")).upper()
         es_funcional = estatus_txt in ["TRUE", "1", "SI", "SÍ", "T", "YES", "FUNCIONAL"]
-
         fecha_garantia = fila_limpia.get("fecha_expgarantia") if tiene_garantia else None
-
         nuevo_equipo = models.Equipo(
             id_hospital=inventario.id_hospital,
             nombre_equipo=fila_limpia.get("nombre_equipo"),
@@ -1528,16 +1489,13 @@ def importar_equipos_csv(
         )
         db.add(nuevo_equipo)
         db.flush()
-
         vinculo = models.InventarioEquipo(
             id_inventario=id_inventario,
             id_equipo=nuevo_equipo.id_equipo
         )
         db.add(vinculo)
         equipos_insertados += 1
-
     db.commit()
-
     return {
         "mensaje": "Importación de CSV completada con éxito",
         "id_inventario": id_inventario,

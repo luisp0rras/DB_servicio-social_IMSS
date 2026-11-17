@@ -107,3 +107,18 @@ ADD COLUMN rol VARCHAR(20) NOT NULL DEFAULT 'EMPLEADO'
 ALTER TABLE inventarios
 ADD COLUMN estado VARCHAR(20) NOT NULL DEFAULT 'EN_PROCESO'
     CHECK (estado IN ('EN_PROCESO', 'FINALIZADO'));
+
+-- 12. Tabla de bitácora para transferencias de equipos entre hospitales
+CREATE TABLE IF NOT EXISTS transferencias_equipo (
+    id_transferencia SERIAL PRIMARY KEY,
+    id_equipo INT NOT NULL REFERENCES equipos (id_equipo) ON DELETE CASCADE,
+    id_hospital_origen INT NOT NULL REFERENCES hospital (id_hospital) ON DELETE RESTRICT,
+    id_hospital_destino INT NOT NULL REFERENCES hospital (id_hospital) ON DELETE RESTRICT,
+    id_usuario INT REFERENCES usuarios (id_usuario) ON DELETE SET NULL,
+    fecha TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    motivo VARCHAR(300) NOT NULL,
+    -- Evita que por error se registre una transferencia hacia el mismo hospital donde ya está
+    CHECK (id_hospital_origen <> id_hospital_destino)
+);
+
+CREATE INDEX IF NOT EXISTS idx_transf_equipo ON transferencias_equipo(id_equipo);

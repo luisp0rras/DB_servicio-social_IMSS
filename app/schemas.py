@@ -1,13 +1,11 @@
 import re
-from datetime import date
+from datetime import date, datetime
 from typing import Optional, List, Literal
-from pydantic import BaseModel, EmailStr, ConfigDict, model_validator
-
+from pydantic import BaseModel, EmailStr, ConfigDict, model_validator, field_validator
 
 # ==========================================================
 # 1. MOLDES PARA HOSPITALES
 # ==========================================================
-
 class HospitalCrear(BaseModel):
     """Datos requeridos para dar de alta una nueva unidad médica hospitalaria."""
     nombre: str
@@ -19,11 +17,9 @@ class HospitalRespuesta(HospitalCrear):
     id_hospital: int
     model_config = ConfigDict(from_attributes=True)
 
-
 # ==========================================================
 # 2. MOLDES PARA USUARIOS, PERFIL Y RECUPERACIÓN DE ACCESO
 # ==========================================================
-
 class UsuarioRegistro(BaseModel):
     """Formulario para registrar una cuenta nueva (inicia siempre con rol EMPLEADO)."""
     primernombre: str
@@ -70,14 +66,11 @@ class UsuarioRespuesta(BaseModel):
     correo: EmailStr
     foto_perfil: Optional[str] = None
     rol: str  # 'ADMIN', 'EMPLEADO' o 'INACTIVO'
-
     model_config = ConfigDict(from_attributes=True)
-
 
 # ==========================================================
 # 3. MOLDES PARA INVENTARIOS HOSPITALARIOS
 # ==========================================================
-
 class InventarioCrear(BaseModel):
     """Datos enviados por un Administrador para abrir un nuevo levantamiento de inventario."""
     id_hospital: int
@@ -91,16 +84,14 @@ class InventarioRespuesta(BaseModel):
     id_hospital: int
     fecha: date
     estado: str  # 'EN_PROCESO' o 'FINALIZADO'
-
     model_config = ConfigDict(from_attributes=True)
-
 
 # ==========================================================
 # 4. MOLDES PARA EQUIPOS MÉDICOS
 # ==========================================================
-
 class EquipoCrear(BaseModel):
-    """Datos requeridos para censar un nuevo equipo médico dentro de un inventario activo."""
+    """Datos requeridos para censar un equipo en inventario o darlo de alta individualmente."""
+    id_hospital: Optional[int] = None
     id_proveedor: Optional[int] = None
     nombre_equipo: str
     area: str
@@ -122,7 +113,6 @@ class EquipoCrear(BaseModel):
         if self.garantia is False and self.fecha_expgarantia is not None:
             raise ValueError("Si el equipo NO tiene garantía, la fecha de expiración debe quedar vacía.")
         return self
-
 
 class EquipoActualizar(BaseModel):
     """
@@ -151,7 +141,6 @@ class EquipoActualizar(BaseModel):
             raise ValueError("Si el equipo NO tiene garantía, la fecha de expiración debe quedar vacía.")
         return self
 
-
 class EquipoRespuesta(BaseModel):
     """Estructura flexible de salida para listar equipos (tolera valores NULL históricos en BD)."""
     id_equipo: int
@@ -168,14 +157,11 @@ class EquipoRespuesta(BaseModel):
     fecha_expgarantia: Optional[date] = None
     estatusfuncional: Optional[bool] = True
     observaciones: Optional[str] = None
-
     model_config = ConfigDict(from_attributes=True)
-
 
 # ==========================================================
 # 5. MOLDES PARA PROVEEDORES (CREACIÓN Y EDICIÓN)
 # ==========================================================
-
 class ProveedorCrear(BaseModel):
     """Datos para registrar o actualizar un proveedor externo de soporte biomédico."""
     nombre_proveedor: str
@@ -197,22 +183,18 @@ class ProveedorCrear(BaseModel):
                 self.num_tel = tel_limpio
         return self
 
-
 class ProveedorActualizar(ProveedorCrear):
     """Molde para que un Administrador modifique la información de un proveedor existente."""
     pass
-
 
 class ProveedorRespuesta(ProveedorCrear):
     """Estructura de salida al consultar el directorio de proveedores."""
     id_proveedor: int
     model_config = ConfigDict(from_attributes=True)
 
-
 # ==========================================================
 # 6. MOLDES PARA MANTENIMIENTOS (CREACIÓN Y EDICIÓN)
 # ==========================================================
-
 class MantenimientoCrear(BaseModel):
     """Datos requeridos para registrar un mantenimiento preventivo, correctivo u otro."""
     id_proveedor: Optional[int] = None
@@ -221,7 +203,6 @@ class MantenimientoCrear(BaseModel):
     fecha: date
     prox_fecha: Optional[date] = None
     observaciones: Optional[str] = None
-
 
 class MantenimientoActualizar(BaseModel):
     """Molde para que un Administrador edite proveedor, fechas u observaciones de un mantenimiento."""
@@ -232,7 +213,6 @@ class MantenimientoActualizar(BaseModel):
     prox_fecha: Optional[date] = None
     observaciones: Optional[str] = None
 
-
 class MantenimientoRespuesta(BaseModel):
     """Estructura de salida para el historial de mantenimientos."""
     id_mantenimiento: int
@@ -242,14 +222,11 @@ class MantenimientoRespuesta(BaseModel):
     fecha: date
     prox_fecha: Optional[date] = None
     observaciones: Optional[str] = None
-
     model_config = ConfigDict(from_attributes=True)
-
 
 # ==========================================================
 # 7. MOLDES PARA DOCUMENTOS (PDFs E IMÁGENES)
 # ==========================================================
-
 class DocumentoRespuesta(BaseModel):
     """Metadatos de un documento almacenado en el servidor y vinculado a una entidad."""
     id_documento: int
@@ -258,5 +235,35 @@ class DocumentoRespuesta(BaseModel):
     id_inventario: Optional[int] = None
     nombredocumento: str
     rutaarchivo: str
+    model_config = ConfigDict(from_attributes=True)
 
+# ==========================================================
+# 8. MOLDES PARA TRANSFERENCIAS ENTRE HOSPITALES
+# ==========================================================
+class TransferenciaCrear(BaseModel):
+    """Datos requeridos para transferir un equipo médico a otro hospital."""
+    id_hospital_destino: int
+    motivo: str
+    id_usuario: Optional[int] = None
+
+    @field_validator("motivo")
+    @classmethod
+    def validar_motivo(cls, v: str) -> str:
+        texto = v.strip()
+        if len(texto) < 5:
+            raise ValueError("El motivo u oficio de transferencia debe tener al menos 5 caracteres.")
+        return texto
+
+class TransferenciaRespuesta(BaseModel):
+    """Respuesta detallada del historial de transferencias de un activo."""
+    id_transferencia: int
+    id_equipo: int
+    id_hospital_origen: int
+    hospital_origen_nombre: str
+    id_hospital_destino: int
+    hospital_destino_nombre: str
+    id_usuario: Optional[int] = None
+    usuario_nombre: Optional[str] = None
+    fecha: datetime
+    motivo: str
     model_config = ConfigDict(from_attributes=True)

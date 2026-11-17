@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Principal - Biomédica IMSS</title>
-    <!-- Bootstrap 5 e Iconos Institucionales -->
+    <!-- Bootstrap 5 e Iconos Institucionales (Modo Offline Local) -->
     <link rel="icon" type="image/svg+xml" href="/app/favicon.svg">
     <link href="/app/vendor/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/app/vendor/bootstrap-icons.min.css">
@@ -12,10 +12,8 @@
     <link rel="stylesheet" href="/app/css/styles.css">
 </head>
 <body>
-
     <!-- Fondo semitransparente al abrir menú en pantallas pequeñas -->
     <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="alternarMenuLateral()"></div>
-
     <!-- ==========================================================
          BARRA LATERAL DE NAVEGACIÓN (COLAPSABLE Y CON PIE FIJO)
          ========================================================== -->
@@ -23,7 +21,7 @@
         <div class="sidebar-header">
             <div class="sidebar-brand" onclick="irAlInicio()" title="Ir al Panel de Control y Alertas">
                 <div class="logo-insignia">
-                    <i class="bi bi-heart-pulse"></i>
+                    <i class="bi bi-hospital" style="font-size: 1.25rem; color: #FFFFFF;"></i>
                 </div>
                 <div class="text-truncate">
                     <div class="fw-bold text-truncate" style="font-size: 0.92rem; color: var(--verde-imss);">Biomédica IMSS</div>
@@ -34,7 +32,6 @@
                 <i class="bi bi-layout-sidebar-inset"></i>
             </button>
         </div>
-
         <nav class="nav-menu">
             <div class="text-uppercase text-muted fw-semibold px-3 mb-1" style="font-size: 0.69rem; letter-spacing: 0.05em;">
                 Principal
@@ -48,7 +45,6 @@
             <button class="nav-item-btn" onclick="cambiarVista('vista-equipos', this)">
                 <i class="bi bi-cpu"></i> Equipos Médicos
             </button>
-
             <div class="text-uppercase text-muted fw-semibold px-3 mt-3 mb-1" style="font-size: 0.69rem; letter-spacing: 0.05em;">
                 Operación
             </div>
@@ -61,7 +57,6 @@
             <button class="nav-item-btn" onclick="cambiarVista('vista-documentos', this)">
                 <i class="bi bi-folder2-open"></i> Documentos
             </button>
-
             <div class="text-uppercase text-muted fw-semibold px-3 mt-3 mb-1" style="font-size: 0.69rem; letter-spacing: 0.05em;">
                 Cuenta y Acceso
             </div>
@@ -72,7 +67,6 @@
                 <i class="bi bi-people"></i> Usuarios
             </button>
         </nav>
-
         <div class="sidebar-footer">
             <div class="d-flex align-items-center gap-2 mb-2">
                 <img id="sidebar-avatar" src="https://ui-avatars.com/api/?name=User&background=13322B&color=fff" 
@@ -87,12 +81,10 @@
             </button>
         </div>
     </aside>
-
     <!-- ==========================================================
          CONTENIDO PRINCIPAL DINÁMICO
          ========================================================== -->
     <main id="main-content" class="main-content">
-
         <!-- Barra superior con botón para reabrir el menú cuando está oculto -->
         <div id="barra-abrir-menu" class="topbar-control d-none">
             <button type="button" class="btn btn-secundario btn-sm d-inline-flex align-items-center gap-2" 
@@ -101,7 +93,6 @@
                 <span>Menú</span>
             </button>
         </div>
-
         <!-- ======================================================
              VISTA 1: RESUMEN Y ALERTAS AUTOMÁTICAS
              ====================================================== -->
@@ -120,9 +111,7 @@
                     </button>
                 </div>
             </div>
-
             <div id="alerta-notificaciones" class="alert d-none small py-2"></div>
-
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
                     <div class="stat-card">
@@ -152,7 +141,6 @@
                     </div>
                 </div>
             </div>
-
             <div class="card-clean">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="fw-bold mb-0"><i class="bi bi-shield-exclamation text-warning me-2"></i>Garantías Vencidas o Próximas a Expirar</h6>
@@ -178,7 +166,6 @@
                     </table>
                 </div>
             </div>
-
             <div class="card-clean">
                 <h6 class="fw-bold mb-3"><i class="bi bi-wrench text-danger me-2"></i>Mantenimientos Próximos o Atrasados</h6>
                 <div class="table-responsive">
@@ -199,7 +186,6 @@
                 </div>
             </div>
         </section>
-
         <!-- ======================================================
              VISTA 2: INVENTARIOS (ACCESO GLOBAL + OPCIÓN CANCELAR)
              ====================================================== -->
@@ -213,14 +199,12 @@
                     <i class="bi bi-plus-lg me-1"></i> Iniciar Nuevo Inventario
                 </button>
             </div>
-
             <!-- Asistente Paso 1, 2 y 3: Crear nuevo inventario -->
             <div id="panel-crear-inventario" class="card-clean d-none" style="border-left: 4px solid var(--verde-imss);">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="fw-bold mb-0">Nuevo Levantamiento de Inventario</h6>
                     <button type="button" class="btn-close" onclick="toggleNuevoInventario()"></button>
                 </div>
-
                 <form id="form-iniciar-inventario">
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -237,12 +221,10 @@
                                 + ¿No aparece el hospital? Registrarlo aquí
                             </button>
                         </div>
-
                         <div class="col-md-6">
                             <label class="form-label small fw-semibold">2. Fecha del Inventario *</label>
                             <input type="date" class="form-control" id="inventario-fecha" required>
                         </div>
-
                         <div id="subpanel-nuevo-hospital" class="col-12 d-none">
                             <div class="p-3 rounded" style="background-color: var(--bg-fondo); border: 1px dashed var(--borde-fino);">
                                 <div class="fw-semibold small mb-2">Registrar Unidad Médica Nueva</div>
@@ -262,12 +244,10 @@
                                 </div>
                             </div>
                         </div>
-
                         <div class="col-12">
                             <label class="form-label small fw-semibold">3. Participantes Adicionales (Tú te agregas automáticamente como Administrador)</label>
                             <div id="lista-checkbox-usuarios" class="row g-2 p-2 rounded" style="background-color: var(--bg-fondo); max-height: 140px; overflow-y: auto;"></div>
                         </div>
-
                         <div class="col-12 text-end d-flex justify-content-end gap-2">
                             <button type="button" class="btn btn-secundario" onclick="toggleNuevoInventario()">Cancelar</button>
                             <button type="submit" class="btn btn-primario">
@@ -277,7 +257,6 @@
                     </div>
                 </form>
             </div>
-
             <!-- Panel Paso 4 y 5: Captura de equipos, Finalización o Cancelación de Inventario -->
             <div id="panel-captura-inventario" class="card-clean d-none" style="border-left: 4px solid var(--dorado-sutil);">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom">
@@ -298,12 +277,10 @@
                         <button class="btn btn-secundario btn-sm" onclick="cerrarPanelCaptura()">Cerrar vista</button>
                     </div>
                 </div>
-
                 <ul class="nav nav-tabs mb-3 small fw-semibold" id="tabs-captura-equipos">
                     <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-eq-manual">4A. Registro Manual</button></li>
                     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-eq-csv">4B. Importación Masiva desde Excel / CSV</button></li>
                 </ul>
-
                 <div class="tab-content mb-4" id="contenido-captura-equipos">
                     <!-- Pestaña 4A: Captura Manual -->
                     <div class="tab-pane fade show active" id="tab-eq-manual">
@@ -369,7 +346,6 @@
                             </div>
                         </form>
                     </div>
-
                     <!-- Pestaña 4B: Subida masiva por CSV con Instrucciones y Plantilla Descargable -->
                     <div class="tab-pane fade" id="tab-eq-csv">
                         <div class="guia-csv-box">
@@ -406,7 +382,6 @@
                                 <li><strong>estatusfuncional:</strong> Escribe <code>SI</code> / <code>FUNCIONAL</code> si opera correctamente, o <code>NO</code> si está fuera de servicio.</li>
                             </ul>
                         </div>
-
                         <form id="form-subir-csv" class="row g-2 align-items-end">
                             <div class="col-md-8">
                                 <label class="form-label small text-muted">Selecciona tu archivo .csv preparado</label>
@@ -420,7 +395,6 @@
                         </form>
                     </div>
                 </div>
-
                 <h6 class="fw-bold small text-muted text-uppercase mb-2">Equipos Censados en este Inventario</h6>
                 <div class="table-responsive">
                     <table class="table-clean">
@@ -431,7 +405,6 @@
                     </table>
                 </div>
             </div>
-
             <!-- Tabla histórica de inventarios (Visible para todos los usuarios) -->
             <div class="card-clean">
                 <h6 class="fw-bold mb-3">Inventarios Registrados en Unidades Médicas</h6>
@@ -447,24 +420,25 @@
                 </div>
             </div>
         </section>
-
         <!-- ======================================================
-             VISTA 3: EQUIPOS MÉDICOS (EDICIÓN Y BAJA DE EQUIPOS)
+             VISTA 3: EQUIPOS MÉDICOS (ALTA INDIVIDUAL, TRANSFERENCIA, EDICIÓN Y BAJA)
              ====================================================== -->
         <section id="vista-equipos" class="vista-panel d-none">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
                 <div>
                     <h4 class="fw-bold mb-1">Catálogo Maestro y Reportes Filtrados</h4>
-                    <p class="text-muted small mb-0">Filtra por inventario/fecha, hospital, proveedor, área o garantía y descarga tu reporte en Excel</p>
+                    <p class="text-muted small mb-0">Filtra activos, registra nuevas adquisiciones individuales, realiza transferencias entre hospitales o exporta a Excel</p>
                 </div>
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex flex-wrap align-items-center gap-2">
                     <span id="contador-equipos-filtrados" class="badge-soft-neutral">0 equipos</span>
-                    <button class="btn btn-primario btn-sm" onclick="exportarEquiposFiltradosExcel()">
-                        <i class="bi bi-file-earmark-excel me-1"></i> Exportar Selección Filtrada (.xlsx)
+                    <button class="btn btn-primario btn-sm solo-admin d-none" onclick="abrirModalNuevoEquipoIndividual()">
+                        <i class="bi bi-plus-lg me-1"></i> Nuevo Equipo
+                    </button>
+                    <button class="btn btn-secundario btn-sm" onclick="exportarEquiposFiltradosExcel()">
+                        <i class="bi bi-file-earmark-excel text-success me-1"></i> Exportar Selección (.xlsx)
                     </button>
                 </div>
             </div>
-
             <div class="card-clean">
                 <div class="row g-2 align-items-end">
                     <div class="col-md-3">
@@ -479,7 +453,7 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label small text-muted">Hospital</label>
+                        <label class="form-label small text-muted">Hospital Actual</label>
                         <select class="form-select form-select-sm" id="filtro-eq-hospital" onchange="cargarEquiposFiltrados()">
                             <option value="">Todos los hospitales</option>
                         </select>
@@ -523,7 +497,6 @@
                     </div>
                 </div>
             </div>
-
             <div class="card-clean">
                 <div class="table-responsive">
                     <table class="table-clean">
@@ -536,7 +509,7 @@
                                 <th>NNI / SN</th>
                                 <th>Garantía</th>
                                 <th>Estatus</th>
-                                <th class="solo-admin d-none">Acciones</th>
+                                <th>Acciones / Trazabilidad</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-catalogo-equipos">
@@ -546,7 +519,6 @@
                 </div>
             </div>
         </section>
-
         <!-- ======================================================
              VISTA 4: MANTENIMIENTOS (ALTA, EDICIÓN Y BAJA)
              ====================================================== -->
@@ -560,7 +532,6 @@
                     <i class="bi bi-plus-lg me-1"></i> Registrar Mantenimiento
                 </button>
             </div>
-
             <div id="panel-crear-mant" class="card-clean d-none" style="border-left: 4px solid var(--verde-imss);">
                 <h6 class="fw-bold mb-3">Nuevo Registro de Mantenimiento</h6>
                 <form id="form-registrar-mant" class="row g-3">
@@ -597,7 +568,6 @@
                     </div>
                 </form>
             </div>
-
             <div class="card-clean">
                 <div class="table-responsive">
                     <table class="table-clean">
@@ -620,7 +590,6 @@
                 </div>
             </div>
         </section>
-
         <!-- ======================================================
              VISTA 5: PROVEEDORES (ALTA, EDICIÓN Y BAJA)
              ====================================================== -->
@@ -634,7 +603,6 @@
                     <i class="bi bi-plus-lg me-1"></i> Agregar Proveedor
                 </button>
             </div>
-
             <div id="panel-crear-prov" class="card-clean d-none" style="border-left: 4px solid var(--verde-imss);">
                 <h6 class="fw-bold mb-3">Registrar Nuevo Proveedor</h6>
                 <form id="form-registrar-prov" class="row g-3">
@@ -659,7 +627,6 @@
                     </div>
                 </form>
             </div>
-
             <div class="card-clean">
                 <div class="table-responsive">
                     <table class="table-clean">
@@ -680,7 +647,6 @@
                 </div>
             </div>
         </section>
-
         <!-- ======================================================
              VISTA 6: REPOSITORIO DOCUMENTAL (EDICIÓN, REEMPLAZO Y BAJA)
              ====================================================== -->
@@ -694,7 +660,6 @@
                     <i class="bi bi-upload me-1"></i> Subir Documento
                 </button>
             </div>
-
             <div id="panel-subir-doc" class="card-clean d-none" style="border-left: 4px solid var(--verde-imss);">
                 <h6 class="fw-bold mb-3">Subir Archivo al Servidor</h6>
                 <form id="form-subir-documento" class="row g-3">
@@ -723,7 +688,6 @@
                     </div>
                 </form>
             </div>
-
             <div class="card-clean">
                 <div class="table-responsive">
                     <table class="table-clean">
@@ -742,7 +706,6 @@
                 </div>
             </div>
         </section>
-
         <!-- ======================================================
              VISTA 7: MI PERFIL (SOLO INFORMACIÓN PERSONAL)
              ====================================================== -->
@@ -751,9 +714,7 @@
                 <h4 class="fw-bold mb-1">Mi Perfil y Seguridad</h4>
                 <p class="text-muted small mb-0">Administra tu información personal, foto de perfil y contraseña</p>
             </div>
-
             <div id="alerta-perfil" class="alert d-none small py-2"></div>
-
             <div class="row g-4">
                 <div class="col-md-6">
                     <div class="card-clean h-100">
@@ -771,7 +732,6 @@
                                 <small class="text-muted" style="font-size: 0.75rem;">Formatos JPG o PNG desde tu computadora</small>
                             </div>
                         </div>
-
                         <form id="form-actualizar-perfil">
                             <div class="mb-3">
                                 <label class="form-label small text-muted">Nombre completo</label>
@@ -789,7 +749,6 @@
                         </form>
                     </div>
                 </div>
-
                 <div class="col-md-6">
                     <div class="card-clean h-100">
                         <h6 class="fw-bold mb-3">Cambiar Contraseña</h6>
@@ -814,7 +773,6 @@
                 </div>
             </div>
         </section>
-
         <!-- ======================================================
              VISTA 8: GESTIÓN DE USUARIOS (EXCLUSIVA ADMINISTRADORES)
              ====================================================== -->
@@ -829,7 +787,6 @@
                            placeholder="Buscar usuario por nombre o correo..." oninput="cargarListaUsuariosAdmin()">
                 </div>
             </div>
-
             <div class="card-clean">
                 <div class="table-responsive">
                     <table class="table-clean">
@@ -848,8 +805,172 @@
                 </div>
             </div>
         </section>
-
     </main>
+
+    <!-- ==========================================================
+         MODAL NUEVO 1: ALTA INDIVIDUAL DE EQUIPO MÉDICO (NUEVAS ADQUISICIONES)
+         ========================================================== -->
+    <div class="modal fade" id="modalCrearEquipoIndividual" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 12px; border: 1px solid var(--borde-fino);">
+                <div class="modal-header border-bottom" style="background-color: var(--bg-fondo);">
+                    <h6 class="modal-title fw-bold">
+                        <i class="bi bi-plus-circle me-2" style="color: var(--verde-imss);"></i>Registrar Nuevo Equipo Médico (Alta Individual)
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="form-crear-equipo-individual">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Unidad Médica / Hospital Destino *</label>
+                                <select class="form-select form-select-sm" id="ind-eq-hospital" required></select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Proveedor Asignado</label>
+                                <select class="form-select form-select-sm" id="ind-eq-proveedor">
+                                    <option value="">Sin proveedor asignado</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Nombre del Equipo *</label>
+                                <input type="text" class="form-control form-control-sm" id="ind-eq-nombre" placeholder="Ej. Ventilador Mecánico" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Área *</label>
+                                <input type="text" class="form-control form-control-sm" id="ind-eq-area" placeholder="Ej. Terapia Intensiva" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Subárea</label>
+                                <input type="text" class="form-control form-control-sm" id="ind-eq-subarea" placeholder="Ej. Cubículo 3">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold">Marca *</label>
+                                <input type="text" class="form-control form-control-sm" id="ind-eq-marca" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold">Modelo</label>
+                                <input type="text" class="form-control form-control-sm" id="ind-eq-modelo">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold">Número de Serie (SN) *</label>
+                                <input type="text" class="form-control form-control-sm" id="ind-eq-sn" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold">NNI *</label>
+                                <input type="text" class="form-control form-control-sm" id="ind-eq-nni" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">¿Cuenta con Garantía?</label>
+                                <select class="form-select form-select-sm" id="ind-eq-garantia" onchange="toggleIndGarantia()">
+                                    <option value="false">No</option>
+                                    <option value="true">Sí</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Expiración de Garantía</label>
+                                <input type="date" class="form-control form-control-sm" id="ind-eq-fecha-garantia" disabled>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Estatus Funcional *</label>
+                                <select class="form-select form-select-sm" id="ind-eq-estatus">
+                                    <option value="true">Funcional</option>
+                                    <option value="false">Inactivo / Fuera de servicio</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold">Observaciones</label>
+                                <input type="text" class="form-control form-control-sm" id="ind-eq-obs" placeholder="Ej. Adquisición nueva por licitación 2026...">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top">
+                        <button type="button" class="btn btn-secundario btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primario btn-sm">Registrar Equipo en Hospital</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================
+         MODAL NUEVO 2: TRANSFERENCIA DE EQUIPO ENTRE HOSPITALES Y BITÁCORA
+         ========================================================== -->
+    <div class="modal fade" id="modalTransferirEquipo" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 12px; border: 1px solid var(--borde-fino);">
+                <div class="modal-header border-bottom" style="background-color: var(--bg-fondo);">
+                    <h6 class="modal-title fw-bold">
+                        <i class="bi bi-arrow-left-right me-2" style="color: var(--verde-imss);"></i>Transferencia e Historial de Ubicación Hospitalaria
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Resumen del equipo seleccionado -->
+                    <div class="p-3 rounded mb-3" style="background-color: var(--bg-fondo); border: 1px solid var(--borde-fino);">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-md-7">
+                                <small class="text-muted d-block">Activo Biomédico Seleccionado</small>
+                                <div class="fw-bold" id="transf-eq-titulo">-</div>
+                                <small class="text-muted" id="transf-eq-codigos">NNI: - | SN: -</small>
+                            </div>
+                            <div class="col-md-5 text-md-end">
+                                <small class="text-muted d-block">Ubicación Actual (Origen)</small>
+                                <span class="badge-soft-success" id="transf-eq-origen-badge">Sin hospital</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Formulario de nueva transferencia (Visible solo para Administradores) -->
+                    <form id="form-transferir-equipo" class="mb-4 pb-3 border-bottom solo-admin d-none">
+                        <input type="hidden" id="transf-eq-id">
+                        <input type="hidden" id="transf-eq-hosp-origen-id">
+                        <h6 class="fw-bold small text-uppercase text-muted mb-2">Ejecutar Nueva Transferencia de Unidad</h6>
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-5">
+                                <label class="form-label small fw-semibold">Hospital Destino *</label>
+                                <select class="form-select form-select-sm" id="transf-eq-destino" required></select>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small fw-semibold">Motivo u Oficio de Salida *</label>
+                                <input type="text" class="form-control form-control-sm" id="transf-eq-motivo" 
+                                       placeholder="Ej. Préstamo de apoyo a Urgencias / Oficio #104" minlength="5" required>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primario btn-sm w-100">
+                                    <i class="bi bi-send me-1"></i> Transferir
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Bitácora histórica de movimientos de este equipo -->
+                    <h6 class="fw-bold small text-uppercase text-muted mb-2">
+                        <i class="bi bi-clock-history me-1"></i> Bitácora Histórica de Movimientos
+                    </h6>
+                    <div class="table-responsive" style="max-height: 240px; overflow-y: auto;">
+                        <table class="table-clean">
+                            <thead>
+                                <tr>
+                                    <th>Fecha y Hora</th>
+                                    <th>Hospital Origen</th>
+                                    <th>Hospital Destino</th>
+                                    <th>Motivo / Oficio</th>
+                                    <th>Autorizó</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-historial-transferencias">
+                                <tr><td colspan="5" class="text-center text-muted py-3">Cargando bitácora...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-secundario btn-sm" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- ==========================================================
          MODAL 1: EDITAR EQUIPO MÉDICO (SOLO ADMIN)
@@ -933,7 +1054,6 @@
             </div>
         </div>
     </div>
-
     <!-- ==========================================================
          MODAL 2: EDITAR MANTENIMIENTO (SOLO ADMIN)
          ========================================================== -->
@@ -986,7 +1106,6 @@
             </div>
         </div>
     </div>
-
     <!-- ==========================================================
          MODAL 3: EDITAR PROVEEDOR (SOLO ADMIN)
          ========================================================== -->
@@ -1027,7 +1146,6 @@
             </div>
         </div>
     </div>
-
     <!-- ==========================================================
          MODAL 4: EDITAR O REEMPLAZAR DOCUMENTO (SOLO ADMIN)
          ========================================================== -->
@@ -1073,7 +1191,6 @@
             </div>
         </div>
     </div>
-
     <!-- ==========================================================
          LÓGICA JAVASCRIPT Y CONEXIÓN CON FASTAPI
          ========================================================== -->
@@ -1082,7 +1199,6 @@
         const usuarioGuardado = localStorage.getItem("usuario_imss");
         if (!usuarioGuardado) window.location.href = "/app/login.html";
         let usuarioActual = JSON.parse(usuarioGuardado);
-
         let mapaHospitales = {};
         let mapaEquipos = {};
         let mapaProveedores = {};
@@ -1093,10 +1209,14 @@
         let listaDocumentosActuales = [];
         let idInventarioActivo = null;
 
+        // Instancias de Modales Bootstrap
+        let modalCrearEqIndInstancia = null;
+        let modalTransferirEqInstancia = null;
         let modalEditarInstancia = null;
         let modalMantInstancia = null;
         let modalProvInstancia = null;
         let modalDocInstancia = null;
+
         let resumenAlertasActual = { garantias: 0, mantenimientos: 0 };
 
         function limpiarTexto(valor, esCodigo = false) {
@@ -1119,11 +1239,9 @@
             const main = document.getElementById("main-content");
             const barraAbrir = document.getElementById("barra-abrir-menu");
             const backdrop = document.getElementById("sidebar-backdrop");
-
             const estaColapsado = sidebar.classList.toggle("colapsado");
             main.classList.toggle("expandido", estaColapsado);
             barraAbrir.classList.toggle("d-none", !estaColapsado);
-
             if (window.innerWidth <= 992) {
                 backdrop.classList.toggle("visible", !estaColapsado);
             } else {
@@ -1136,7 +1254,6 @@
             const filaEjemplo1 = "Monitor de Signos Vitales,Urgencias,Choque,Philips,IntelliVue MX450,SN-998877,NNI-2026001,SI,2027-12-31,SI,Equipo nuevo con sensores completos\n";
             const filaEjemplo2 = "Desfibrilador Bifásico,Terapia Intensiva,Cubículo 2,Zoll,R Series,SN-445566,NNI-2026002,NO,,SI,Operando al 100%\n";
             const contenido = "\uFEFF" + encabezados + filaEjemplo1 + filaEjemplo2;
-
             const blob = new Blob([contenido], { type: "text/csv;charset=utf-8;" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -1154,27 +1271,26 @@
                 document.getElementById("main-content").classList.add("expandido");
                 document.getElementById("barra-abrir-menu").classList.remove("d-none");
             }
-
             const nombreCompleto = `${usuarioActual.primernombre} ${usuarioActual.primerapellido}`;
             document.getElementById("sidebar-nombre").textContent = usuarioActual.username || nombreCompleto;
             document.getElementById("sidebar-rol").textContent = usuarioActual.rol;
             document.getElementById("kpi-rol").textContent = usuarioActual.rol;
-
             const avatarUrl = usuarioActual.foto_perfil 
                 ? `${usuarioActual.foto_perfil}?t=${new Date().getTime()}` 
                 : `https://ui-avatars.com/api/?name=${encodeURIComponent(nombreCompleto)}&background=13322B&color=fff`;
             document.getElementById("sidebar-avatar").src = avatarUrl;
             document.getElementById("perfil-preview-avatar").src = avatarUrl;
-
             document.getElementById("perfil-nombre-completo").value = nombreCompleto;
             document.getElementById("perfil-correo").value = usuarioActual.correo;
             document.getElementById("perfil-username").value = usuarioActual.username || "";
-
             if (usuarioActual.rol === "ADMIN") {
                 document.querySelectorAll(".solo-admin").forEach(el => el.classList.remove("d-none"));
                 cargarListaUsuariosAdmin();
             }
 
+            // Inicializar modales
+            modalCrearEqIndInstancia = new bootstrap.Modal(document.getElementById("modalCrearEquipoIndividual"));
+            modalTransferirEqInstancia = new bootstrap.Modal(document.getElementById("modalTransferirEquipo"));
             modalEditarInstancia = new bootstrap.Modal(document.getElementById("modalEditarEquipo"));
             modalMantInstancia = new bootstrap.Modal(document.getElementById("modalEditarMantenimiento"));
             modalProvInstancia = new bootstrap.Modal(document.getElementById("modalEditarProveedor"));
@@ -1194,14 +1310,11 @@
         function cambiarVista(idVista, botonPresionado) {
             document.querySelectorAll(".vista-panel").forEach(sec => sec.classList.add("d-none"));
             document.getElementById(idVista).classList.remove("d-none");
-
             document.querySelectorAll(".nav-item-btn").forEach(btn => btn.classList.remove("activo"));
             if (botonPresionado) botonPresionado.classList.add("activo");
-
             if (window.innerWidth <= 992 && !document.getElementById("sidebar-menu").classList.contains("colapsado")) {
                 alternarMenuLateral();
             }
-
             if (idVista === "vista-inventarios") cargarInventarios();
             if (idVista === "vista-equipos") cargarEquiposFiltrados();
             if (idVista === "vista-mantenimientos") cargarMantenimientos();
@@ -1226,7 +1339,6 @@
             const equipos = await resEq.json();
             const proveedores = await resProv.json();
             const inventarios = await resInv.json();
-
             mapaHospitales = {};
             mapaProveedores = {};
             mapaInventarios = {};
@@ -1234,21 +1346,27 @@
 
             const selectFiltroHosp = document.getElementById("filtro-eq-hospital");
             const selectEditHosp = document.getElementById("edit-eq-hospital");
+            const selectIndHosp = document.getElementById("ind-eq-hospital");
             selectFiltroHosp.innerHTML = `<option value="">Todos los hospitales</option>`;
             selectEditHosp.innerHTML = `<option value="">Sin hospital</option>`;
+            selectIndHosp.innerHTML = `<option value="">Selecciona un hospital...</option>`;
 
             hospitales.forEach(h => {
                 mapaHospitales[h.id_hospital] = `${h.nombre} (${h.ciudad})`;
-                selectFiltroHosp.innerHTML += `<option value="${h.id_hospital}">${h.nombre} - ${h.ciudad}</option>`;
-                selectEditHosp.innerHTML += `<option value="${h.id_hospital}">${h.nombre} - ${h.ciudad}</option>`;
+                const opt = `<option value="${h.id_hospital}">${h.nombre} - ${h.ciudad}</option>`;
+                selectFiltroHosp.innerHTML += opt;
+                selectEditHosp.innerHTML += opt;
+                selectIndHosp.innerHTML += opt;
             });
 
             const selectFiltroProv = document.getElementById("filtro-eq-proveedor");
             const selectEditProv = document.getElementById("edit-eq-proveedor");
             const selectAltaEqProv = document.getElementById("eq-proveedor");
+            const selectIndProv = document.getElementById("ind-eq-proveedor");
             selectFiltroProv.innerHTML = `<option value="">Todos los proveedores</option>`;
             selectEditProv.innerHTML = `<option value="">Sin proveedor</option>`;
             selectAltaEqProv.innerHTML = `<option value="">Sin proveedor</option>`;
+            selectIndProv.innerHTML = `<option value="">Sin proveedor asignado</option>`;
 
             if (Array.isArray(proveedores)) {
                 proveedores.forEach(p => {
@@ -1257,6 +1375,7 @@
                     selectFiltroProv.innerHTML += opt;
                     selectEditProv.innerHTML += opt;
                     selectAltaEqProv.innerHTML += opt;
+                    selectIndProv.innerHTML += opt;
                 });
             }
 
@@ -1281,13 +1400,10 @@
         async function cargarAlertas(dispararNotificacionPC = false) {
             const res = await fetch("/alertas/?dias_anticipacion=30");
             const data = await res.json();
-
             resumenAlertasActual.garantias = data.total_alertas_garantia;
             resumenAlertasActual.mantenimientos = data.total_alertas_mantenimiento;
-
             document.getElementById("kpi-garantias").textContent = data.total_alertas_garantia;
             document.getElementById("kpi-mantenimientos").textContent = data.total_alertas_mantenimiento;
-
             const tbodyGarantia = document.getElementById("tabla-alertas-garantia");
             tbodyGarantia.innerHTML = data.alertas_garantias.length === 0
                 ? `<tr><td colspan="6" class="text-center text-muted py-3">Sin garantías próximas a vencer.</td></tr>`
@@ -1302,7 +1418,6 @@
                         <td>${badge}</td>
                     </tr>`;
                 }).join("");
-
             const tbodyMant = document.getElementById("tabla-alertas-mantenimiento");
             tbodyMant.innerHTML = data.alertas_mantenimientos.length === 0
                 ? `<tr><td colspan="5" class="text-center text-muted py-3">Sin mantenimientos próximos programados.</td></tr>`
@@ -1316,12 +1431,10 @@
                         <td>${badge}</td>
                     </tr>`;
                 }).join("");
-
             const totalPendientes = resumenAlertasActual.garantias + resumenAlertasActual.mantenimientos;
             if (dispararNotificacionPC && totalPendientes > 0 && "Notification" in window) {
                 const hoyStr = new Date().toISOString().slice(0, 10);
                 const ultimoAvisoPC = localStorage.getItem("ultima_notif_pc_imss");
-
                 if (ultimoAvisoPC !== hoyStr) {
                     if (Notification.permission === "granted") {
                         lanzarGloboNotificacion();
@@ -1342,7 +1455,7 @@
             const cuerpo = `Tienes ${resumenAlertasActual.garantias} alerta(s) de garantía y ${resumenAlertasActual.mantenimientos} mantenimiento(s) próximos en los siguientes 30 días.`;
             new Notification("Biomédica IMSS - Monitoreo Automático", {
                 body: cuerpo,
-                icon: "https://ui-avatars.com/api/?name=IMSS&background=13322B&color=fff"
+                icon: "/app/favicon.svg"
             });
         }
 
@@ -1371,10 +1484,8 @@
                 cargarCheckboxesParticipantes();
             }
         }
-
         const inputBuscadorHosp = document.getElementById("buscador-hospital-input");
         const dropdownHosp = document.getElementById("lista-hospitales-dropdown");
-
         inputBuscadorHosp.addEventListener("input", async () => {
             const texto = inputBuscadorHosp.value.trim();
             const res = await fetch(`/hospitales/?buscar=${encodeURIComponent(texto)}`);
@@ -1383,7 +1494,6 @@
                 resultados.map(h => `<div class="item-buscador" onclick="seleccionarHospital(${h.id_hospital}, '${h.nombre}', '${h.ciudad}')"><strong>${h.nombre}</strong> (${h.ciudad})</div>`).join("");
             dropdownHosp.classList.remove("d-none");
         });
-
         function seleccionarHospital(id, nombre, ciudad) {
             document.getElementById("hospital-seleccionado-id").value = id;
             inputBuscadorHosp.value = `${nombre} (${ciudad})`;
@@ -1392,9 +1502,7 @@
             badge.textContent = `✓ Seleccionado: ${nombre} - ${ciudad}`;
             badge.classList.remove("d-none");
         }
-
         function toggleNuevoHospital() { document.getElementById("subpanel-nuevo-hospital").classList.toggle("d-none"); }
-
         async function guardarNuevoHospital() {
             const nombre = document.getElementById("nuevo-hosp-nombre").value.trim();
             const ciudad = document.getElementById("nuevo-hosp-ciudad").value.trim();
@@ -1408,7 +1516,6 @@
                 document.getElementById("subpanel-nuevo-hospital").classList.add("d-none");
             }
         }
-
         async function cargarCheckboxesParticipantes() {
             const res = await fetch("/usuarios/");
             const usuarios = await res.json();
@@ -1417,7 +1524,6 @@
             contenedor.innerHTML = otros.length === 0 ? `<div class="col-12 small text-muted">No hay más usuarios activos registrados.</div>` :
                 otros.map(u => `<div class="col-md-4"><div class="form-check"><input class="form-check-input check-participante" type="checkbox" value="${u.id_usuario}" id="part-${u.id_usuario}"><label class="form-check-label small" for="part-${u.id_usuario}">${u.primernombre} ${u.primerapellido}</label></div></div>`).join("");
         }
-
         document.getElementById("form-iniciar-inventario").addEventListener("submit", async (e) => {
             e.preventDefault();
             const idHospital = document.getElementById("hospital-seleccionado-id").value;
@@ -1435,12 +1541,10 @@
                 abrirCapturaInventario(data.id_inventario, data.id_hospital, data.fecha, data.estado);
             } else { alert(data.detail); }
         });
-
         async function cargarInventarios() {
             const res = await fetch(`/inventarios/?id_usuario_consulta=${usuarioActual.id_usuario}`);
             const lista = await res.json();
             const esAdmin = usuarioActual.rol === "ADMIN";
-
             document.getElementById("tabla-lista-inventarios").innerHTML = lista.length === 0 
                 ? `<tr><td colspan="5" class="text-center text-muted py-3">No hay inventarios registrados aún.</td></tr>` 
                 : lista.map(inv => {
@@ -1466,11 +1570,9 @@
                     </tr>`;
                 }).join("");
         }
-
         function descargarExcelInventario(idInv) {
             window.location.href = `/exportar/equipos-excel?id_inventario=${idInv}`;
         }
-
         function abrirCapturaInventario(idInv, idHosp, fecha, estado) {
             idInventarioActivo = idInv;
             const panel = document.getElementById("panel-captura-inventario");
@@ -1480,32 +1582,25 @@
             const badgeEstado = document.getElementById("badge-estado-inv-activo");
             badgeEstado.textContent = estado;
             badgeEstado.className = estado === "EN_PROCESO" ? "badge-soft-warning me-2" : "badge-soft-success me-2";
-
             const esEditable = (estado === "EN_PROCESO" && usuarioActual.rol === "ADMIN");
             document.getElementById("tabs-captura-equipos").classList.toggle("d-none", !esEditable);
             document.getElementById("contenido-captura-equipos").classList.toggle("d-none", !esEditable);
             document.getElementById("btn-finalizar-inv").classList.toggle("d-none", !esEditable);
             document.getElementById("btn-cancelar-inv").classList.toggle("d-none", usuarioActual.rol !== "ADMIN");
-
             cargarEquiposDeInventarioActivo();
         }
-
         function cerrarPanelCaptura() { document.getElementById("panel-captura-inventario").classList.add("d-none"); idInventarioActivo = null; }
-
         async function cancelarInventarioActual() {
             if (!idInventarioActivo) return;
             await eliminarInventarioDirecto(idInventarioActivo);
         }
-
         async function eliminarInventarioDirecto(idInv) {
             const confirmar = confirm(`¿Estás seguro de cancelar y eliminar el Inventario #${idInv}?\n\nEsta acción borrará el registro del levantamiento y los equipos que se hayan capturado exclusivamente dentro de él.`);
             if (!confirmar) return;
-
             const res = await fetch(`/inventarios/${idInv}?id_admin=${usuarioActual.id_usuario}&eliminar_equipos_censados=true`, {
                 method: "DELETE"
             });
             const data = await res.json();
-
             if (res.ok) {
                 if (idInventarioActivo === idInv) cerrarPanelCaptura();
                 await cargarCatalogosBase();
@@ -1515,13 +1610,11 @@
                 alert(data.detail || "No se pudo cancelar el inventario.");
             }
         }
-
         function toggleFechaGarantia() {
             const tiene = document.getElementById("eq-garantia").value === "true";
             document.getElementById("eq-fecha-garantia").disabled = !tiene;
             if (!tiene) document.getElementById("eq-fecha-garantia").value = "";
         }
-
         document.getElementById("form-agregar-equipo").addEventListener("submit", async (e) => {
             e.preventDefault();
             const tieneGarantia = document.getElementById("eq-garantia").value === "true";
@@ -1546,7 +1639,6 @@
             if (res.ok) { document.getElementById("form-agregar-equipo").reset(); toggleFechaGarantia(); await cargarCatalogosBase(); cargarEquiposDeInventarioActivo(); cargarAlertas(false); }
             else { const d = await res.json(); alert(d.detail); }
         });
-
         document.getElementById("form-subir-csv").addEventListener("submit", async (e) => {
             e.preventDefault();
             const archivo = document.getElementById("archivo-csv-input").files[0];
@@ -1564,7 +1656,6 @@
                 alert(data.detail);
             }
         });
-
         async function cargarEquiposDeInventarioActivo() {
             const res = await fetch(`/equipos/?id_inventario=${idInventarioActivo}`);
             const equipos = await res.json();
@@ -1579,14 +1670,13 @@
                     <td><span class="${eq.estatusfuncional ? 'badge-soft-success' : 'badge-soft-danger'}">${eq.estatusfuncional ? 'Funcional' : 'Inactivo'}</span></td>
                 </tr>`).join("");
         }
-
         async function finalizarInventarioActual() {
             if (!confirm("¿Finalizar inventario?")) return;
             const res = await fetch(`/inventarios/${idInventarioActivo}/finalizar?id_admin=${usuarioActual.id_usuario}`, { method: "PUT" });
             if (res.ok) { alert("Inventario finalizado."); cerrarPanelCaptura(); cargarInventarios(); }
         }
 
-        // ================= MÓDULO 3: EQUIPOS MÉDICOS (EDICIÓN Y BAJA) =================
+        // ================= MÓDULO 3: EQUIPOS MÉDICOS (ALTA INDIVIDUAL, TRANSFERENCIA, EDICIÓN Y BAJA) =================
         function obtenerParametrosFiltroEquipos() {
             const params = new URLSearchParams();
             const texto = document.getElementById("filtro-eq-texto").value.trim();
@@ -1597,7 +1687,6 @@
             const marca = document.getElementById("filtro-eq-marca").value.trim();
             const gar = document.getElementById("filtro-eq-garantia").value;
             const est = document.getElementById("filtro-eq-estatus").value;
-
             if (texto) params.append("buscar_texto", texto);
             if (inv) params.append("id_inventario", inv);
             if (hosp) params.append("id_hospital", hosp);
@@ -1624,34 +1713,25 @@
         async function cargarEquiposFiltrados() {
             const tbody = document.getElementById("tabla-catalogo-equipos");
             const esAdmin = usuarioActual.rol === "ADMIN";
-            const numCols = esAdmin ? 8 : 7;
-
             try {
                 const params = obtenerParametrosFiltroEquipos();
                 const res = await fetch(`/equipos/?${params.toString()}`);
                 const equipos = await res.json();
                 listaEquiposActuales = Array.isArray(equipos) ? equipos : [];
-
                 document.getElementById("contador-equipos-filtrados").textContent = `${listaEquiposActuales.length} equipo(s)`;
-
                 if (listaEquiposActuales.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="${numCols}" class="text-center text-muted py-3">Sin resultados para los filtros seleccionados.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">Sin resultados para los filtros seleccionados.</td></tr>`;
                     return;
                 }
-
                 tbody.innerHTML = listaEquiposActuales.map(eq => {
                     const nombreSeguro = (eq.nombre_equipo || `Equipo #${eq.id_equipo}`).replace(/'/g, "");
-                    const colAccion = esAdmin 
-                        ? `<td>
-                               <div class="d-flex gap-1">
-                                   <button class="btn btn-secundario btn-sm" onclick="abrirModalEditarEquipo(${eq.id_equipo})" title="Editar equipo">
-                                       <i class="bi bi-pencil"></i>
-                                   </button>
-                                   <button class="btn btn-secundario btn-sm text-danger" onclick="eliminarEquipo(${eq.id_equipo}, '${nombreSeguro}')" title="Dar de baja / Eliminar equipo">
-                                       <i class="bi bi-trash"></i>
-                                   </button>
-                               </div>
-                           </td>` 
+                    const botonesAdmin = esAdmin
+                        ? `<button class="btn btn-secundario btn-sm" onclick="abrirModalEditarEquipo(${eq.id_equipo})" title="Editar equipo">
+                               <i class="bi bi-pencil"></i>
+                           </button>
+                           <button class="btn btn-secundario btn-sm text-danger" onclick="eliminarEquipo(${eq.id_equipo}, '${nombreSeguro}')" title="Dar de baja / Eliminar equipo">
+                               <i class="bi bi-trash"></i>
+                           </button>`
                         : "";
                     const textoProv = eq.id_proveedor ? (mapaProveedores[eq.id_proveedor] || `Prov #${eq.id_proveedor}`) : "Sin proveedor";
                     return `<tr>
@@ -1662,23 +1742,176 @@
                         <td>NNI: ${limpiarTexto(eq.nni, true)}<br><small class="text-muted">SN: ${limpiarTexto(eq.sn)}</small></td>
                         <td>${eq.garantia ? `<span class="badge-soft-success">Vence: ${limpiarTexto(eq.fecha_expgarantia)}</span>` : '<span class="badge-soft-neutral">Sin garantía</span>'}</td>
                         <td><span class="${eq.estatusfuncional ? 'badge-soft-success' : 'badge-soft-danger'}">${eq.estatusfuncional ? 'Funcional' : 'Inactivo'}</span></td>
-                        ${colAccion}
+                        <td>
+                            <div class="d-flex gap-1">
+                                <button class="btn btn-secundario btn-sm" onclick="abrirModalTransferirEquipo(${eq.id_equipo})" title="${esAdmin ? 'Transferir de hospital / Ver bitácora' : 'Ver historial de transferencias'}">
+                                    <i class="bi bi-arrow-left-right"></i>
+                                </button>
+                                ${botonesAdmin}
+                            </div>
+                        </td>
                     </tr>`;
                 }).join("");
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="${numCols}" class="text-center text-danger py-3">Error al cargar equipos.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">Error al cargar equipos.</td></tr>`;
             }
         }
+
+        // --- Funciones para Alta Individual de Equipos (Nuevas Adquisiciones) ---
+        function toggleIndGarantia() {
+            const tiene = document.getElementById("ind-eq-garantia").value === "true";
+            const inputFecha = document.getElementById("ind-eq-fecha-garantia");
+            inputFecha.disabled = !tiene;
+            if (!tiene) inputFecha.value = "";
+        }
+
+        async function abrirModalNuevoEquipoIndividual() {
+            await cargarCatalogosBase();
+            document.getElementById("form-crear-equipo-individual").reset();
+            toggleIndGarantia();
+            // Si el usuario ya tenía seleccionado un hospital en el filtro de la vista, preseleccionarlo por comodidad
+            const hospFiltrado = document.getElementById("filtro-eq-hospital").value;
+            if (hospFiltrado) {
+                document.getElementById("ind-eq-hospital").value = hospFiltrado;
+            }
+            modalCrearEqIndInstancia.show();
+        }
+
+        document.getElementById("form-crear-equipo-individual").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const hospVal = document.getElementById("ind-eq-hospital").value;
+            if (!hospVal) return alert("Selecciona el hospital destino donde se dará de alta el equipo.");
+
+            const tieneGarantia = document.getElementById("ind-eq-garantia").value === "true";
+            const provVal = document.getElementById("ind-eq-proveedor").value;
+
+            const datos = {
+                id_hospital: parseInt(hospVal),
+                id_proveedor: provVal ? parseInt(provVal) : null,
+                nombre_equipo: document.getElementById("ind-eq-nombre").value.trim(),
+                area: document.getElementById("ind-eq-area").value.trim(),
+                subarea: document.getElementById("ind-eq-subarea").value.trim() || null,
+                marca: document.getElementById("ind-eq-marca").value.trim(),
+                modelo: document.getElementById("ind-eq-modelo").value.trim() || null,
+                sn: document.getElementById("ind-eq-sn").value.trim(),
+                nni: document.getElementById("ind-eq-nni").value.trim(),
+                garantia: tieneGarantia,
+                fecha_expgarantia: tieneGarantia ? document.getElementById("ind-eq-fecha-garantia").value : null,
+                estatusfuncional: document.getElementById("ind-eq-estatus").value === "true",
+                observaciones: document.getElementById("ind-eq-obs").value.trim() || null
+            };
+
+            const res = await fetch(`/equipos/?id_admin=${usuarioActual.id_usuario}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(datos)
+            });
+
+            if (res.ok) {
+                modalCrearEqIndInstancia.hide();
+                await cargarCatalogosBase();
+                cargarEquiposFiltrados();
+                cargarAlertas(false);
+            } else {
+                const d = await res.json();
+                alert(d.detail || "No se pudo registrar el equipo.");
+            }
+        });
+
+        // --- Funciones para Transferencia de Equipos entre Hospitales y Bitácora ---
+        async function abrirModalTransferirEquipo(idEquipo) {
+            const eq = listaEquiposActuales.find(e => e.id_equipo === idEquipo);
+            if (!eq) return;
+
+            document.getElementById("transf-eq-id").value = eq.id_equipo;
+            document.getElementById("transf-eq-hosp-origen-id").value = eq.id_hospital || "";
+            document.getElementById("transf-eq-titulo").textContent = `${eq.nombre_equipo || 'Equipo #' + eq.id_equipo} (${eq.marca || 'S/M'} ${eq.modelo || ''})`;
+            document.getElementById("transf-eq-codigos").textContent = `NNI: ${eq.nni || 'Sin información'} | SN: ${eq.sn || 'Sin información'}`;
+            document.getElementById("transf-eq-origen-badge").textContent = mapaHospitales[eq.id_hospital] || "Sin hospital asignado";
+            document.getElementById("transf-eq-motivo").value = "";
+
+            // Poblar selector de hospitales destino excluyendo el hospital donde ya se encuentra actualmente
+            const selDestino = document.getElementById("transf-eq-destino");
+            const opcionesDestino = Object.entries(mapaHospitales)
+                .filter(([idHosp, _]) => parseInt(idHosp) !== eq.id_hospital)
+                .map(([idHosp, nombreHosp]) => `<option value="${idHosp}">${nombreHosp}</option>`)
+                .join("");
+
+            selDestino.innerHTML = opcionesDestino
+                ? `<option value="">Selecciona hospital destino...</option>` + opcionesDestino
+                : `<option value="">Registra otro hospital primero</option>`;
+
+            await cargarHistorialTransferenciasEquipo(idEquipo);
+            modalTransferirEqInstancia.show();
+        }
+
+        async function cargarHistorialTransferenciasEquipo(idEquipo) {
+            const tbody = document.getElementById("tabla-historial-transferencias");
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">Consultando bitácora...</td></tr>`;
+            try {
+                const res = await fetch(`/equipos/${idEquipo}/transferencias`);
+                const historial = await res.json();
+                if (!Array.isArray(historial) || historial.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">Este equipo no registra transferencias previas entre hospitales.</td></tr>`;
+                    return;
+                }
+                tbody.innerHTML = historial.map(t => {
+                    const fechaLocal = new Date(t.fecha).toLocaleString("es-MX", {
+                        year: "numeric", month: "2-digit", day: "2-digit",
+                        hour: "2-digit", minute: "2-digit"
+                    });
+                    return `<tr>
+                        <td class="small text-nowrap">${fechaLocal}</td>
+                        <td><span class="badge-soft-neutral">${t.hospital_origen_nombre}</span></td>
+                        <td><span class="badge-soft-success"><i class="bi bi-arrow-right me-1"></i>${t.hospital_destino_nombre}</span></td>
+                        <td>${limpiarTexto(t.motivo)}</td>
+                        <td class="small text-muted">${limpiarTexto(t.usuario_nombre)}</td>
+                    </tr>`;
+                }).join("");
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-3">Error al cargar el historial de transferencias.</td></tr>`;
+            }
+        }
+
+        document.getElementById("form-transferir-equipo").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const idEq = parseInt(document.getElementById("transf-eq-id").value);
+            const idDestino = parseInt(document.getElementById("transf-eq-destino").value);
+            const motivo = document.getElementById("transf-eq-motivo").value.trim();
+
+            if (!idDestino) return alert("Selecciona el hospital destino.");
+            if (motivo.length < 5) return alert("Escribe un motivo u oficio de al menos 5 caracteres.");
+
+            const res = await fetch(`/equipos/${idEq}/transferir?id_admin=${usuarioActual.id_usuario}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id_hospital_destino: idDestino,
+                    motivo: motivo,
+                    id_usuario: usuarioActual.id_usuario
+                })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                document.getElementById("transf-eq-motivo").value = "";
+                document.getElementById("transf-eq-origen-badge").textContent = data.hospital_destino_nombre;
+                await cargarCatalogosBase();
+                await cargarEquiposFiltrados();
+                await cargarHistorialTransferenciasEquipo(idEq);
+                cargarAlertas(false);
+            } else {
+                alert(data.detail || "No se pudo realizar la transferencia.");
+            }
+        });
 
         async function eliminarEquipo(idEquipo, nombreEquipo) {
             const confirmar = confirm(`¿Estás seguro de dar de baja y eliminar permanentemente el equipo "${nombreEquipo}"?\n\nNota: Si solo deseas marcarlo como fuera de operación conservando su historial, puedes editarlo y cambiar su Estatus Funcional a "Inactivo".`);
             if (!confirmar) return;
-
             const res = await fetch(`/equipos/${idEquipo}?id_admin=${usuarioActual.id_usuario}`, {
                 method: "DELETE"
             });
             const data = await res.json();
-
             if (res.ok) {
                 await cargarCatalogosBase();
                 cargarEquiposFiltrados();
@@ -1710,7 +1943,6 @@
         function abrirModalEditarEquipo(idEquipo) {
             const eq = listaEquiposActuales.find(e => e.id_equipo === idEquipo);
             if (!eq) return;
-
             document.getElementById("edit-eq-id").value = eq.id_equipo;
             document.getElementById("edit-eq-nombre").value = eq.nombre_equipo || "";
             document.getElementById("edit-eq-hospital").value = eq.id_hospital || "";
@@ -1726,7 +1958,6 @@
             document.getElementById("edit-eq-fecha-garantia").value = eq.fecha_expgarantia || "";
             document.getElementById("edit-eq-obs").value = eq.observaciones || "";
             toggleEditGarantia();
-
             modalEditarInstancia.show();
         }
 
@@ -1736,7 +1967,6 @@
             const tieneGarantia = document.getElementById("edit-eq-garantia").value === "true";
             const hospVal = document.getElementById("edit-eq-hospital").value;
             const provVal = document.getElementById("edit-eq-proveedor").value;
-
             const datos = {
                 id_hospital: hospVal ? parseInt(hospVal) : null,
                 id_proveedor: provVal ? parseInt(provVal) : null,
@@ -1752,13 +1982,11 @@
                 estatusfuncional: document.getElementById("edit-eq-estatus").value === "true",
                 observaciones: document.getElementById("edit-eq-obs").value || null
             };
-
             const res = await fetch(`/equipos/${idEq}?id_admin=${usuarioActual.id_usuario}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(datos)
             });
-
             if (res.ok) {
                 modalEditarInstancia.hide();
                 await cargarCatalogosBase();
@@ -1780,7 +2008,6 @@
                 
                 const selEq = document.getElementById("mant-id-equipo");
                 selEq.innerHTML = Object.entries(mapaEquipos).map(([id, texto]) => `<option value="${id}">${texto}</option>`).join("");
-
                 const selProv = document.getElementById("mant-id-proveedor");
                 selProv.innerHTML = Object.entries(mapaProveedores).map(([id, texto]) => `<option value="${id}">${texto}</option>`).join("");
             }
@@ -1793,7 +2020,6 @@
             listaMantenimientosActuales = Array.isArray(lista) ? lista : [];
             const esAdmin = usuarioActual.rol === "ADMIN";
             const numCols = esAdmin ? 8 : 7;
-
             document.getElementById("tabla-lista-mantenimientos").innerHTML = listaMantenimientosActuales.length === 0 
                 ? `<tr><td colspan="${numCols}" class="text-center text-muted py-3">Sin mantenimientos registrados.</td></tr>` 
                 : listaMantenimientosActuales.map(m => {
@@ -1822,7 +2048,6 @@
                     </tr>`;
                 }).join("");
         }
-
         document.getElementById("form-registrar-mant").addEventListener("submit", async (e) => {
             e.preventDefault();
             const provVal = document.getElementById("mant-id-proveedor").value;
@@ -1840,17 +2065,13 @@
             if (res.ok) { document.getElementById("form-registrar-mant").reset(); toggleFormMantenimiento(); cargarMantenimientos(); cargarAlertas(false); }
             else { const d = await res.json(); alert(d.detail); }
         });
-
         function abrirModalEditarMantenimiento(idMant) {
             const m = listaMantenimientosActuales.find(item => item.id_mantenimiento === idMant);
             if (!m) return;
-
             const selEq = document.getElementById("edit-mant-equipo");
             selEq.innerHTML = Object.entries(mapaEquipos).map(([id, texto]) => `<option value="${id}">${texto}</option>`).join("");
-
             const selProv = document.getElementById("edit-mant-proveedor");
             selProv.innerHTML = `<option value="">Sin proveedor</option>` + Object.entries(mapaProveedores).map(([id, texto]) => `<option value="${id}">${texto}</option>`).join("");
-
             document.getElementById("edit-mant-id").value = m.id_mantenimiento;
             selEq.value = m.id_equipo;
             selProv.value = m.id_proveedor || "";
@@ -1858,15 +2079,12 @@
             document.getElementById("edit-mant-fecha").value = m.fecha || "";
             document.getElementById("edit-mant-prox-fecha").value = m.prox_fecha || "";
             document.getElementById("edit-mant-obs").value = m.observaciones || "";
-
             modalMantInstancia.show();
         }
-
         document.getElementById("form-editar-mantenimiento").addEventListener("submit", async (e) => {
             e.preventDefault();
             const idMant = document.getElementById("edit-mant-id").value;
             const provVal = document.getElementById("edit-mant-proveedor").value;
-
             const datos = {
                 id_equipo: parseInt(document.getElementById("edit-mant-equipo").value),
                 id_proveedor: provVal ? parseInt(provVal) : null,
@@ -1875,13 +2093,11 @@
                 prox_fecha: document.getElementById("edit-mant-prox-fecha").value || null,
                 observaciones: document.getElementById("edit-mant-obs").value.trim() || null
             };
-
             const res = await fetch(`/mantenimientos/${idMant}?id_admin=${usuarioActual.id_usuario}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(datos)
             });
-
             if (res.ok) {
                 modalMantInstancia.hide();
                 cargarMantenimientos();
@@ -1891,7 +2107,6 @@
                 alert(d.detail || "No se pudo actualizar el mantenimiento.");
             }
         });
-
         async function eliminarMantenimiento(idMant) {
             if (!confirm(`¿Estás seguro de eliminar el registro de Mantenimiento #${idMant}?`)) return;
             const res = await fetch(`/mantenimientos/${idMant}?id_admin=${usuarioActual.id_usuario}`, {
@@ -1908,14 +2123,12 @@
 
         // ================= MÓDULO 5: PROVEEDORES (ALTA, EDICIÓN Y BAJA) =================
         function toggleFormProveedor() { document.getElementById("panel-crear-prov").classList.toggle("d-none"); }
-
         async function cargarProveedores() {
             const res = await fetch("/proveedores/");
             const lista = await res.json();
             listaProveedoresActuales = Array.isArray(lista) ? lista : [];
             const esAdmin = usuarioActual.rol === "ADMIN";
             const numCols = esAdmin ? 6 : 5;
-
             document.getElementById("tabla-lista-proveedores").innerHTML = listaProveedoresActuales.length === 0 
                 ? `<tr><td colspan="${numCols}" class="text-center text-muted py-3">Sin proveedores registrados.</td></tr>` 
                 : listaProveedoresActuales.map(p => {
@@ -1942,7 +2155,6 @@
                     </tr>`;
                 }).join("");
         }
-
         document.getElementById("form-registrar-prov").addEventListener("submit", async (e) => {
             e.preventDefault();
             const res = await fetch("/proveedores/", {
@@ -1957,20 +2169,16 @@
             if (res.ok) { document.getElementById("form-registrar-prov").reset(); toggleFormProveedor(); await cargarCatalogosBase(); cargarProveedores(); }
             else { const d = await res.json(); alert(d.detail); }
         });
-
         function abrirModalEditarProveedor(idProv) {
             const p = listaProveedoresActuales.find(item => item.id_proveedor === idProv);
             if (!p) return;
-
             document.getElementById("edit-prov-id").value = p.id_proveedor;
             document.getElementById("edit-prov-nombre").value = p.nombre_proveedor || "";
             document.getElementById("edit-prov-contacto").value = p.nombre_contacto || "";
             document.getElementById("edit-prov-correo").value = p.correo || "";
             document.getElementById("edit-prov-tel").value = p.num_tel || "";
-
             modalProvInstancia.show();
         }
-
         document.getElementById("form-editar-proveedor").addEventListener("submit", async (e) => {
             e.preventDefault();
             const idProv = document.getElementById("edit-prov-id").value;
@@ -1980,13 +2188,11 @@
                 correo: document.getElementById("edit-prov-correo").value.trim() || null,
                 num_tel: document.getElementById("edit-prov-tel").value.trim() || null
             };
-
             const res = await fetch(`/proveedores/${idProv}?id_admin=${usuarioActual.id_usuario}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(datos)
             });
-
             if (res.ok) {
                 modalProvInstancia.hide();
                 await cargarCatalogosBase();
@@ -1996,10 +2202,8 @@
                 alert(d.detail || "No se pudo actualizar el proveedor.");
             }
         });
-
         async function eliminarProveedor(idProv, nombreProv) {
             if (!confirm(`¿Estás seguro de eliminar al proveedor "${nombreProv}"?\n\nLos equipos y mantenimientos asociados conservarán su historial quedando como "Sin proveedor".`)) return;
-
             const res = await fetch(`/proveedores/${idProv}?id_admin=${usuarioActual.id_usuario}`, {
                 method: "DELETE"
             });
@@ -2020,12 +2224,10 @@
                 await cambiarOpcionesAsociacionDoc();
             }
         }
-
         async function poblarSelectAsociacion(idSelectTipo, idSelectDestino) {
             const tipo = document.getElementById(idSelectTipo).value;
             const selectDestino = document.getElementById(idSelectDestino);
             await cargarCatalogosBase();
-
             if (tipo === "inventario") {
                 const res = await fetch(`/inventarios/?id_usuario_consulta=${usuarioActual.id_usuario}`);
                 const invs = await res.json();
@@ -2038,22 +2240,18 @@
                 selectDestino.innerHTML = mants.map(m => `<option value="${m.id_mantenimiento}">Mant #${m.id_mantenimiento} - ${mapaEquipos[m.id_equipo] || ''} (${m.fecha})</option>`).join("");
             }
         }
-
         async function cambiarOpcionesAsociacionDoc() {
             await poblarSelectAsociacion("doc-tipo-asociacion", "doc-id-destino");
         }
-
         async function cambiarOpcionesAsociacionModalDoc() {
             await poblarSelectAsociacion("edit-doc-tipo", "edit-doc-destino");
         }
-
         async function cargarDocumentos() {
             await cargarCatalogosBase();
             const res = await fetch("/documentos/");
             const lista = await res.json();
             listaDocumentosActuales = Array.isArray(lista) ? lista : [];
             const esAdmin = usuarioActual.rol === "ADMIN";
-
             document.getElementById("tabla-lista-documentos").innerHTML = listaDocumentosActuales.length === 0 
                 ? `<tr><td colspan="4" class="text-center text-muted py-3">Sin documentos registrados.</td></tr>` 
                 : listaDocumentosActuales.map(d => {
@@ -2065,7 +2263,6 @@
                     } else {
                         asociado = `<span class="badge-soft-success"><i class="bi bi-clipboard2-check me-1"></i>${mapaInventarios[d.id_inventario] || 'Inventario #' + d.id_inventario}</span>`;
                     }
-
                     const tituloSeguro = (d.nombredocumento || "").replace(/'/g, "");
                     const botonesAdmin = esAdmin
                         ? `<button class="btn btn-secundario btn-sm" onclick="abrirModalEditarDocumento(${d.id_documento})" title="Editar título o reemplazar archivo">
@@ -2075,7 +2272,6 @@
                                <i class="bi bi-trash"></i>
                            </button>`
                         : "";
-
                     return `<tr>
                         <td>#${d.id_documento}</td>
                         <td class="fw-medium">${limpiarTexto(d.nombredocumento)}</td>
@@ -2091,7 +2287,6 @@
                     </tr>`;
                 }).join("");
         }
-
         document.getElementById("form-subir-documento").addEventListener("submit", async (e) => {
             e.preventDefault();
             const formData = new FormData();
@@ -2104,55 +2299,43 @@
             if (tipo === "inventario") formData.append("id_inventario", idDestino);
             
             formData.append("archivo", document.getElementById("doc-archivo").files[0]);
-
             const res = await fetch("/documentos/subir", { method: "POST", body: formData });
             if (res.ok) { document.getElementById("form-subir-documento").reset(); toggleFormDocumento(); cargarDocumentos(); alert("Documento subido con éxito."); }
             else { const d = await res.json(); alert(d.detail); }
         });
-
         async function abrirModalEditarDocumento(idDoc) {
             const d = listaDocumentosActuales.find(item => item.id_documento === idDoc);
             if (!d) return;
-
             document.getElementById("edit-doc-id").value = d.id_documento;
             document.getElementById("edit-doc-titulo").value = d.nombredocumento || "";
             document.getElementById("edit-doc-archivo").value = "";
-
             const selTipo = document.getElementById("edit-doc-tipo");
             if (d.id_equipo) selTipo.value = "equipo";
             else if (d.id_mantenimiento) selTipo.value = "mantenimiento";
             else selTipo.value = "inventario";
-
             await cambiarOpcionesAsociacionModalDoc();
-
             const selDestino = document.getElementById("edit-doc-destino");
             selDestino.value = d.id_equipo || d.id_mantenimiento || d.id_inventario || "";
-
             modalDocInstancia.show();
         }
-
         document.getElementById("form-editar-documento").addEventListener("submit", async (e) => {
             e.preventDefault();
             const idDoc = document.getElementById("edit-doc-id").value;
             const formData = new FormData();
             formData.append("nombre_documento", document.getElementById("edit-doc-titulo").value.trim());
-
             const tipo = document.getElementById("edit-doc-tipo").value;
             const idDestino = document.getElementById("edit-doc-destino").value;
             if (tipo === "equipo") formData.append("id_equipo", idDestino);
             if (tipo === "mantenimiento") formData.append("id_mantenimiento", idDestino);
             if (tipo === "inventario") formData.append("id_inventario", idDestino);
-
             const inputArchivo = document.getElementById("edit-doc-archivo");
             if (inputArchivo.files[0]) {
                 formData.append("archivo", inputArchivo.files[0]);
             }
-
             const res = await fetch(`/documentos/${idDoc}?id_admin=${usuarioActual.id_usuario}`, {
                 method: "PUT",
                 body: formData
             });
-
             if (res.ok) {
                 modalDocInstancia.hide();
                 cargarDocumentos();
@@ -2161,10 +2344,8 @@
                 alert(d.detail || "No se pudo actualizar el documento.");
             }
         });
-
         async function eliminarDocumento(idDoc, tituloDoc) {
             if (!confirm(`¿Estás seguro de eliminar permanentemente el documento "${tituloDoc}"?`)) return;
-
             const res = await fetch(`/documentos/${idDoc}?id_admin=${usuarioActual.id_usuario}`, {
                 method: "DELETE"
             });
@@ -2181,13 +2362,10 @@
             const inputFoto = document.getElementById("input-archivo-foto");
             const alerta = document.getElementById("alerta-perfil");
             if (!inputFoto.files[0]) return alert("Primero selecciona una imagen desde tu computadora.");
-
             const formData = new FormData();
             formData.append("foto", inputFoto.files[0]);
-
             const res = await fetch(`/usuarios/${usuarioActual.id_usuario}/foto`, { method: "POST", body: formData });
             const data = await res.json();
-
             if (res.ok) {
                 usuarioActual = data;
                 localStorage.setItem("usuario_imss", JSON.stringify(usuarioActual));
@@ -2200,7 +2378,6 @@
                 alert(data.detail || "No se pudo subir la foto.");
             }
         }
-
         document.getElementById("form-actualizar-perfil").addEventListener("submit", async (e) => {
             e.preventDefault();
             const alerta = document.getElementById("alerta-perfil");
@@ -2213,7 +2390,6 @@
             else { alerta.textContent = data.detail; alerta.className = "alert alert-danger small py-2"; }
             alerta.classList.remove("d-none");
         });
-
         document.getElementById("form-cambiar-password").addEventListener("submit", async (e) => {
             e.preventDefault();
             const alerta = document.getElementById("alerta-perfil");
@@ -2233,10 +2409,8 @@
             let usuarios = await res.json();
             const tbody = document.getElementById("tabla-gestion-usuarios");
             if (!tbody) return;
-
             const inputFiltro = document.getElementById("filtro-usuarios-input");
             const textoBusqueda = inputFiltro ? inputFiltro.value.trim().toLowerCase() : "";
-
             if (textoBusqueda) {
                 usuarios = usuarios.filter(u => 
                     `${u.primernombre} ${u.primerapellido}`.toLowerCase().includes(textoBusqueda) ||
@@ -2244,17 +2418,14 @@
                     (u.username && u.username.toLowerCase().includes(textoBusqueda))
                 );
             }
-
             if (usuarios.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No se encontraron usuarios con ese criterio.</td></tr>`;
                 return;
             }
-
             tbody.innerHTML = usuarios.map(u => {
                 let claseBadge = "badge-soft-neutral";
                 if (u.rol === "ADMIN") claseBadge = "badge-soft-success";
                 if (u.rol === "INACTIVO") claseBadge = "badge-soft-danger";
-
                 if (u.id_usuario === usuarioActual.id_usuario) {
                     return `<tr>
                         <td>#${u.id_usuario}</td>
@@ -2265,7 +2436,6 @@
                         <td><span class="text-muted small">Sesión actual protegida</span></td>
                     </tr>`;
                 }
-
                 return `<tr>
                     <td>#${u.id_usuario}</td>
                     <td class="fw-medium">${u.primernombre} ${u.primerapellido}</td>
@@ -2287,7 +2457,6 @@
                 </tr>`;
             }).join("");
         }
-
         async function cambiarRolUsuario(idObjetivo, nuevoRol) {
             const res = await fetch(`/usuarios/${idObjetivo}/cambiar-rol?nuevo_rol=${nuevoRol}&id_admin_que_autoriza=${usuarioActual.id_usuario}`, {
                 method: "PUT"
@@ -2300,23 +2469,19 @@
                 cargarListaUsuariosAdmin();
             }
         }
-
         async function eliminarUsuario(idObjetivo, nombreUsuario) {
             const confirmar = confirm(`¿Estás seguro de eliminar permanentemente al usuario "${nombreUsuario}"?\n\nConsejo: Si solo quieres quitarle el acceso sin borrarlo, puedes cambiar su estado a "Inactivo (Bloquear)".`);
             if (!confirmar) return;
-
             const res = await fetch(`/usuarios/${idObjetivo}?id_admin_que_autoriza=${usuarioActual.id_usuario}`, {
                 method: "DELETE"
             });
             const data = await res.json();
-
             if (res.ok) {
                 cargarListaUsuariosAdmin();
             } else {
                 alert(data.detail || "No se pudo eliminar el usuario.");
             }
         }
-
         inicializarInterfaz();
     </script>
 </body>
