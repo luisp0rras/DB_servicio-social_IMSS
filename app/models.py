@@ -84,6 +84,10 @@ class Equipo(Base):
     fecha_expgarantia = Column(Date, nullable=True, index=True)
     estatusfuncional = Column(Boolean, nullable=False, default=True)
     observaciones = Column(Text, nullable=True)
+    # Bandera de control para asegurar un único correo preventivo cuando falten <= 7 días para vencer
+    alerta_garantia_7d_enviada = Column(Boolean, nullable=False, default=False)
+    # Bandera de control para asegurar un único correo automático cuando la garantía vence
+    alerta_garantia_enviada = Column(Boolean, nullable=False, default=False)
 
 
 # ==========================================================
@@ -116,6 +120,10 @@ class Mantenimiento(Base):
     fecha = Column(Date, nullable=False)
     prox_fecha = Column(Date, nullable=True, index=True)
     observaciones = Column(Text, nullable=True)
+    # Bandera de control para asegurar un único correo preventivo cuando falten <= 7 días para prox_fecha
+    alerta_mant_7d_enviada = Column(Boolean, nullable=False, default=False)
+    # Bandera de control para asegurar un único correo automático cuando el mantenimiento se atrasa
+    alerta_vencimiento_enviada = Column(Boolean, nullable=False, default=False)
 
 
 # ==========================================================
@@ -153,9 +161,8 @@ class InventarioUsuario(Base):
 
 
 # ==========================================================
-# 8. TABLA DE TRANSFERENCIAS DE EQUIPOS ENTRE HOSPITALES
+# 9. TABLA DE TRANSFERENCIAS DE EQUIPOS ENTRE HOSPITALES
 # ==========================================================
-
 class TransferenciaEquipo(Base):
     """Bitácora histórica de reubicaciones y préstamos de equipos entre unidades médicas."""
     __tablename__ = "transferencias_equipo"

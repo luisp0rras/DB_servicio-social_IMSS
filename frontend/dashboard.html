@@ -3,13 +3,309 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Principal - Biomédica IMSS</title>
+    <title>Panel Principal - SIGEM</title>
     <!-- Bootstrap 5 e Iconos Institucionales (Modo Offline Local) -->
     <link rel="icon" type="image/svg+xml" href="/app/favicon.svg">
     <link href="/app/vendor/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/app/vendor/bootstrap-icons.min.css">
     <!-- Hoja de estilos minimalista institucional -->
     <link rel="stylesheet" href="/app/css/styles.css">
+    <style>
+        /* ==========================================================
+           ESTILOS DE BARRA SUPERIOR Y CAMPANITA DE NOTIFICACIONES
+           ========================================================== */
+        .sigem-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--borde-fino, #E2E8F0);
+        }
+
+        .notif-bell-wrapper {
+            position: relative;
+            display: inline-block;
+            margin-left: auto;
+        }
+
+        .btn-campana-sigem {
+            position: relative;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--borde-fino, #E2E8F0);
+            background-color: #FFFFFF;
+            color: var(--verde-imss, #13322B);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        }
+
+        .btn-campana-sigem:hover,
+        .notif-bell-wrapper.abierto .btn-campana-sigem {
+            background-color: #F8FAFC;
+            border-color: var(--dorado-sutil, #A68250);
+            color: var(--verde-imss, #13322B);
+            transform: translateY(-1px);
+        }
+
+        .badge-campana-contador {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            min-width: 19px;
+            height: 19px;
+            padding: 0 5px;
+            border-radius: 999px;
+            background-color: #DC2626;
+            color: #FFFFFF;
+            font-size: 0.68rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #FFFFFF;
+            box-shadow: 0 2px 4px rgba(220, 38, 38, 0.28);
+        }
+
+        /* Panel desplegable flotante estilo Mercado Libre adaptado a SIGEM */
+        .notif-dropdown-panel {
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            width: 390px;
+            max-width: calc(100vw - 24px);
+            background-color: #FFFFFF;
+            border: 1px solid var(--borde-fino, #E2E8F0);
+            border-radius: 14px;
+            box-shadow: 0 18px 38px -8px rgba(15, 23, 42, 0.18), 0 6px 14px -4px rgba(15, 23, 42, 0.08);
+            z-index: 1060;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-6px);
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+        }
+
+        /* Puente invisible superior para que no se cierre al mover el cursor de la campana al panel */
+        .notif-dropdown-panel::before {
+            content: "";
+            position: absolute;
+            top: -12px;
+            left: 0;
+            right: 0;
+            height: 12px;
+        }
+
+        /* Triángulo indicador apuntando a la campanita */
+        .notif-dropdown-panel::after {
+            content: "";
+            position: absolute;
+            top: -6px;
+            right: 14px;
+            width: 12px;
+            height: 12px;
+            background-color: #FFFFFF;
+            border-left: 1px solid var(--borde-fino, #E2E8F0);
+            border-top: 1px solid var(--borde-fino, #E2E8F0);
+            transform: rotate(45deg);
+        }
+
+        .notif-bell-wrapper:hover .notif-dropdown-panel,
+        .notif-bell-wrapper.abierto .notif-dropdown-panel {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .notif-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px 10px 16px;
+        }
+
+        .notif-tabs-bar {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            border-bottom: 1px solid var(--borde-fino, #E2E8F0);
+            padding: 0 8px;
+        }
+
+        .notif-tab-btn {
+            position: relative;
+            background: transparent;
+            border: none;
+            padding: 8px 4px 10px 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            color: #64748B;
+            cursor: pointer;
+            transition: color 0.15s ease;
+        }
+
+        .notif-tab-btn:hover {
+            color: var(--verde-imss, #13322B);
+        }
+
+        .notif-tab-btn.activa {
+            color: var(--verde-imss, #13322B);
+        }
+
+        .notif-tab-btn.activa::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 14%;
+            right: 14%;
+            height: 2.5px;
+            background-color: var(--dorado-sutil, #A68250);
+            border-radius: 2px 2px 0 0;
+        }
+
+        .notif-tab-icon-wrap {
+            position: relative;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #F1F5F9;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            transition: background-color 0.15s ease, color 0.15s ease;
+        }
+
+        .notif-tab-btn.activa .notif-tab-icon-wrap {
+            background-color: rgba(19, 50, 43, 0.1);
+            color: var(--verde-imss, #13322B);
+        }
+
+        .notif-tab-dot {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #DC2626;
+            border: 1.5px solid #FFFFFF;
+        }
+
+        .notif-lista-scroll {
+            max-height: 340px;
+            overflow-y: auto;
+        }
+
+        .notif-item-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 11px;
+            padding: 12px 16px;
+            border-bottom: 1px solid #F1F5F9;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+            position: relative;
+        }
+
+        .notif-item-card:hover {
+            background-color: #F8FAFC;
+        }
+
+        .notif-item-card.no-leida {
+            background-color: #FBFDFC;
+        }
+
+        .notif-item-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .notif-avatar-danger {
+            background-color: #FEE2E2;
+            color: #B91C1C;
+        }
+
+        .notif-avatar-warning {
+            background-color: #FEF3C7;
+            color: #B45309;
+        }
+
+        .notif-item-body {
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        .notif-item-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 6px;
+            margin-bottom: 2px;
+        }
+
+        .notif-item-title {
+            font-size: 0.83rem;
+            font-weight: 700;
+            color: #1E293B;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .notif-item-time {
+            font-size: 0.71rem;
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .notif-item-desc {
+            font-size: 0.78rem;
+            color: #475569;
+            line-height: 1.32;
+            margin-bottom: 3px;
+        }
+
+        .notif-item-meta {
+            font-size: 0.72rem;
+            color: #64748B;
+        }
+
+        .notif-unread-indicator {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background-color: var(--dorado-sutil, #A68250);
+            flex-shrink: 0;
+            margin-top: 6px;
+        }
+
+        .notif-panel-footer {
+            padding: 10px 16px;
+            border-top: 1px solid var(--borde-fino, #E2E8F0);
+            background-color: #F8FAFC;
+            border-radius: 0 0 14px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+    </style>
 </head>
 <body>
     <!-- Fondo semitransparente al abrir menú en pantallas pequeñas -->
@@ -24,8 +320,8 @@
                     <i class="bi bi-hospital" style="font-size: 1.25rem; color: #FFFFFF;"></i>
                 </div>
                 <div class="text-truncate">
-                    <div class="fw-bold text-truncate" style="font-size: 0.92rem; color: var(--verde-imss);">Biomédica IMSS</div>
-                    <small class="text-muted d-block" style="font-size: 0.74rem;">Gestión de Activos</small>
+                    <div class="fw-bold text-truncate" style="font-size: 0.92rem; color: var(--verde-imss);">SIGEM</div>
+                    <small class="text-muted d-block" style="font-size: 0.74rem;">Gestión de Equipo Médico</small>
                 </div>
             </div>
             <button type="button" class="btn-toggle-sidebar" onclick="alternarMenuLateral()" title="Ocultar menú lateral">
@@ -85,14 +381,86 @@
          CONTENIDO PRINCIPAL DINÁMICO
          ========================================================== -->
     <main id="main-content" class="main-content">
-        <!-- Barra superior con botón para reabrir el menú cuando está oculto -->
-        <div id="barra-abrir-menu" class="topbar-control d-none">
-            <button type="button" class="btn btn-secundario btn-sm d-inline-flex align-items-center gap-2" 
-                    onclick="alternarMenuLateral()" title="Mostrar menú lateral">
-                <i class="bi bi-layout-sidebar"></i>
-                <span>Menú</span>
-            </button>
+        <!-- Barra superior global: botón menú (cuando está colapsado) + Campanita de Notificaciones -->
+        <div class="sigem-topbar">
+            <div id="barra-abrir-menu" class="d-none">
+                <button type="button" class="btn btn-secundario btn-sm d-inline-flex align-items-center gap-2" 
+                        onclick="alternarMenuLateral()" title="Mostrar menú lateral">
+                    <i class="bi bi-layout-sidebar"></i>
+                    <span>Menú</span>
+                </button>
+            </div>
+
+            <div class="d-none d-sm-flex align-items-center gap-2 text-muted small">
+                <i class="bi bi-hospital" style="color: var(--verde-imss);"></i>
+                <span>Sistema Integral de Gestión de Equipo Médico</span>
+            </div>
+
+            <!-- Campanita de Notificaciones Desplegable al Hover / Clic -->
+            <div id="notif-bell-wrapper" class="notif-bell-wrapper">
+                <button type="button" class="btn-campana-sigem" onclick="alternarPanelNotificaciones(event)" 
+                        aria-label="Notificaciones de alertas" title="Notificaciones (próximos 30 días)">
+                    <i class="bi bi-bell"></i>
+                    <span id="badge-campana-total" class="badge-campana-contador d-none">0</span>
+                </button>
+
+                <div class="notif-dropdown-panel" onclick="event.stopPropagation()">
+                    <!-- Encabezado del popover -->
+                    <div class="notif-panel-header">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold" style="font-size: 0.95rem; color: var(--verde-imss);">Notificaciones</span>
+                            <span id="notif-pill-pendientes" class="badge-soft-warning" style="font-size: 0.68rem;">0 activas</span>
+                        </div>
+                        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" 
+                                style="font-size: 0.75rem; color: var(--dorado-sutil);"
+                                onclick="marcarTodasNotificacionesLeidas()" title="Marcar todas como vistas">
+                            <i class="bi bi-check2-all me-1"></i>Marcar vistas
+                        </button>
+                    </div>
+
+                    <!-- Pestañas superiores con íconos (Todas / Garantías / Mantenimientos) -->
+                    <div class="notif-tabs-bar">
+                        <button type="button" class="notif-tab-btn activa" data-tab="todas" onclick="seleccionarTabNotificaciones('todas', this)">
+                            <span class="notif-tab-icon-wrap">
+                                <i class="bi bi-bell"></i>
+                                <span id="dot-tab-todas" class="notif-tab-dot d-none"></span>
+                            </span>
+                            <span>Todas</span>
+                        </button>
+                        <button type="button" class="notif-tab-btn" data-tab="garantias" onclick="seleccionarTabNotificaciones('garantias', this)">
+                            <span class="notif-tab-icon-wrap">
+                                <i class="bi bi-shield-exclamation"></i>
+                                <span id="dot-tab-garantias" class="notif-tab-dot d-none"></span>
+                            </span>
+                            <span>Garantías</span>
+                        </button>
+                        <button type="button" class="notif-tab-btn" data-tab="mantenimientos" onclick="seleccionarTabNotificaciones('mantenimientos', this)">
+                            <span class="notif-tab-icon-wrap">
+                                <i class="bi bi-wrench-adjustable"></i>
+                                <span id="dot-tab-mantenimientos" class="notif-tab-dot d-none"></span>
+                            </span>
+                            <span>Mantenimientos</span>
+                        </button>
+                    </div>
+
+                    <!-- Lista deslizable de notificaciones -->
+                    <div id="notif-lista-contenedor" class="notif-lista-scroll">
+                        <div class="text-center text-muted small py-4">Cargando notificaciones...</div>
+                    </div>
+
+                    <!-- Pie del recuadro -->
+                    <div class="notif-panel-footer">
+                        <small class="text-muted" style="font-size: 0.72rem;">Ventana de 30 días</small>
+                        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none fw-semibold" 
+                                style="font-size: 0.76rem; color: var(--verde-imss);"
+                                onclick="irAlInicioYCerrarCampana()">
+                            Ver panel completo <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
+
         <!-- ======================================================
              VISTA 1: RESUMEN Y ALERTAS AUTOMÁTICAS
              ====================================================== -->
@@ -100,11 +468,11 @@
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
                 <div>
                     <h4 class="fw-bold mb-1">Panel de Control y Alertas</h4>
-                    <p class="text-muted small mb-0">Monitoreo automático de garantías y mantenimientos programados (próximos 30 días)</p>
+                    <p class="text-muted small mb-0">Monitoreo preventivo de garantías y mantenimientos programados (próximos 30 días)</p>
                 </div>
                 <div class="d-flex flex-wrap align-items-center gap-2">
-                    <span id="estado-monitoreo-auto" class="badge-soft-neutral" title="Las alertas se verifican y notifican automáticamente">
-                        <i class="bi bi-broadcast"></i> Monitoreo automático activo
+                    <span id="estado-monitoreo-auto" class="badge-soft-neutral" title="Correo único a los 7 días previos y al vencer">
+                        <i class="bi bi-envelope-check"></i> Correo único (7 días y vencimiento)
                     </span>
                     <button class="btn btn-primario btn-sm solo-admin d-none" onclick="cambiarVista('vista-inventarios', document.querySelectorAll('.nav-item-btn')[1])">
                         <i class="bi bi-plus-lg me-1"></i> Nuevo Inventario
@@ -153,7 +521,7 @@
                         <thead>
                             <tr>
                                 <th>Equipo</th>
-                                <th>NNI</th>
+                                <th>NNI / SN</th>
                                 <th>Hospital</th>
                                 <th>Fecha Expiración</th>
                                 <th>Días</th>
@@ -173,6 +541,7 @@
                         <thead>
                             <tr>
                                 <th>Equipo</th>
+                                <th>NNI / SN</th>
                                 <th>Tipo</th>
                                 <th>Próxima Fecha</th>
                                 <th>Días</th>
@@ -180,7 +549,7 @@
                             </tr>
                         </thead>
                         <tbody id="tabla-alertas-mantenimiento">
-                            <tr><td colspan="5" class="text-center text-muted py-3">Cargando mantenimientos...</td></tr>
+                            <tr><td colspan="6" class="text-center text-muted py-3">Cargando mantenimientos...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -910,7 +1279,7 @@
                     <div class="p-3 rounded mb-3" style="background-color: var(--bg-fondo); border: 1px solid var(--borde-fino);">
                         <div class="row g-2 align-items-center">
                             <div class="col-md-7">
-                                <small class="text-muted d-block">Activo Biomédico Seleccionado</small>
+                                <small class="text-muted d-block">Equipo Médico Seleccionado</small>
                                 <div class="fw-bold" id="transf-eq-titulo">-</div>
                                 <small class="text-muted" id="transf-eq-codigos">NNI: - | SN: -</small>
                             </div>
@@ -944,9 +1313,9 @@
                         </div>
                     </form>
 
-                    <!-- Bitácora histórica de movimientos de este equipo -->
+                    <!-- Historial de movimientos de este equipo -->
                     <h6 class="fw-bold small text-uppercase text-muted mb-2">
-                        <i class="bi bi-clock-history me-1"></i> Bitácora Histórica de Movimientos
+                        <i class="bi bi-clock-history me-1"></i> Historial de Transferencias
                     </h6>
                     <div class="table-responsive" style="max-height: 240px; overflow-y: auto;">
                         <table class="table-clean">
@@ -960,7 +1329,7 @@
                                 </tr>
                             </thead>
                             <tbody id="tabla-historial-transferencias">
-                                <tr><td colspan="5" class="text-center text-muted py-3">Cargando bitácora...</td></tr>
+                                <tr><td colspan="5" class="text-center text-muted py-3">Consultando historial...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1209,6 +1578,10 @@
         let listaDocumentosActuales = [];
         let idInventarioActivo = null;
 
+        // Estado del Centro de Notificaciones (Campanita)
+        let listaNotificacionesGlobal = [];
+        let tabNotificacionesActual = "todas";
+
         // Instancias de Modales Bootstrap
         let modalCrearEqIndInstancia = null;
         let modalTransferirEqInstancia = null;
@@ -1224,6 +1597,18 @@
                 return `<span class="text-muted small">Sin información</span>`;
             }
             return esCodigo ? `<code>${valor}</code>` : valor;
+        }
+
+        function formatearCodigoNNI_SN(nni, sn) {
+            const nniLimpio = (nni !== null && nni !== undefined) ? String(nni).trim() : "";
+            if (nniLimpio && nniLimpio.toLowerCase() !== "null") {
+                return `<code>${nniLimpio}</code>`;
+            }
+            const snLimpio = (sn !== null && sn !== undefined) ? String(sn).trim() : "";
+            if (snLimpio && snLimpio.toLowerCase() !== "null") {
+                return `<code>${snLimpio}</code> <small class="text-muted">(SN)</small>`;
+            }
+            return `<span class="text-muted small">Sin información</span>`;
         }
 
         function alternarPassword(idInput, boton) {
@@ -1258,7 +1643,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = "Plantilla_Importacion_Equipos_IMSS.csv";
+            a.download = "Plantilla_Importacion_Equipos_SIGEM.csv";
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -1288,6 +1673,14 @@
                 cargarListaUsuariosAdmin();
             }
 
+            // Cerrar panel de notificaciones al hacer clic fuera en pantallas táctiles/móviles
+            document.addEventListener("click", (e) => {
+                const wrapper = document.getElementById("notif-bell-wrapper");
+                if (wrapper && !wrapper.contains(e.target)) {
+                    wrapper.classList.remove("abierto");
+                }
+            });
+
             // Inicializar modales
             modalCrearEqIndInstancia = new bootstrap.Modal(document.getElementById("modalCrearEquipoIndividual"));
             modalTransferirEqInstancia = new bootstrap.Modal(document.getElementById("modalTransferirEquipo"));
@@ -1298,13 +1691,18 @@
 
             await cargarCatalogosBase();
             await cargarAlertas(true);
-            await ejecutarMonitoreoAutomaticoDiario();
+            await verificarAlertasHitosCorreo();
         }
 
         function irAlInicio() {
             const botonInicio = document.querySelector(".nav-menu .nav-item-btn");
             cambiarVista('vista-inicio', botonInicio);
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function irAlInicioYCerrarCampana() {
+            document.getElementById("notif-bell-wrapper").classList.remove("abierto");
+            irAlInicio();
         }
 
         function cambiarVista(idVista, botonPresionado) {
@@ -1396,7 +1794,195 @@
             }
         }
 
-        // ================= MÓDULO 1: ALERTAS Y NOTIFICACIONES AUTOMÁTICAS =================
+        // ================= CENTRO DE NOTIFICACIONES (CAMPANITA HOVER + PESTANAS) =================
+        function alternarPanelNotificaciones(event) {
+            if (event) event.stopPropagation();
+            const wrapper = document.getElementById("notif-bell-wrapper");
+            wrapper.classList.toggle("abierto");
+        }
+
+        function obtenerClaveVistasStorage() {
+            return `sigem_notif_vistas_usr_${usuarioActual.id_usuario}`;
+        }
+
+        function obtenerSetNotificacionesVistas() {
+            try {
+                const raw = localStorage.getItem(obtenerClaveVistasStorage());
+                return new Set(raw ? JSON.parse(raw) : []);
+            } catch (e) {
+                return new Set();
+            }
+        }
+
+        function guardarSetNotificacionesVistas(setVistas) {
+            try {
+                localStorage.setItem(obtenerClaveVistasStorage(), JSON.stringify(Array.from(setVistas)));
+            } catch (e) {}
+        }
+
+        function formatearTiempoRelativoNotif(diasRestantes) {
+            if (diasRestantes < 0) {
+                const abs = Math.abs(diasRestantes);
+                return abs === 1 ? "Venció ayer" : `Venció hace ${abs} d`;
+            }
+            if (diasRestantes === 0) return "Vence hoy";
+            return diasRestantes === 1 ? "En 1 día" : `En ${diasRestantes} días`;
+        }
+
+        function construirListaNotificacionesCampana(dataAlertas) {
+            const vistas = obtenerSetNotificacionesVistas();
+            const items = [];
+
+            // 1. Garantías vencidas o próximas a vencer (<= 30 días)
+            (dataAlertas.alertas_garantias || []).forEach(g => {
+                const uid = `gar_${g.id_equipo}_${g.fecha_expiracion}`;
+                const esCritica = g.semaforo === "VENCIDA";
+                const nniVal = (g.nni && String(g.nni).trim() && String(g.nni).trim().toLowerCase() !== "null") ? String(g.nni).trim() : null;
+                const snVal = (g.sn && String(g.sn).trim() && String(g.sn).trim().toLowerCase() !== "null") ? String(g.sn).trim() : null;
+                const codigoTexto = nniVal ? `NNI: ${nniVal}` : (snVal ? `SN: ${snVal}` : "Sin NNI/SN");
+                items.push({
+                    uid,
+                    categoria: "garantias",
+                    esCritica,
+                    diasRestantes: g.dias_restantes,
+                    tiempoTexto: formatearTiempoRelativoNotif(g.dias_restantes),
+                    titulo: g.nombre_equipo || `Equipo #${g.id_equipo}`,
+                    descripcion: esCritica
+                        ? `Garantía expirada el ${g.fecha_expiracion}`
+                        : `Garantía próxima a vencer (${g.fecha_expiracion})`,
+                    meta: `${mapaHospitales[g.id_hospital] || 'Hospital #' + g.id_hospital} • ${codigoTexto}`,
+                    leida: vistas.has(uid),
+                    destinoVista: "vista-equipos",
+                    indexNav: 2
+                });
+            });
+
+            // 2. Mantenimientos atrasados o próximos (<= 30 días)
+            (dataAlertas.alertas_mantenimientos || []).forEach(m => {
+                const uid = `mant_${m.id_mantenimiento}_${m.proxima_fecha}`;
+                const esCritica = m.semaforo === "ATRASADO";
+                const nombreLimpio = m.nombre_equipo || (mapaEquipos[m.id_equipo] ? mapaEquipos[m.id_equipo].split(" (NNI:")[0] : `Equipo #${m.id_equipo}`);
+                const nniVal = (m.nni && String(m.nni).trim() && String(m.nni).trim().toLowerCase() !== "null") ? String(m.nni).trim() : null;
+                const snVal = (m.sn && String(m.sn).trim() && String(m.sn).trim().toLowerCase() !== "null") ? String(m.sn).trim() : null;
+                const codigoTexto = nniVal ? `NNI: ${nniVal}` : (snVal ? `SN: ${snVal}` : "Sin NNI/SN");
+                items.push({
+                    uid,
+                    categoria: "mantenimientos",
+                    esCritica,
+                    diasRestantes: m.dias_restantes,
+                    tiempoTexto: formatearTiempoRelativoNotif(m.dias_restantes),
+                    titulo: nombreLimpio,
+                    descripcion: esCritica
+                        ? `Mantenimiento ${m.tipo_mantenimiento} atrasado (${m.proxima_fecha})`
+                        : `Mantenimiento ${m.tipo_mantenimiento} programado (${m.proxima_fecha})`,
+                    meta: `${codigoTexto} • Orden #${m.id_mantenimiento}`,
+                    leida: vistas.has(uid),
+                    destinoVista: "vista-mantenimientos",
+                    indexNav: 3
+                });
+            });
+
+            // Ordenar: primero las más urgentes (menor diasRestantes)
+            items.sort((a, b) => a.diasRestantes - b.diasRestantes);
+            listaNotificacionesGlobal = items;
+            renderizarCampanitaNotificaciones();
+        }
+
+        function seleccionarTabNotificaciones(tab, btnElemento) {
+            tabNotificacionesActual = tab;
+            document.querySelectorAll(".notif-tab-btn").forEach(b => b.classList.remove("activa"));
+            if (btnElemento) btnElemento.classList.add("activa");
+            renderizarCampanitaNotificaciones();
+        }
+
+        function marcarNotificacionComoLeida(uid, destinoVista, indexNav) {
+            const vistas = obtenerSetNotificacionesVistas();
+            vistas.add(uid);
+            guardarSetNotificacionesVistas(vistas);
+
+            listaNotificacionesGlobal = listaNotificacionesGlobal.map(it =>
+                it.uid === uid ? { ...it, leida: true } : it
+            );
+            renderizarCampanitaNotificaciones();
+
+            // Navegar a la vista correspondiente y cerrar panel
+            document.getElementById("notif-bell-wrapper").classList.remove("abierto");
+            const botonesNav = document.querySelectorAll(".nav-menu .nav-item-btn");
+            if (botonesNav[indexNav]) {
+                cambiarVista(destinoVista, botonesNav[indexNav]);
+            }
+        }
+
+        function marcarTodasNotificacionesLeidas() {
+            const vistas = obtenerSetNotificacionesVistas();
+            listaNotificacionesGlobal.forEach(it => vistas.add(it.uid));
+            guardarSetNotificacionesVistas(vistas);
+            listaNotificacionesGlobal = listaNotificacionesGlobal.map(it => ({ ...it, leida: true }));
+            renderizarCampanitaNotificaciones();
+        }
+
+        function renderizarCampanitaNotificaciones() {
+            const noLeidasTodas = listaNotificacionesGlobal.filter(i => !i.leida).length;
+            const noLeidasGar = listaNotificacionesGlobal.filter(i => i.categoria === "garantias" && !i.leida).length;
+            const noLeidasMant = listaNotificacionesGlobal.filter(i => i.categoria === "mantenimientos" && !i.leida).length;
+
+            const badgeCampana = document.getElementById("badge-campana-total");
+            if (noLeidasTodas > 0) {
+                badgeCampana.textContent = noLeidasTodas > 99 ? "99+" : noLeidasTodas;
+                badgeCampana.classList.remove("d-none");
+            } else {
+                badgeCampana.classList.add("d-none");
+            }
+
+            document.getElementById("notif-pill-pendientes").textContent = `${listaNotificacionesGlobal.length} activa(s)`;
+
+            document.getElementById("dot-tab-todas").classList.toggle("d-none", noLeidasTodas === 0);
+            document.getElementById("dot-tab-garantias").classList.toggle("d-none", noLeidasGar === 0);
+            document.getElementById("dot-tab-mantenimientos").classList.toggle("d-none", noLeidasMant === 0);
+
+            const filtradas = listaNotificacionesGlobal.filter(item => {
+                if (tabNotificacionesActual === "todas") return true;
+                return item.categoria === tabNotificacionesActual;
+            });
+
+            const contenedor = document.getElementById("notif-lista-contenedor");
+            if (filtradas.length === 0) {
+                contenedor.innerHTML = `
+                    <div class="text-center py-4 px-3">
+                        <i class="bi bi-check2-circle text-success d-block mb-1" style="font-size: 1.5rem;"></i>
+                        <div class="fw-semibold small text-dark">Todo en orden</div>
+                        <small class="text-muted" style="font-size: 0.75rem;">No hay alertas en esta categoría dentro de los próximos 30 días.</small>
+                    </div>`;
+                return;
+            }
+
+            contenedor.innerHTML = filtradas.map(item => {
+                const claseAvatar = item.esCritica ? "notif-avatar-danger" : "notif-avatar-warning";
+                const icono = item.categoria === "garantias" ? "bi-shield-exclamation" : "bi-wrench-adjustable";
+                const colorTiempo = item.esCritica ? "text-danger" : "text-warning-emphasis";
+                const puntoNoLeida = !item.leida ? `<span class="notif-unread-indicator" title="Sin revisar"></span>` : "";
+
+                return `
+                    <div class="notif-item-card ${!item.leida ? 'no-leida' : ''}" 
+                         onclick="marcarNotificacionComoLeida('${item.uid}', '${item.destinoVista}', ${item.indexNav})">
+                        <div class="notif-item-avatar ${claseAvatar}">
+                            <i class="bi ${icono}"></i>
+                        </div>
+                        <div class="notif-item-body">
+                            <div class="notif-item-top">
+                                <div class="notif-item-title" title="${item.titulo}">${item.titulo}</div>
+                                <span class="notif-item-time ${colorTiempo}">${item.tiempoTexto}</span>
+                            </div>
+                            <div class="notif-item-desc">${item.descripcion}</div>
+                            <div class="notif-item-meta text-truncate">${item.meta}</div>
+                        </div>
+                        ${puntoNoLeida}
+                    </div>
+                `;
+            }).join("");
+        }
+
+        // ================= MÓDULO 1: ALERTAS Y CORREO ÚNICO (7D Y VENCIDOS) =================
         async function cargarAlertas(dispararNotificacionPC = false) {
             const res = await fetch("/alertas/?dias_anticipacion=30");
             const data = await res.json();
@@ -1404,6 +1990,9 @@
             resumenAlertasActual.mantenimientos = data.total_alertas_mantenimiento;
             document.getElementById("kpi-garantias").textContent = data.total_alertas_garantia;
             document.getElementById("kpi-mantenimientos").textContent = data.total_alertas_mantenimiento;
+
+            construirListaNotificacionesCampana(data);
+
             const tbodyGarantia = document.getElementById("tabla-alertas-garantia");
             tbodyGarantia.innerHTML = data.alertas_garantias.length === 0
                 ? `<tr><td colspan="6" class="text-center text-muted py-3">Sin garantías próximas a vencer.</td></tr>`
@@ -1411,26 +2000,30 @@
                     const badge = eq.semaforo === "VENCIDA" ? `<span class="badge-soft-danger">Vencida</span>` : `<span class="badge-soft-warning">Por vencer</span>`;
                     return `<tr>
                         <td class="fw-medium">${limpiarTexto(eq.nombre_equipo)}</td>
-                        <td>${limpiarTexto(eq.nni, true)}</td>
+                        <td>${formatearCodigoNNI_SN(eq.nni, eq.sn)}</td>
                         <td>${mapaHospitales[eq.id_hospital] || 'Hospital #' + eq.id_hospital}</td>
                         <td>${limpiarTexto(eq.fecha_expiracion)}</td>
                         <td>${eq.dias_restantes} días</td>
                         <td>${badge}</td>
                     </tr>`;
                 }).join("");
+
             const tbodyMant = document.getElementById("tabla-alertas-mantenimiento");
             tbodyMant.innerHTML = data.alertas_mantenimientos.length === 0
-                ? `<tr><td colspan="5" class="text-center text-muted py-3">Sin mantenimientos próximos programados.</td></tr>`
+                ? `<tr><td colspan="6" class="text-center text-muted py-3">Sin mantenimientos próximos programados.</td></tr>`
                 : data.alertas_mantenimientos.map(m => {
                     const badge = m.semaforo === "ATRASADO" ? `<span class="badge-soft-danger">Atrasado</span>` : `<span class="badge-soft-warning">Próximo</span>`;
+                    const nombreLimpio = m.nombre_equipo || (mapaEquipos[m.id_equipo] ? mapaEquipos[m.id_equipo].split(" (NNI:")[0] : `Equipo #${m.id_equipo}`);
                     return `<tr>
-                        <td class="fw-medium">${mapaEquipos[m.id_equipo] || 'Equipo #' + m.id_equipo}</td>
+                        <td class="fw-medium">${limpiarTexto(nombreLimpio)}</td>
+                        <td>${formatearCodigoNNI_SN(m.nni, m.sn)}</td>
                         <td>${limpiarTexto(m.tipo_mantenimiento)}</td>
                         <td>${limpiarTexto(m.proxima_fecha)}</td>
                         <td>${m.dias_restantes} días</td>
                         <td>${badge}</td>
                     </tr>`;
                 }).join("");
+
             const totalPendientes = resumenAlertasActual.garantias + resumenAlertasActual.mantenimientos;
             if (dispararNotificacionPC && totalPendientes > 0 && "Notification" in window) {
                 const hoyStr = new Date().toISOString().slice(0, 10);
@@ -1453,13 +2046,13 @@
 
         function lanzarGloboNotificacion() {
             const cuerpo = `Tienes ${resumenAlertasActual.garantias} alerta(s) de garantía y ${resumenAlertasActual.mantenimientos} mantenimiento(s) próximos en los siguientes 30 días.`;
-            new Notification("Biomédica IMSS - Monitoreo Automático", {
+            new Notification("SIGEM - Monitoreo Preventivo", {
                 body: cuerpo,
                 icon: "/app/favicon.svg"
             });
         }
 
-        async function ejecutarMonitoreoAutomaticoDiario() {
+        async function verificarAlertasHitosCorreo() {
             if (usuarioActual.rol !== "ADMIN") return;
             try {
                 const res = await fetch(`/alertas/auto-notificar-diario?id_usuario=${usuarioActual.id_usuario}`, {
@@ -1636,8 +2229,17 @@
                     observaciones: document.getElementById("eq-obs").value || null
                 })
             });
-            if (res.ok) { document.getElementById("form-agregar-equipo").reset(); toggleFechaGarantia(); await cargarCatalogosBase(); cargarEquiposDeInventarioActivo(); cargarAlertas(false); }
-            else { const d = await res.json(); alert(d.detail); }
+            if (res.ok) {
+                document.getElementById("form-agregar-equipo").reset();
+                toggleFechaGarantia();
+                await cargarCatalogosBase();
+                cargarEquiposDeInventarioActivo();
+                await cargarAlertas(false);
+                await verificarAlertasHitosCorreo();
+            } else {
+                const d = await res.json();
+                alert(d.detail);
+            }
         });
         document.getElementById("form-subir-csv").addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -1651,7 +2253,8 @@
                 document.getElementById("form-subir-csv").reset();
                 await cargarCatalogosBase();
                 cargarEquiposDeInventarioActivo();
-                cargarAlertas(false);
+                await cargarAlertas(false);
+                await verificarAlertasHitosCorreo();
             } else {
                 alert(data.detail);
             }
@@ -1744,7 +2347,7 @@
                         <td><span class="${eq.estatusfuncional ? 'badge-soft-success' : 'badge-soft-danger'}">${eq.estatusfuncional ? 'Funcional' : 'Inactivo'}</span></td>
                         <td>
                             <div class="d-flex gap-1">
-                                <button class="btn btn-secundario btn-sm" onclick="abrirModalTransferirEquipo(${eq.id_equipo})" title="${esAdmin ? 'Transferir de hospital / Ver bitácora' : 'Ver historial de transferencias'}">
+                                <button class="btn btn-secundario btn-sm" onclick="abrirModalTransferirEquipo(${eq.id_equipo})" title="${esAdmin ? 'Transferir de hospital / Ver historial' : 'Ver historial de transferencias'}">
                                     <i class="bi bi-arrow-left-right"></i>
                                 </button>
                                 ${botonesAdmin}
@@ -1769,7 +2372,6 @@
             await cargarCatalogosBase();
             document.getElementById("form-crear-equipo-individual").reset();
             toggleIndGarantia();
-            // Si el usuario ya tenía seleccionado un hospital en el filtro de la vista, preseleccionarlo por comodidad
             const hospFiltrado = document.getElementById("filtro-eq-hospital").value;
             if (hospFiltrado) {
                 document.getElementById("ind-eq-hospital").value = hospFiltrado;
@@ -1811,14 +2413,15 @@
                 modalCrearEqIndInstancia.hide();
                 await cargarCatalogosBase();
                 cargarEquiposFiltrados();
-                cargarAlertas(false);
+                await cargarAlertas(false);
+                await verificarAlertasHitosCorreo();
             } else {
                 const d = await res.json();
                 alert(d.detail || "No se pudo registrar el equipo.");
             }
         });
 
-        // --- Funciones para Transferencia de Equipos entre Hospitales y Bitácora ---
+        // --- Funciones para Transferencia de Equipos entre Hospitales e Historial ---
         async function abrirModalTransferirEquipo(idEquipo) {
             const eq = listaEquiposActuales.find(e => e.id_equipo === idEquipo);
             if (!eq) return;
@@ -1830,7 +2433,6 @@
             document.getElementById("transf-eq-origen-badge").textContent = mapaHospitales[eq.id_hospital] || "Sin hospital asignado";
             document.getElementById("transf-eq-motivo").value = "";
 
-            // Poblar selector de hospitales destino excluyendo el hospital donde ya se encuentra actualmente
             const selDestino = document.getElementById("transf-eq-destino");
             const opcionesDestino = Object.entries(mapaHospitales)
                 .filter(([idHosp, _]) => parseInt(idHosp) !== eq.id_hospital)
@@ -1847,7 +2449,7 @@
 
         async function cargarHistorialTransferenciasEquipo(idEquipo) {
             const tbody = document.getElementById("tabla-historial-transferencias");
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">Consultando bitácora...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">Consultando historial...</td></tr>`;
             try {
                 const res = await fetch(`/equipos/${idEquipo}/transferencias`);
                 const historial = await res.json();
@@ -1991,7 +2593,8 @@
                 modalEditarInstancia.hide();
                 await cargarCatalogosBase();
                 cargarEquiposFiltrados();
-                cargarAlertas(false);
+                await cargarAlertas(false);
+                await verificarAlertasHitosCorreo();
             } else {
                 const d = await res.json();
                 alert(d.detail || "No se pudo actualizar el equipo.");
@@ -2062,8 +2665,16 @@
                     observaciones: document.getElementById("mant-obs").value || null
                 })
             });
-            if (res.ok) { document.getElementById("form-registrar-mant").reset(); toggleFormMantenimiento(); cargarMantenimientos(); cargarAlertas(false); }
-            else { const d = await res.json(); alert(d.detail); }
+            if (res.ok) {
+                document.getElementById("form-registrar-mant").reset();
+                toggleFormMantenimiento();
+                cargarMantenimientos();
+                await cargarAlertas(false);
+                await verificarAlertasHitosCorreo();
+            } else {
+                const d = await res.json();
+                alert(d.detail);
+            }
         });
         function abrirModalEditarMantenimiento(idMant) {
             const m = listaMantenimientosActuales.find(item => item.id_mantenimiento === idMant);
@@ -2101,7 +2712,8 @@
             if (res.ok) {
                 modalMantInstancia.hide();
                 cargarMantenimientos();
-                cargarAlertas(false);
+                await cargarAlertas(false);
+                await verificarAlertasHitosCorreo();
             } else {
                 const d = await res.json();
                 alert(d.detail || "No se pudo actualizar el mantenimiento.");

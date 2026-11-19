@@ -25,62 +25,38 @@ from . import models, schemas
 # Cargar variables de entorno desde el archivo .env (credenciales DB y SMTP)
 load_dotenv()
 
-# Verifica y crea tablas nuevas (como transferencias_equipo) si aún no existen en PostgreSQL.
-# Si ya las creaste en pgAdmin, las detecta y continúa sin lanzar error ni alterar datos.
+# Verifica y crea tablas nuevas si aún no existen en PostgreSQL.
 models.Base.metadata.create_all(bind=engine)
 
 # ==========================================================
-# CONFIGURACIÓN DE CARPETAS Y CONTROL DE ENVÍO DIARIO
+# CONFIGURACIÓN DE CARPETAS Y DIRECTORIOS ESTÁTICOS
 # ==========================================================
 CARPETA_DOCUMENTOS = "archivos_subidos"
 os.makedirs(os.path.join(CARPETA_DOCUMENTOS, "perfiles"), exist_ok=True)
 os.makedirs("frontend", exist_ok=True)
 
-# Archivo oculto para recordar la fecha del último correo automático (persiste ante reinicios)
-ARCHIVO_CONTROL_CORREO = os.path.join(CARPETA_DOCUMENTOS, ".ultimo_envio_alertas.txt")
-
-def leer_fecha_ultimo_correo() -> Optional[date]:
-    """Lee del disco la fecha del último reporte diario enviado automáticamente."""
-    if os.path.exists(ARCHIVO_CONTROL_CORREO):
-        try:
-            with open(ARCHIVO_CONTROL_CORREO, "r", encoding="utf-8") as f:
-                return date.fromisoformat(f.read().strip())
-        except Exception:
-            return None
-    return None
-
-def guardar_fecha_ultimo_correo(fecha_envio: date) -> None:
-    """Registra en disco la fecha en que se envió el reporte automático del día."""
-    try:
-        with open(ARCHIVO_CONTROL_CORREO, "w", encoding="utf-8") as f:
-            f.write(fecha_envio.isoformat())
-    except Exception:
-        pass
-
 # ==========================================================
-# TAREA EN SEGUNDO PLANO (MONITOREO AUTÓNOMO SIN WEBAPP ABIERTA)
+# TAREA EN SEGUNDO PLANO (CORREO ÚNICO: 7 DÍAS ANTES Y AL VENCER)
 # ==========================================================
 async def tarea_vigilante_alertas():
     """
     Corrutina que se ejecuta en segundo plano mientras el servidor FastAPI esté encendido.
-    Verifica cada hora si existen alertas próximas (30 días) y envía el correo diario
-    a los Administradores aunque nadie tenga abierta la aplicación en el navegador.
+    Verifica cada hora si existen garantías o mantenimientos en ventana preventiva de <= 7 días
+    (sin enviar aún su correo de 7 días) o recién vencidos (fecha < hoy, sin enviar aún su correo
+    de vencimiento), enviando un único correo consolidado por hito y marcando las banderas.
     """
     await asyncio.sleep(5)
     while True:
         try:
-            hoy = date.today()
-            if leer_fecha_ultimo_correo() != hoy:
-                db = SessionLocal()
-                try:
-                    exito, detalle = procesar_envio_correo_alertas(db)
-                    if exito:
-                        guardar_fecha_ultimo_correo(hoy)
-                        print(f"[Auto-Alertas IMSS] {detalle}")
-                finally:
-                    db.close()
+            db = SessionLocal()
+            try:
+                exito, detalle = procesar_envio_correo_alertas_hitos(db)
+                if exito:
+                    print(f"[Auto-Alertas SIGEM] {detalle}")
+            finally:
+                db.close()
         except Exception as e:
-            print(f"[Auto-Alertas IMSS] Aviso en monitoreo automático: {e}")
+            print(f"[Auto-Alertas SIGEM] Aviso en monitoreo automático: {e}")
         await asyncio.sleep(3600)
 
 @asynccontextmanager
@@ -91,9 +67,9 @@ async def lifespan(app: FastAPI):
     tarea_bg.cancel()
 
 app = FastAPI(
-    title="API - Gestión de Equipos Médicos IMSS",
+    title="API - SIGEM (Sistema Integral de Gestión de Equipo Médico)",
     description="Backend para el control de inventarios, mantenimientos, transferencias, usuarios y equipos médicos hospitalarios.",
-    version="1.2.0",
+    version="1.4.0",
     lifespan=lifespan
 )
 
@@ -162,6 +138,17 @@ def eliminar_archivo_fisico_seguro(ruta_archivo: Optional[str]) -> None:
             os.remove(ruta_archivo)
         except OSError:
             pass
+
+def formatear_identificador_equipo(nni: Optional[str], sn: Optional[str]) -> str:
+    """
+    Devuelve el NNI si existe; si está vacío o nulo, recurre al SN (SN: ...);
+    si ninguno existe, devuelve 'Sin información'.
+    """
+    if nni and str(nni).strip() and str(nni).strip().lower() != "null":
+        return str(nni).strip()
+    if sn and str(sn).strip() and str(sn).strip().lower() != "null":
+        return f"SN: {str(sn).strip()}"
+    return "Sin información"
 
 # ==========================================================
 # 1. RUTAS GENERALES (DIAGNÓSTICO DE BASE DE DATOS)
@@ -546,27 +533,22 @@ def cancelar_o_eliminar_inventario(
     inventario = db.query(models.Inventario).filter(models.Inventario.id_inventario == id_inventario).first()
     if not inventario:
         raise HTTPException(status_code=404, detail="El inventario no existe.")
-    # 1. Obtener los IDs de los equipos vinculados a este inventario
     vinculos_eq = db.query(models.InventarioEquipo).filter(
         models.InventarioEquipo.id_inventario == id_inventario
     ).all()
     ids_equipos = [v.id_equipo for v in vinculos_eq]
-    # 2. Eliminar vínculos en inventario_equipo e inventario_usuario
     db.query(models.InventarioEquipo).filter(
         models.InventarioEquipo.id_inventario == id_inventario
     ).delete()
     db.query(models.InventarioUsuario).filter(
         models.InventarioUsuario.id_inventario == id_inventario
     ).delete()
-    # 3. Eliminar documentos vinculados directamente a este inventario
     docs_inv = db.query(models.Documento).filter(models.Documento.id_inventario == id_inventario).all()
     for d in docs_inv:
         eliminar_archivo_fisico_seguro(d.rutaarchivo)
         db.delete(d)
-    # 4. Si se indicó eliminar los equipos que se estaban registrando en este levantamiento
     if eliminar_equipos_censados and ids_equipos:
         for id_eq in ids_equipos:
-            # Verificar que el equipo no pertenezca a otro inventario histórico
             en_otro_inv = db.query(models.InventarioEquipo).filter(
                 models.InventarioEquipo.id_equipo == id_eq
             ).first()
@@ -578,7 +560,6 @@ def cancelar_o_eliminar_inventario(
                 db.query(models.Mantenimiento).filter(models.Mantenimiento.id_equipo == id_eq).delete()
                 db.query(models.TransferenciaEquipo).filter(models.TransferenciaEquipo.id_equipo == id_eq).delete()
                 db.query(models.Equipo).filter(models.Equipo.id_equipo == id_eq).delete()
-    # 5. Eliminar el registro del inventario
     db.delete(inventario)
     db.commit()
     return {"mensaje": f"El Inventario #{id_inventario} fue cancelado y eliminado correctamente."}
@@ -725,7 +706,7 @@ def transferir_equipo_hospital(
     if not equipo.id_hospital:
         raise HTTPException(
             status_code=400,
-            detail="Este equipo no tiene un hospital origen asignado actualmente.Asígnale uno desde Editar primero."
+            detail="Este equipo no tiene un hospital origen asignado actualmente. Asígnale uno desde Editar primero."
         )
 
     if equipo.id_hospital == datos.id_hospital_destino:
@@ -739,7 +720,6 @@ def transferir_equipo_hospital(
     if not hospital_destino:
         raise HTTPException(status_code=404, detail="El hospital destino seleccionado no existe.")
 
-    # 1. Crear el registro en la bitácora histórica de transferencias
     id_usr_registro = datos.id_usuario or id_admin
     nueva_transferencia = models.TransferenciaEquipo(
         id_equipo=id_equipo,
@@ -749,8 +729,6 @@ def transferir_equipo_hospital(
         motivo=datos.motivo.strip()
     )
     db.add(nueva_transferencia)
-
-    # 2. Actualizar el hospital actual en la tabla maestra de equipos
     equipo.id_hospital = datos.id_hospital_destino
 
     db.commit()
@@ -935,7 +913,11 @@ def actualizar_equipo(
     id_admin: int = Query(...),
     db: Session = Depends(get_db)
 ):
-    """Permite a un Administrador editar la información, garantía o estado funcional de un equipo."""
+    """
+    Permite a un Administrador editar la información, garantía o estado funcional de un equipo.
+    Si se actualiza la fecha de expiración de garantía, gestiona limpiamente las banderas
+    de correo único (7 días antes y vencimiento).
+    """
     verificar_es_admin(db, id_admin)
     equipo = db.query(models.Equipo).filter(models.Equipo.id_equipo == id_equipo).first()
     if not equipo:
@@ -943,6 +925,17 @@ def actualizar_equipo(
     duplicado = buscar_equipo_duplicado(db, datos.sn, datos.nni, excluir_id_equipo=id_equipo)
     if duplicado:
         raise HTTPException(status_code=400, detail="Otro equipo ya tiene registrado ese Número de Serie (SN) o NNI.")
+    
+    hoy = date.today()
+    if not datos.garantia or not datos.fecha_expgarantia:
+        equipo.alerta_garantia_7d_enviada = False
+        equipo.alerta_garantia_enviada = False
+    elif datos.fecha_expgarantia > (hoy + timedelta(days=7)):
+        equipo.alerta_garantia_7d_enviada = False
+        equipo.alerta_garantia_enviada = False
+    elif datos.fecha_expgarantia >= hoy:
+        equipo.alerta_garantia_enviada = False
+
     for campo, valor in datos.model_dump().items():
         setattr(equipo, campo, valor)
     db.commit()
@@ -963,12 +956,10 @@ def eliminar_equipo(
     equipo = db.query(models.Equipo).filter(models.Equipo.id_equipo == id_equipo).first()
     if not equipo:
         raise HTTPException(status_code=404, detail="Equipo no encontrado.")
-    # 1. Eliminar documentos asociados a este equipo (y sus archivos físicos)
     docs_eq = db.query(models.Documento).filter(models.Documento.id_equipo == id_equipo).all()
     for doc in docs_eq:
         eliminar_archivo_fisico_seguro(doc.rutaarchivo)
         db.delete(doc)
-    # 2. Eliminar documentos asociados a los mantenimientos de este equipo
     mants_eq = db.query(models.Mantenimiento).filter(models.Mantenimiento.id_equipo == id_equipo).all()
     for m in mants_eq:
         docs_mant = db.query(models.Documento).filter(models.Documento.id_mantenimiento == m.id_mantenimiento).all()
@@ -976,10 +967,8 @@ def eliminar_equipo(
             eliminar_archivo_fisico_seguro(dm.rutaarchivo)
             db.delete(dm)
         db.delete(m)
-    # 3. Eliminar relación en inventario_equipo y en historial de transferencias
     db.query(models.InventarioEquipo).filter(models.InventarioEquipo.id_equipo == id_equipo).delete()
     db.query(models.TransferenciaEquipo).filter(models.TransferenciaEquipo.id_equipo == id_equipo).delete()
-    # 4. Eliminar el equipo
     nombre_eq = equipo.nombre_equipo or f"#{id_equipo}"
     db.delete(equipo)
     db.commit()
@@ -1113,6 +1102,17 @@ def actualizar_mantenimiento(
         proveedor = db.query(models.Proveedor).filter(models.Proveedor.id_proveedor == datos.id_proveedor).first()
         if not proveedor:
             raise HTTPException(status_code=404, detail="El proveedor seleccionado no existe.")
+    
+    hoy = date.today()
+    if not datos.prox_fecha:
+        mant.alerta_mant_7d_enviada = False
+        mant.alerta_vencimiento_enviada = False
+    elif datos.prox_fecha > (hoy + timedelta(days=7)):
+        mant.alerta_mant_7d_enviada = False
+        mant.alerta_vencimiento_enviada = False
+    elif datos.prox_fecha >= hoy:
+        mant.alerta_vencimiento_enviada = False
+
     for campo, valor in datos.model_dump().items():
         setattr(mant, campo, valor)
     db.commit()
@@ -1206,7 +1206,6 @@ def actualizar_o_reemplazar_documento(
     doc.id_equipo = id_equipo
     doc.id_mantenimiento = id_mantenimiento
     doc.id_inventario = id_inventario
-    # Si el administrador subió un archivo nuevo para reemplazar el anterior
     if archivo and archivo.filename:
         eliminar_archivo_fisico_seguro(doc.rutaarchivo)
         nombre_limpio = os.path.basename(archivo.filename)
@@ -1266,14 +1265,17 @@ def ver_o_descargar_documento(id_documento: int, db: Session = Depends(get_db)):
     return FileResponse(doc.rutaarchivo)
 
 # ==========================================================
-# 9. MOTOR DE ALERTAS Y ENVÍO AUTOMÁTICO / MANUAL POR CORREO
+# 9. MOTOR DE ALERTAS (CAMPANITA 30 DÍAS + CORREO ÚNICO 7D Y VENCIDOS)
 # ==========================================================
 @app.get("/alertas/", tags=["Alertas"])
 def obtener_alertas_proximas(
     dias_anticipacion: int = Query(30),
     db: Session = Depends(get_db)
 ):
-    """Calcula garantías vencidas/por vencer y mantenimientos próximos/atrasados."""
+    """
+    Calcula garantías vencidas/por vencer (<= 30 días) y mantenimientos próximos/atrasados,
+    incluyendo NNI y SN tanto en garantías como en mantenimientos para soporte de fallback NNI/SN.
+    """
     hoy = date.today()
     fecha_limite = hoy + timedelta(days=dias_anticipacion)
     equipos_alerta_garantia = db.query(models.Equipo).filter(
@@ -1289,22 +1291,34 @@ def obtener_alertas_proximas(
             "id_equipo": eq.id_equipo,
             "nombre_equipo": eq.nombre_equipo,
             "nni": eq.nni,
+            "sn": eq.sn,
             "id_hospital": eq.id_hospital,
             "fecha_expiracion": eq.fecha_expgarantia,
             "dias_restantes": dias_restantes,
             "semaforo": estado_alerta
         })
+
     mantenimientos_alerta = db.query(models.Mantenimiento).filter(
         models.Mantenimiento.prox_fecha != None,
         models.Mantenimiento.prox_fecha <= fecha_limite
     ).order_by(models.Mantenimiento.prox_fecha).all()
+
+    mapa_datos_equipos = {
+        e.id_equipo: e for e in db.query(models.Equipo).all()
+    }
+
     alertas_mantenimientos = []
     for mant in mantenimientos_alerta:
         dias_restantes = (mant.prox_fecha - hoy).days
         estado_alerta = "ATRASADO" if dias_restantes < 0 else "PROXIMO"
+        eq_vinculado = mapa_datos_equipos.get(mant.id_equipo)
         alertas_mantenimientos.append({
             "id_mantenimiento": mant.id_mantenimiento,
             "id_equipo": mant.id_equipo,
+            "nombre_equipo": eq_vinculado.nombre_equipo if eq_vinculado else f"Equipo #{mant.id_equipo}",
+            "nni": eq_vinculado.nni if eq_vinculado else None,
+            "sn": eq_vinculado.sn if eq_vinculado else None,
+            "id_hospital": eq_vinculado.id_hospital if eq_vinculado else None,
             "tipo_mantenimiento": mant.tipo_mantenimiento,
             "proxima_fecha": mant.prox_fecha,
             "dias_restantes": dias_restantes,
@@ -1319,120 +1333,240 @@ def obtener_alertas_proximas(
         "alertas_mantenimientos": alertas_mantenimientos
     }
 
-def procesar_envio_correo_alertas(db: Session) -> tuple[bool, str]:
+def procesar_envio_correo_alertas_hitos(db: Session) -> tuple[bool, str]:
     """
-    Función central reutilizable que construye y envía el correo HTML de alertas
-    a todos los usuarios con rol ADMIN cuando existen garantías o mantenimientos próximos.
+    Envía un correo consolidado único a los Administradores en dos hitos sin repetición:
+    1) Aviso preventivo único cuando faltan <= 7 días para vencer (0 <= dias <= 7) y aún
+       no se ha enviado su correo de 7 días (*_7d_enviada == False).
+    2) Aviso único de vencimiento cuando la fecha ya pasó (fecha < hoy) y aún no se ha
+       enviado su correo de vencimiento (*_enviada == False).
+    Marca las banderas correspondientes en PostgreSQL tras el envío exitoso.
     """
+    hoy = date.today()
+    limite_7_dias = hoy + timedelta(days=7)
+
+    # --- HITO 1: PRÓXIMOS A VENCER EN <= 7 DÍAS (AVISO PREVENTIVO ÚNICO) ---
+    garantias_7d = db.query(models.Equipo).filter(
+        models.Equipo.garantia == True,
+        models.Equipo.fecha_expgarantia != None,
+        models.Equipo.fecha_expgarantia >= hoy,
+        models.Equipo.fecha_expgarantia <= limite_7_dias,
+        models.Equipo.alerta_garantia_7d_enviada == False
+    ).order_by(models.Equipo.fecha_expgarantia).all()
+
+    mantenimientos_7d = db.query(models.Mantenimiento).filter(
+        models.Mantenimiento.prox_fecha != None,
+        models.Mantenimiento.prox_fecha >= hoy,
+        models.Mantenimiento.prox_fecha <= limite_7_dias,
+        models.Mantenimiento.alerta_mant_7d_enviada == False
+    ).order_by(models.Mantenimiento.prox_fecha).all()
+
+    # --- HITO 2: YA VENCIDOS / ATRASADOS (AVISO ÚNICO DE VENCIMIENTO) ---
+    garantias_vencidas = db.query(models.Equipo).filter(
+        models.Equipo.garantia == True,
+        models.Equipo.fecha_expgarantia != None,
+        models.Equipo.fecha_expgarantia < hoy,
+        models.Equipo.alerta_garantia_enviada == False
+    ).order_by(models.Equipo.fecha_expgarantia).all()
+
+    mantenimientos_vencidos = db.query(models.Mantenimiento).filter(
+        models.Mantenimiento.prox_fecha != None,
+        models.Mantenimiento.prox_fecha < hoy,
+        models.Mantenimiento.alerta_vencimiento_enviada == False
+    ).order_by(models.Mantenimiento.prox_fecha).all()
+
+    total_7d = len(garantias_7d) + len(mantenimientos_7d)
+    total_vencidos = len(garantias_vencidas) + len(mantenimientos_vencidos)
+    total_eventos = total_7d + total_vencidos
+
+    if total_eventos == 0:
+        return False, "No hay nuevos hitos de 7 días ni vencimientos pendientes por notificar."
+
     smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
     smtp_user = os.getenv("SMTP_USER")
     smtp_password = os.getenv("SMTP_PASSWORD")
     if not smtp_user or not smtp_password or "tu_correo" in smtp_user:
         return False, "Falta configurar SMTP_USER y SMTP_PASSWORD en el archivo .env."
+
     admins = db.query(models.Usuario).filter(models.Usuario.rol == "ADMIN").all()
     correos_destino = [a.correo for a in admins if a.correo]
     if not correos_destino:
         return False, "No hay administradores con correo registrado."
-    datos_alertas = obtener_alertas_proximas(dias_anticipacion=30, db=db)
-    total_pendientes = datos_alertas["total_alertas_garantia"] + datos_alertas["total_alertas_mantenimiento"]
-    if total_pendientes == 0:
-        return False, "No hay alertas pendientes en los próximos 30 días."
-    mapa_equipos = {
-        e.id_equipo: f"{e.nombre_equipo or 'Equipo #' + str(e.id_equipo)} (NNI: {e.nni or 'S/N'})"
-        for e in db.query(models.Equipo).all()
-    }
-    filas_garantias = "".join([
-        f"<tr><td style='padding:6px;border:1px solid #ddd;'>{g['nombre_equipo'] or 'S/N'}</td>"
-        f"<td style='padding:6px;border:1px solid #ddd;'>{g['nni'] or 'Sin información'}</td>"
-        f"<td style='padding:6px;border:1px solid #ddd;'>{g['fecha_expiracion']}</td>"
-        f"<td style='padding:6px;border:1px solid #ddd;'>{g['dias_restantes']} días ({g['semaforo']})</td></tr>"
-        for g in datos_alertas["alertas_garantias"]
-    ]) or "<tr><td colspan='4' style='padding:8px;'>Sin alertas de garantía</td></tr>"
-    filas_mant = "".join([
-        f"<tr><td style='padding:6px;border:1px solid #ddd;'>{mapa_equipos.get(m['id_equipo'], 'Equipo #' + str(m['id_equipo']))}</td>"
-        f"<td style='padding:6px;border:1px solid #ddd;'>{m['tipo_mantenimiento']}</td>"
-        f"<td style='padding:6px;border:1px solid #ddd;'>{m['proxima_fecha']}</td>"
-        f"<td style='padding:6px;border:1px solid #ddd;'>{m['dias_restantes']} días ({m['semaforo']})</td></tr>"
-        for m in datos_alertas["alertas_mantenimientos"]
-    ]) or "<tr><td colspan='4' style='padding:8px;'>Sin mantenimientos próximos</td></tr>"
+
+    mapa_hospitales = {h.id_hospital: f"{h.nombre} ({h.ciudad})" for h in db.query(models.Hospital).all()}
+    mapa_equipos_obj = {e.id_equipo: e for e in db.query(models.Equipo).all()}
+
+    bloque_7d_html = ""
+    if total_7d > 0:
+        filas_7d = []
+        for eq in garantias_7d:
+            dias_rest = (eq.fecha_expgarantia - hoy).days
+            ident_eq = formatear_identificador_equipo(eq.nni, eq.sn)
+            filas_7d.append(
+                f"<tr>"
+                f"<td style='padding:7px;border:1px solid #ddd;'>Garantía de Equipo</td>"
+                f"<td style='padding:7px;border:1px solid #ddd;'><strong>{eq.nombre_equipo or 'Equipo #' + str(eq.id_equipo)}</strong></td>"
+                f"<td style='padding:7px;border:1px solid #ddd;'>{ident_eq}</td>"
+                f"<td style='padding:7px;border:1px solid #ddd;'>{mapa_hospitales.get(eq.id_hospital, 'Sin hospital')}</td>"
+                f"<td style='padding:7px;border:1px solid #ddd;'>{eq.fecha_expgarantia}</td>"
+                f"<td style='padding:7px;border:1px solid #ddd;color:#B45309;font-weight:bold;'>{dias_rest} día(s)</td>"
+                f"</tr>"
+            )
+        for m in mantenimientos_7d:
+            dias_rest = (m.prox_fecha - hoy).days
+            eq_obj = mapa_equipos_obj.get(m.id_equipo)
+            nombre_eq = (eq_obj.nombre_equipo if (eq_obj and eq_obj.nombre_equipo) else f"Equipo #{m.id_equipo}")
+            ident_eq = formatear_identificador_equipo(eq_obj.nni if eq_obj else None, eq_obj.sn if eq_obj else None)
+            hosp_txt = mapa_hospitales.get(eq_obj.id_hospital, "Sin hospital") if eq_obj else "Sin hospital"
+            filas_7d.append(
+                f"<tr>"
+                f"<td style='padding:7px;border:1px solid #ddd;'>Mantenimiento ({m.tipo_mantenimiento})</td>"
+                f"<td style='padding:7px;border:1px solid #ddd;'><strong>{nombre_eq}</strong></td>"
+                f"<td style='padding:7px;border:1px solid #ddd;'>{ident_eq}</td>"
+                f"<td style='padding:7px;border:1px solid #ddd;'>{hosp_txt}</td>"
+                f"<td style='padding:7px;border:1px solid #ddd;'>{m.prox_fecha}</td>"
+                f"<td style='padding:7px;border:1px solid #ddd;color:#B45309;font-weight:bold;'>{dias_rest} día(s)</td>"
+                f"</tr>"
+            )
+        bloque_7d_html = f"""
+        <h4 style="color:#B45309; margin-top:18px;">Aviso Preventivo — Vencen en 7 Días o Menos ({total_7d})</h4>
+        <table style="border-collapse:collapse; width:100%; font-size:13px;">
+            <tr style="background:#FEF3C7;">
+                <th style="padding:7px;border:1px solid #ddd;text-align:left;">Concepto</th>
+                <th style="padding:7px;border:1px solid #ddd;text-align:left;">Equipo</th>
+                <th style="padding:7px;border:1px solid #ddd;text-align:left;">NNI / SN</th>
+                <th style="padding:7px;border:1px solid #ddd;text-align:left;">Hospital</th>
+                <th style="padding:7px;border:1px solid #ddd;text-align:left;">Fecha Límite</th>
+                <th style="padding:7px;border:1px solid #ddd;text-align:left;">Restante</th>
+            </tr>
+            {''.join(filas_7d)}
+        </table>
+        """
+
+    bloque_vencidos_html = ""
+    if total_vencidos > 0:
+        filas_venc = []
+        for eq in garantias_vencidas:
+            dias_venc = abs((eq.fecha_expgarantia - hoy).days)
+            ident_eq = formatear_identificador_equipo(eq.nni, eq.sn)
+            filas_venc.append(
+                f"<tr>"
+                f"<td style='padding:7px;border:1px solid #ddd;'>Garantía de Equipo</td>"
+                f"<td style='padding:7px;border:1px solid #ddd;'><strong>{eq.nombre_equipo or 'Equipo #' + str(eq.id_equipo)}</strong></td>"
+                f"<td style='padding:7px;border:1px solid #ddd;'>{ident_eq}</td>"
+                f"<td style='padding:7px;border:1px solid #ddd;'>{mapa_hospitales.get(eq.id_hospital, 'Sin hospital')}</td>"
+                f"<td style='padding:7px;border:1px solid #ddd;'>{eq.fecha_expgarantia}</td>"
+                f"<td style='padding:7px;border:1px solid #ddd;color:#B91C1C;font-weight:bold;'>Venció hace {dias_venc} d</td>"
+                f"</tr>"
+            )
+        for m in mantenimientos_vencidos:
+            dias_venc = abs((m.prox_fecha - hoy).days)
+            eq_obj = mapa_equipos_obj.get(m.id_equipo)
+            nombre_eq = (eq_obj.nombre_equipo if (eq_obj and eq_obj.nombre_equipo) else f"Equipo #{m.id_equipo}")
+            ident_eq = formatear_identificador_equipo(eq_obj.nni if eq_obj else None, eq_obj.sn if eq_obj else None)
+            hosp_txt = mapa_hospitales.get(eq_obj.id_hospital, "Sin hospital") if eq_obj else "Sin hospital"
+            filas_venc.append(
+                f"<tr>"
+                f"<td style='padding:7px;border:1px solid #ddd;'>Mantenimiento ({m.tipo_mantenimiento})</td>"
+                f"<td style='padding:7px;border:1px solid #ddd;'><strong>{nombre_eq}</strong></td>"
+                f"<td style='padding:7px;border:1px solid #ddd;'>{ident_eq}</td>"
+                f"<td style='padding:7px;border:1px solid #ddd;'>{hosp_txt}</td>"
+                f"<td style='padding:7px;border:1px solid #ddd;'>{m.prox_fecha}</td>"
+                f"<td style='padding:7px;border:1px solid #ddd;color:#B91C1C;font-weight:bold;'>Venció hace {dias_venc} d</td>"
+                f"</tr>"
+            )
+        bloque_vencidos_html = f"""
+        <h4 style="color:#B91C1C; margin-top:20px;">Registros Vencidos / Atrasados ({total_vencidos})</h4>
+        <table style="border-collapse:collapse; width:100%; font-size:13px;">
+            <tr style="background:#FEE2E2;">
+                <th style="padding:7px;border:1px solid #ddd;text-align:left;">Concepto</th>
+                <th style="padding:7px;border:1px solid #ddd;text-align:left;">Equipo</th>
+                <th style="padding:7px;border:1px solid #ddd;text-align:left;">NNI / SN</th>
+                <th style="padding:7px;border:1px solid #ddd;text-align:left;">Hospital</th>
+                <th style="padding:7px;border:1px solid #ddd;text-align:left;">Fecha Límite</th>
+                <th style="padding:7px;border:1px solid #ddd;text-align:left;">Estatus</th>
+            </tr>
+            {''.join(filas_venc)}
+        </table>
+        """
+
     cuerpo_html = f"""
     <html>
     <body style="font-family: Arial, sans-serif; color: #1E293B;">
         <div style="background-color:#13322B; color:white; padding:16px; border-bottom:3px solid #A68250;">
-            <h3 style="margin:0;">Biomédica IMSS - Reporte Automático de Alertas</h3>
-            <small>Fecha de corte: {date.today()}</small>
+            <h3 style="margin:0;">SIGEM - Notificación Única de Hitos y Vencimientos</h3>
+            <small>Fecha de revisión: {hoy}</small>
         </div>
-        <p>Se presenta el resumen de garantías próximas a expirar y mantenimientos programados (próximos 30 días):</p>
-        <h4>1. Garantías Vencidas o por Vencer ({datos_alertas['total_alertas_garantia']})</h4>
-        <table style="border-collapse:collapse; width:100%; font-size:13px;">
-            <tr style="background:#F1F5F9;">
-                <th style="padding:6px;border:1px solid #ddd;text-align:left;">Equipo</th>
-                <th style="padding:6px;border:1px solid #ddd;text-align:left;">NNI</th>
-                <th style="padding:6px;border:1px solid #ddd;text-align:left;">Expiración</th>
-                <th style="padding:6px;border:1px solid #ddd;text-align:left;">Estado</th>
-            </tr>
-            {filas_garantias}
-        </table>
-        <h4 style="margin-top:20px;">2. Mantenimientos Próximos o Atrasados ({datos_alertas['total_alertas_mantenimiento']})</h4>
-        <table style="border-collapse:collapse; width:100%; font-size:13px;">
-            <tr style="background:#F1F5F9;">
-                <th style="padding:6px;border:1px solid #ddd;text-align:left;">Equipo</th>
-                <th style="padding:6px;border:1px solid #ddd;text-align:left;">Tipo</th>
-                <th style="padding:6px;border:1px solid #ddd;text-align:left;">Próxima Fecha</th>
-                <th style="padding:6px;border:1px solid #ddd;text-align:left;">Estado</th>
-            </tr>
-            {filas_mant}
-        </table>
+        <div style="padding: 14px 4px;">
+            <p>Se notifica por única ocasión sobre los siguientes hitos de 7 días o vencimientos detectados:</p>
+            {bloque_7d_html}
+            {bloque_vencidos_html}
+            <p style="font-size:12px; color:#64748B; margin-top:20px;">
+                Cada aviso se envía una sola vez por hito (7 días antes y al vencer) para evitar saturación en tu correo.
+                Consulta la campanita de notificaciones dentro de SIGEM para el seguimiento general a 30 días.
+            </p>
+        </div>
     </body>
     </html>
     """
+
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"[Biomédica IMSS] Alertas de Garantías y Mantenimiento ({date.today()})"
+    msg["Subject"] = f"[SIGEM] Alertas: {total_7d} próximo(s) a 7 días y {total_vencidos} vencido(s) ({hoy})"
     msg["From"] = smtp_user
     msg["To"] = ", ".join(correos_destino)
     msg.attach(MIMEText(cuerpo_html, "html"))
+
     try:
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
             server.login(smtp_user, smtp_password)
             server.sendmail(smtp_user, correos_destino, msg.as_string())
-        return True, f"Reporte enviado con éxito a {len(correos_destino)} administrador(es): {', '.join(correos_destino)}"
+
+        for eq in garantias_7d:
+            eq.alerta_garantia_7d_enviada = True
+        for m in mantenimientos_7d:
+            m.alerta_mant_7d_enviada = True
+        for eq in garantias_vencidas:
+            eq.alerta_garantia_7d_enviada = True
+            eq.alerta_garantia_enviada = True
+        for m in mantenimientos_vencidos:
+            m.alerta_mant_7d_enviada = True
+            m.alerta_vencimiento_enviada = True
+        db.commit()
+
+        return True, f"Aviso único enviado a {', '.join(correos_destino)} ({total_7d} a 7 días, {total_vencidos} vencidos)."
     except Exception as e:
+        db.rollback()
         return False, f"No se pudo enviar el correo: {str(e)}"
 
 @app.post("/alertas/auto-notificar-diario", tags=["Alertas"])
-def auto_notificar_alertas_diarias(
+def verificar_y_enviar_alertas_hitos(
     id_usuario: int = Query(...),
     db: Session = Depends(get_db)
 ):
     """
-    Endpoint invocado silenciosamente al abrir el panel web.
-    Si el vigilante en segundo plano aún no ha enviado el correo de hoy, lo dispara una sola vez.
+    Invocado al abrir o actualizar el panel web: revisa si existen nuevos hitos
+    de <= 7 días o vencimientos sin notificar y dispara el correo único correspondiente.
     """
-    hoy = date.today()
     usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
     if not usuario or usuario.rol != "ADMIN":
         return {"enviado": False, "detalle": "Modo consulta (Empleado)."}
-    if leer_fecha_ultimo_correo() == hoy:
-        return {"enviado": False, "detalle": f"El reporte automático del día ({hoy}) ya fue enviado."}
-    exito, detalle = procesar_envio_correo_alertas(db)
+    exito, detalle = procesar_envio_correo_alertas_hitos(db)
     if exito:
-        guardar_fecha_ultimo_correo(hoy)
-        return {"enviado": True, "mensaje": f"Sincronización diaria automática: {detalle}"}
+        return {"enviado": True, "mensaje": detalle}
     return {"enviado": False, "detalle": detalle}
 
 @app.post("/alertas/enviar-correo", tags=["Alertas"])
-def enviar_alertas_correo_admins(
+def forzar_envio_alertas_hitos(
     id_admin_solicitante: int = Query(...),
     db: Session = Depends(get_db)
 ):
-    """Permite forzar manualmente el envío del reporte de alertas desde Swagger (/docs) si se requiere."""
+    """Permite disparar manualmente desde Swagger (/docs) el envío de hitos de 7 días o vencidos pendientes."""
     verificar_es_admin(db, id_admin_solicitante)
-    exito, detalle = procesar_envio_correo_alertas(db)
+    exito, detalle = procesar_envio_correo_alertas_hitos(db)
     if not exito:
         raise HTTPException(status_code=400, detail=detalle)
-    guardar_fecha_ultimo_correo(date.today())
     return {"mensaje": detalle}
 
 # ==========================================================
