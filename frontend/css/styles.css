@@ -1,19 +1,24 @@
-/* ==========================================================
-   ESTILOS GENERALES - SISTEMA BIOMÉDICO IMSS (MINIMALISTA)
-   ========================================================== */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* ==============================================================================
+   ESTILOS GENERALES - SIGEM (Sistema Integral de Gestión de Equipo Médico)
+   Diseño CMMS Institucional: Minimalista, Basado en Recuadros y 100% Offline
+   Paleta Institucional IMSS: Verde #13322B | Acento #1F5143 | Dorado #A68250
+   ============================================================================== */
 
 :root {
-    --bg-fondo: #F8FAFC;
+    --bg-fondo: #F3F5F7;
     --bg-tarjeta: #FFFFFF;
     --verde-imss: #13322B;
+    --verde-imss-oscuro: #0D241F;
     --verde-acento: #1F5143;
     --verde-suave: #EBF3F0;
     --dorado-sutil: #A68250;
+    --dorado-suave: #FBF6EE;
     --texto-principal: #1E293B;
     --texto-secundario: #64748B;
     --borde-fino: #E2E8F0;
-    --sidebar-ancho: 260px;
+    --sombra-card: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
+    --sombra-card-hover: 0 10px 24px -6px rgba(19, 50, 43, 0.12), 0 4px 10px -4px rgba(15, 23, 42, 0.06);
+    --sidebar-ancho: 262px;
 }
 
 *, *::before, *::after {
@@ -21,7 +26,7 @@
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     background-color: var(--bg-fondo);
     color: var(--texto-principal);
     margin: 0;
@@ -48,7 +53,7 @@ body {
 }
 
 /* ==========================================================
-   CAMPOS DE CONTRASEÑA Y VISOR PERSONALIZADO
+   CAMPOS DE CONTRASEÑA Y VISOR PERSONALIZADO (LOGIN Y PERFIL)
    ========================================================== */
 input::-ms-reveal,
 input::-ms-clear {
@@ -84,13 +89,13 @@ input::-ms-clear {
 }
 
 /* ==========================================================
-   BARRA LATERAL DE NAVEGACIÓN (COLAPSABLE Y ADAPTATIVA)
+   BARRA LATERAL VERDE IMSS (ESTILO CMMS MODERNO Y COLAPSABLE)
    ========================================================== */
 .sidebar {
     width: var(--sidebar-ancho);
-    height: 100vh; /* Altura exacta de la ventana para que nunca se corte el pie en laptops */
-    background-color: var(--bg-tarjeta);
-    border-right: 1px solid var(--borde-fino);
+    height: 100vh;
+    background: linear-gradient(180deg, var(--verde-imss) 0%, var(--verde-imss-oscuro) 100%);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
     position: fixed;
     top: 0;
     left: 0;
@@ -98,17 +103,18 @@ input::-ms-clear {
     flex-direction: column;
     overflow: hidden;
     z-index: 1000;
+    color: #F8FAFC;
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 4px 0 20px rgba(13, 36, 31, 0.12);
 }
 
-/* Estado cuando el usuario oculta el menú lateral */
 .sidebar.colapsado {
     transform: translateX(-100%);
 }
 
 .sidebar-header {
-    padding: 1.1rem 1.25rem;
-    border-bottom: 1px solid var(--borde-fino);
+    padding: 1.15rem 1.2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -124,12 +130,26 @@ input::-ms-clear {
     overflow: hidden;
 }
 
+.sidebar-brand-title {
+    font-size: 0.96rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: 0.02em;
+}
+
+.sidebar-brand-sub {
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.65);
+    display: block;
+}
+
+/* Insignia institucional (compatible con sidebar oscuro y con login.html) */
 .logo-insignia {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     background-color: var(--verde-imss);
     color: #FFFFFF;
-    border-radius: 8px;
+    border-radius: 9px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -138,14 +158,19 @@ input::-ms-clear {
     flex-shrink: 0;
 }
 
-/* Botón minimalista para ocultar o desplegar el menú lateral */
+.sidebar .logo-insignia {
+    background-color: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-bottom: 3px solid var(--dorado-sutil);
+}
+
 .btn-toggle-sidebar {
     width: 34px;
     height: 34px;
     border-radius: 8px;
-    border: 1px solid var(--borde-fino);
-    background-color: #FFFFFF;
-    color: var(--texto-secundario);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background-color: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.78);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -155,17 +180,30 @@ input::-ms-clear {
 }
 
 .btn-toggle-sidebar:hover {
-    background-color: var(--verde-suave);
-    color: var(--verde-imss);
-    border-color: var(--verde-imss);
+    background-color: rgba(255, 255, 255, 0.16);
+    color: #FFFFFF;
+    border-color: var(--dorado-sutil);
 }
 
-/* Contenedor central de botones con scroll propio si la pantalla es baja */
 .nav-menu {
-    padding: 0.75rem;
+    padding: 0.85rem 0.75rem;
     flex: 1 1 auto;
-    min-height: 0; /* Clave en Flexbox para que no empuje el botón de Cerrar Sesión fuera de pantalla */
+    min-height: 0;
     overflow-y: auto;
+}
+
+.nav-menu::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.nav-section-label {
+    font-size: 0.67rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.45);
+    padding: 0 0.85rem;
+    margin-bottom: 0.35rem;
 }
 
 .nav-item-btn {
@@ -173,9 +211,10 @@ input::-ms-clear {
     text-align: left;
     background: transparent;
     border: none;
-    padding: 0.58rem 0.9rem;
+    border-left: 3px solid transparent;
+    padding: 0.62rem 0.85rem;
     border-radius: 8px;
-    color: var(--texto-secundario);
+    color: rgba(255, 255, 255, 0.76);
     font-weight: 500;
     font-size: 0.88rem;
     display: flex;
@@ -186,30 +225,77 @@ input::-ms-clear {
     cursor: pointer;
 }
 
+.nav-item-btn i {
+    font-size: 1rem;
+    opacity: 0.85;
+}
+
 .nav-item-btn:hover {
-    background-color: var(--bg-fondo);
-    color: var(--texto-principal);
+    background-color: rgba(255, 255, 255, 0.09);
+    color: #FFFFFF;
 }
 
 .nav-item-btn.activo {
-    background-color: var(--verde-suave);
-    color: var(--verde-imss);
+    background-color: rgba(255, 255, 255, 0.14);
+    border-left-color: var(--dorado-sutil);
+    color: #FFFFFF;
     font-weight: 600;
 }
 
-/* Pie de la barra lateral (Perfil + Botón Cerrar Sesión siempre visible) */
+.nav-item-btn.activo i {
+    color: #E2C799;
+    opacity: 1;
+}
+
+/* Pie de la barra lateral en tono oscuro */
 .sidebar-footer {
-    padding: 0.85rem 1rem;
-    border-top: 1px solid var(--borde-fino);
-    background-color: var(--bg-tarjeta);
+    padding: 0.9rem 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(0, 0, 0, 0.16);
     flex-shrink: 0;
 }
 
-/* Fondo oscuro semitransparente cuando se abre el menú en pantallas móviles */
+.sidebar-user-name {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: #FFFFFF;
+}
+
+.sidebar-rol-pill {
+    display: inline-block;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 0.14rem 0.48rem;
+    border-radius: 999px;
+    background-color: rgba(166, 130, 80, 0.24);
+    color: #F3DFB9;
+    border: 1px solid rgba(166, 130, 80, 0.45);
+}
+
+.btn-cerrar-sesion-sidebar {
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.07);
+    color: #FCA5A5;
+    border: 1px solid rgba(252, 165, 165, 0.24);
+    border-radius: 8px;
+    padding: 0.42rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.btn-cerrar-sesion-sidebar:hover {
+    background-color: rgba(220, 38, 38, 0.22);
+    color: #FFFFFF;
+    border-color: rgba(248, 113, 113, 0.55);
+}
+
 .sidebar-backdrop {
     position: fixed;
     inset: 0;
-    background-color: rgba(15, 23, 42, 0.35);
+    background-color: rgba(15, 23, 42, 0.4);
     z-index: 990;
     display: none;
 }
@@ -219,11 +305,11 @@ input::-ms-clear {
 }
 
 /* ==========================================================
-   CONTENIDO PRINCIPAL Y BARRA SUPERIOR DE CONTROL
+   CONTENIDO PRINCIPAL Y BARRA SUPERIOR GLOBAL
    ========================================================== */
 .main-content {
     margin-left: var(--sidebar-ancho);
-    padding: 1.75rem 2.25rem;
+    padding: 1.35rem 2rem 2.25rem 2rem;
     min-height: 100vh;
     transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -232,36 +318,408 @@ input::-ms-clear {
     margin-left: 0;
 }
 
-.topbar-control {
+.sigem-topbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1.25rem;
+    gap: 14px;
+    margin-bottom: 1.4rem;
+    padding: 0.75rem 1.1rem;
+    background-color: var(--bg-tarjeta);
+    border: 1px solid var(--borde-fino);
+    border-radius: 12px;
+    box-shadow: var(--sombra-card);
+}
+
+/* Buscador global estilo CMMS en la barra superior */
+.global-search-box {
+    position: relative;
+    flex: 1 1 320px;
+    max-width: 460px;
+}
+
+.global-search-box i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94A3B8;
+    font-size: 0.92rem;
+    pointer-events: none;
+}
+
+.global-search-input {
+    width: 100%;
+    background-color: var(--bg-fondo);
+    border: 1px solid var(--borde-fino);
+    border-radius: 9px;
+    padding: 0.48rem 2.4rem 0.48rem 2.25rem;
+    font-size: 0.85rem;
+    color: var(--texto-principal);
+    transition: all 0.16s ease;
+}
+
+.global-search-input:focus {
+    outline: none;
+    background-color: #FFFFFF;
+    border-color: var(--verde-acento);
+    box-shadow: 0 0 0 3px rgba(31, 81, 67, 0.1);
+}
+
+.global-search-btn {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    color: var(--verde-imss);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.global-search-btn:hover {
+    background-color: var(--verde-suave);
 }
 
 /* ==========================================================
-   TARJETAS (CARDS) Y CAJA GUÍA DE FORMATO CSV
+   TARJETAS (RECUADROS CMMS) Y ACCESOS RÁPIDOS
    ========================================================== */
 .card-clean {
     background-color: var(--bg-tarjeta);
     border: 1px solid var(--borde-fino);
-    border-radius: 10px;
-    padding: 1.4rem;
-    margin-bottom: 1.4rem;
+    border-radius: 12px;
+    padding: 1.35rem 1.45rem;
+    margin-bottom: 1.35rem;
+    box-shadow: var(--sombra-card);
 }
 
 .stat-card {
     background-color: var(--bg-tarjeta);
     border: 1px solid var(--borde-fino);
-    border-radius: 10px;
-    padding: 1.15rem 1.4rem;
+    border-radius: 12px;
+    padding: 1.15rem 1.35rem;
     height: 100%;
+    box-shadow: var(--sombra-card);
+}
+
+/* Barra de accesos rápidos tipo píldora (estilo Limble / Libre) */
+.quick-actions-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-quick-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.44rem 0.88rem;
+    border-radius: 9px;
+    font-size: 0.81rem;
+    font-weight: 600;
+    border: 1px solid var(--borde-fino);
+    background-color: #FFFFFF;
+    color: var(--texto-principal);
+    cursor: pointer;
+    transition: all 0.16s ease;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.btn-quick-action:hover {
+    border-color: var(--verde-acento);
+    color: var(--verde-imss);
+    background-color: var(--verde-suave);
+    transform: translateY(-1px);
+}
+
+.btn-quick-action.primario {
+    background-color: var(--verde-imss);
+    border-color: var(--verde-imss);
+    color: #FFFFFF;
+}
+
+.btn-quick-action.primario:hover {
+    background-color: var(--verde-acento);
+    border-color: var(--verde-acento);
+    color: #FFFFFF;
+}
+
+/* Recuadros KPI ejecutivos clicables (6 recuadros) */
+.kpi-card-cmms {
+    background-color: var(--bg-tarjeta);
+    border: 1px solid var(--borde-fino);
+    border-radius: 12px;
+    padding: 1.1rem 1.2rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: var(--sombra-card);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.kpi-card-cmms::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: transparent;
+    transition: background-color 0.18s ease;
+}
+
+.kpi-card-cmms:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--sombra-card-hover);
+    border-color: #CBD5E1;
+}
+
+.kpi-card-cmms.acento-verde::before { background-color: var(--verde-imss); }
+.kpi-card-cmms.acento-exito::before { background-color: #059669; }
+.kpi-card-cmms.acento-peligro::before { background-color: #DC2626; }
+.kpi-card-cmms.acento-dorado::before { background-color: var(--dorado-sutil); }
+
+.kpi-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.kpi-card-label {
+    font-size: 0.77rem;
+    font-weight: 600;
+    color: var(--texto-secundario);
+    line-height: 1.25;
+}
+
+.kpi-icon-badge {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.kpi-icon-verde { background-color: var(--verde-suave); color: var(--verde-imss); }
+.kpi-icon-exito { background-color: #ECFDF5; color: #047857; }
+.kpi-icon-peligro { background-color: #FEF2F2; color: #B91C1C; }
+.kpi-icon-dorado { background-color: var(--dorado-suave); color: #9A6E38; }
+
+.kpi-card-value-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.kpi-number {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--texto-principal);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+}
+
+.kpi-subtext {
+    font-size: 0.74rem;
+    color: var(--texto-secundario);
+    margin: 0;
+}
+
+/* Mini aro SVG de disponibilidad operativa (estilo Fiix, 100% offline) */
+.kpi-ring-wrap {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+}
+
+.kpi-ring-wrap svg {
+    width: 50px;
+    height: 50px;
+    transform: rotate(-90deg);
+}
+
+.kpi-ring-bg {
+    fill: none;
+    stroke: #E2E8F0;
+    stroke-width: 5;
+}
+
+.kpi-ring-fill {
+    fill: none;
+    stroke: #059669;
+    stroke-width: 5;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.55s ease;
+}
+
+/* Tarjetas de Estado por Unidad Médica / Hospital (estilo Limble) */
+.hospital-grid-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
+    gap: 12px;
+}
+
+.hospital-tile {
+    background-color: #FAFBFD;
+    border: 1px solid var(--borde-fino);
+    border-radius: 10px;
+    padding: 0.9rem 1rem;
+    cursor: pointer;
+    transition: all 0.16s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.hospital-tile:hover {
+    background-color: #FFFFFF;
+    border-color: var(--verde-acento);
+    box-shadow: 0 6px 16px -4px rgba(19, 50, 43, 0.1);
+    transform: translateY(-2px);
+}
+
+.hospital-tile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.hospital-tile-name {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--verde-imss);
+    line-height: 1.2;
+}
+
+.hospital-tile-city {
+    font-size: 0.73rem;
+    color: var(--texto-secundario);
+}
+
+.hospital-progress-track {
+    height: 6px;
+    width: 100%;
+    background-color: #E2E8F0;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.hospital-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background-color: #059669;
+    transition: width 0.4s ease;
+}
+
+.hospital-progress-fill.media { background-color: #D97706; }
+.hospital-progress-fill.baja { background-color: #DC2626; }
+
+/* Agenda de Alertas Urgentes con borde izquierdo de color (estilo Fiix) */
+.alert-feed-scroll {
+    max-height: 365px;
+    overflow-y: auto;
+    padding-right: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.alert-feed-item {
+    background-color: #FAFBFD;
+    border: 1px solid var(--borde-fino);
+    border-left: 4px solid var(--dorado-sutil);
+    border-radius: 9px;
+    padding: 0.72rem 0.9rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.alert-feed-item:hover {
+    background-color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+    transform: translateX(2px);
+}
+
+.alert-feed-item.critica {
+    border-left-color: #DC2626;
+    background-color: #FFFDFD;
+}
+
+.alert-feed-item.proxima {
+    border-left-color: #D97706;
+}
+
+.alert-feed-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 3px;
+}
+
+.alert-feed-title {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--texto-principal);
+}
+
+.alert-feed-meta {
+    font-size: 0.74rem;
+    color: var(--texto-secundario);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.pill-filter-group {
+    display: inline-flex;
+    background-color: var(--bg-fondo);
+    padding: 3px;
+    border-radius: 8px;
+    border: 1px solid var(--borde-fino);
+    gap: 2px;
+}
+
+.pill-filter-btn {
+    border: none;
+    background: transparent;
+    color: var(--texto-secundario);
+    font-size: 0.74rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.pill-filter-btn.activo {
+    background-color: #FFFFFF;
+    color: var(--verde-imss);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
 .guia-csv-box {
     background-color: var(--bg-fondo);
     border: 1px dashed #CBD5E1;
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 1rem 1.15rem;
     margin-bottom: 1rem;
 }
@@ -273,7 +731,7 @@ input::-ms-clear {
     background-color: var(--verde-imss);
     color: #FFFFFF;
     border: 1px solid var(--verde-imss);
-    border-radius: 7px;
+    border-radius: 8px;
     padding: 0.52rem 1.05rem;
     font-size: 0.88rem;
     font-weight: 500;
@@ -297,7 +755,7 @@ input::-ms-clear {
     background-color: #FFFFFF;
     color: var(--texto-principal);
     border: 1px solid var(--borde-fino);
-    border-radius: 7px;
+    border-radius: 8px;
     padding: 0.52rem 1.05rem;
     font-size: 0.88rem;
     font-weight: 500;
@@ -313,13 +771,13 @@ input::-ms-clear {
 .btn-secundario.btn-sm {
     padding: 0.36rem 0.78rem;
     font-size: 0.81rem;
-    border-radius: 6px;
+    border-radius: 7px;
 }
 
 .form-control,
 .form-select {
     border: 1px solid var(--borde-fino);
-    border-radius: 7px;
+    border-radius: 8px;
     padding: 0.52rem 0.82rem;
     font-size: 0.9rem;
     color: var(--texto-principal);
@@ -330,7 +788,7 @@ input::-ms-clear {
 .form-select-sm {
     padding: 0.38rem 0.68rem;
     font-size: 0.84rem;
-    border-radius: 6px;
+    border-radius: 7px;
 }
 
 .form-control:focus,
@@ -366,7 +824,7 @@ input::-ms-clear {
 .nav-tabs .nav-link.active {
     color: var(--verde-imss);
     background-color: transparent;
-    border-bottom: 2px solid var(--verde-imss);
+    border-bottom: 2px solid var(--dorado-sutil);
     font-weight: 600;
 }
 
@@ -384,10 +842,11 @@ input::-ms-clear {
     padding: 0.7rem 0.95rem;
     color: var(--texto-secundario);
     font-weight: 600;
-    font-size: 0.75rem;
+    font-size: 0.74rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     border-bottom: 1px solid var(--borde-fino);
+    background-color: #FAFBFD;
     white-space: nowrap;
 }
 
@@ -402,7 +861,7 @@ input::-ms-clear {
 }
 
 .table-clean tbody tr:hover {
-    background-color: var(--bg-fondo);
+    background-color: #F8FAFC;
 }
 
 .table-clean tr:last-child td {
@@ -429,9 +888,9 @@ code {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 0.26rem 0.62rem;
-    border-radius: 6px;
-    font-size: 0.75rem;
+    padding: 0.24rem 0.62rem;
+    border-radius: 999px;
+    font-size: 0.74rem;
     font-weight: 600;
     white-space: nowrap;
 }
@@ -479,7 +938,7 @@ code {
     max-height: 220px;
     overflow-y: auto;
     z-index: 50;
-    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
 }
 
 .item-buscador {
@@ -505,6 +964,9 @@ code {
 @media (max-width: 992px) {
     .main-content {
         margin-left: 0;
-        padding: 1.25rem;
+        padding: 1rem 1.15rem 2rem 1.15rem;
+    }
+    .sigem-topbar {
+        padding: 0.65rem 0.85rem;
     }
 }

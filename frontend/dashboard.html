@@ -14,15 +14,7 @@
         /* ==========================================================
            ESTILOS DE BARRA SUPERIOR Y CAMPANITA DE NOTIFICACIONES
            ========================================================== */
-        .sigem-topbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 1.25rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 1px solid var(--borde-fino, #E2E8F0);
-        }
+        /* .sigem-topbar se gestiona desde /app/css/styles.css */
 
         .notif-bell-wrapper {
             position: relative;
@@ -317,11 +309,11 @@
         <div class="sidebar-header">
             <div class="sidebar-brand" onclick="irAlInicio()" title="Ir al Panel de Control y Alertas">
                 <div class="logo-insignia">
-                    <i class="bi bi-hospital" style="font-size: 1.25rem; color: #FFFFFF;"></i>
+                    <i class="bi bi-hospital" style="font-size: 1.2rem; color: #FFFFFF;"></i>
                 </div>
                 <div class="text-truncate">
-                    <div class="fw-bold text-truncate" style="font-size: 0.92rem; color: var(--verde-imss);">SIGEM</div>
-                    <small class="text-muted d-block" style="font-size: 0.74rem;">Gestión de Equipo Médico</small>
+                    <div class="sidebar-brand-title text-truncate">SIGEM</div>
+                    <small class="sidebar-brand-sub text-truncate">Gestión de Equipo Médico</small>
                 </div>
             </div>
             <button type="button" class="btn-toggle-sidebar" onclick="alternarMenuLateral()" title="Ocultar menú lateral">
@@ -329,11 +321,9 @@
             </button>
         </div>
         <nav class="nav-menu">
-            <div class="text-uppercase text-muted fw-semibold px-3 mb-1" style="font-size: 0.69rem; letter-spacing: 0.05em;">
-                Principal
-            </div>
+            <div class="nav-section-label">Principal</div>
             <button class="nav-item-btn activo" onclick="cambiarVista('vista-inicio', this)">
-                <i class="bi bi-grid"></i> Resumen y Alertas
+                <i class="bi bi-grid-1x2"></i> Panel de Control
             </button>
             <button class="nav-item-btn" onclick="cambiarVista('vista-inventarios', this)">
                 <i class="bi bi-clipboard2-check"></i> Inventarios
@@ -341,9 +331,7 @@
             <button class="nav-item-btn" onclick="cambiarVista('vista-equipos', this)">
                 <i class="bi bi-cpu"></i> Equipos Médicos
             </button>
-            <div class="text-uppercase text-muted fw-semibold px-3 mt-3 mb-1" style="font-size: 0.69rem; letter-spacing: 0.05em;">
-                Operación
-            </div>
+            <div class="nav-section-label mt-3">Operación</div>
             <button class="nav-item-btn" onclick="cambiarVista('vista-mantenimientos', this)">
                 <i class="bi bi-wrench-adjustable"></i> Mantenimientos
             </button>
@@ -353,9 +341,7 @@
             <button class="nav-item-btn" onclick="cambiarVista('vista-documentos', this)">
                 <i class="bi bi-folder2-open"></i> Documentos
             </button>
-            <div class="text-uppercase text-muted fw-semibold px-3 mt-3 mb-1" style="font-size: 0.69rem; letter-spacing: 0.05em;">
-                Cuenta y Acceso
-            </div>
+            <div class="nav-section-label mt-3">Cuenta y Acceso</div>
             <button class="nav-item-btn" onclick="cambiarVista('vista-perfil', this)">
                 <i class="bi bi-person-circle"></i> Mi Perfil
             </button>
@@ -365,14 +351,14 @@
         </nav>
         <div class="sidebar-footer">
             <div class="d-flex align-items-center gap-2 mb-2">
-                <img id="sidebar-avatar" src="https://ui-avatars.com/api/?name=User&background=13322B&color=fff" 
-                     alt="Avatar" class="rounded-circle flex-shrink-0" width="36" height="36" style="object-fit: cover;">
+                <img id="sidebar-avatar" src="https://ui-avatars.com/api/?name=User&background=1F5143&color=fff" 
+                     alt="Avatar" class="rounded-circle flex-shrink-0 border border-light border-opacity-25" width="38" height="38" style="object-fit: cover;">
                 <div class="overflow-hidden">
-                    <div id="sidebar-nombre" class="fw-semibold text-truncate" style="font-size: 0.84rem;">Cargando...</div>
-                    <span id="sidebar-rol" class="badge-soft-neutral" style="font-size: 0.68rem; padding: 0.12rem 0.42rem;">...</span>
+                    <div id="sidebar-nombre" class="sidebar-user-name text-truncate">Cargando...</div>
+                    <span id="sidebar-rol" class="sidebar-rol-pill">...</span>
                 </div>
             </div>
-            <button onclick="cerrarSesion()" class="btn btn-secundario w-100 btn-sm text-danger">
+            <button onclick="cerrarSesion()" class="btn-cerrar-sesion-sidebar">
                 <i class="bi bi-box-arrow-left me-1"></i> Cerrar Sesión
             </button>
         </div>
@@ -391,10 +377,13 @@
                 </button>
             </div>
 
-            <div class="d-none d-sm-flex align-items-center gap-2 text-muted small">
-                <i class="bi bi-hospital" style="color: var(--verde-imss);"></i>
-                <span>Sistema Integral de Gestión de Equipo Médico</span>
-            </div>
+            <!-- Buscador Global de Equipos (Nombre, NNI o SN) -->
+            <form class="global-search-box" onsubmit="event.preventDefault(); ejecutarBusquedaGlobal();">
+                <i class="bi bi-search"></i>
+                <input type="text" id="buscador-global-sigem" class="global-search-input"
+                       placeholder="Buscar equipo por nombre, NNI o SN..." autocomplete="off">
+                <button type="submit" class="global-search-btn" title="Buscar en Equipos Médicos">Ir</button>
+            </form>
 
             <!-- Campanita de Notificaciones Desplegable al Hover / Clic -->
             <div id="notif-bell-wrapper" class="notif-bell-wrapper">
@@ -462,96 +451,233 @@
         </div>
 
         <!-- ======================================================
-             VISTA 1: RESUMEN Y ALERTAS AUTOMÁTICAS
+             VISTA 1: PANEL DE CONTROL EJECUTIVO (RECUADROS CMMS)
              ====================================================== -->
         <section id="vista-inicio" class="vista-panel">
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+            <!-- Encabezado + Barra de Accesos Rápidos (estilo Libre + Limble) -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
                 <div>
-                    <h4 class="fw-bold mb-1">Panel de Control y Alertas</h4>
-                    <p class="text-muted small mb-0">Monitoreo preventivo de garantías y mantenimientos programados (próximos 30 días)</p>
+                    <h4 class="fw-bold mb-1" style="color: var(--verde-imss);">Panel de Control</h4>
+                    <div class="d-flex flex-wrap align-items-center gap-2 text-muted small">
+                        <span id="fecha-hoy-dashboard">Cargando fecha...</span>
+                        <span>•</span>
+                        <span id="estado-monitoreo-auto" class="badge-soft-neutral" title="Correo único a los 7 días previos y al vencer">
+                            <i class="bi bi-envelope-check"></i> Correo único (7d y vencimiento)
+                        </span>
+                    </div>
                 </div>
-                <div class="d-flex flex-wrap align-items-center gap-2">
-                    <span id="estado-monitoreo-auto" class="badge-soft-neutral" title="Correo único a los 7 días previos y al vencer">
-                        <i class="bi bi-envelope-check"></i> Correo único (7 días y vencimiento)
-                    </span>
-                    <button class="btn btn-primario btn-sm solo-admin d-none" onclick="cambiarVista('vista-inventarios', document.querySelectorAll('.nav-item-btn')[1])">
-                        <i class="bi bi-plus-lg me-1"></i> Nuevo Inventario
+                <div class="quick-actions-bar">
+                    <button type="button" class="btn-quick-action primario solo-admin d-none" onclick="accesoRapidoNuevoEquipo()">
+                        <i class="bi bi-plus-lg"></i> Nuevo Equipo
+                    </button>
+                    <button type="button" class="btn-quick-action solo-admin d-none" onclick="accesoRapidoNuevoInventario()">
+                        <i class="bi bi-clipboard2-plus"></i> Nuevo Inventario
+                    </button>
+                    <button type="button" class="btn-quick-action solo-admin d-none" onclick="accesoRapidoNuevoMantenimiento()">
+                        <i class="bi bi-wrench-adjustable"></i> Mantenimiento
+                    </button>
+                    <button type="button" class="btn-quick-action" onclick="window.location.href='/exportar/equipos-excel'">
+                        <i class="bi bi-file-earmark-excel text-success"></i> Exportar Excel
+                    </button>
+                    <button type="button" class="btn-quick-action" onclick="refrescarPanelCompleto()" title="Actualizar indicadores y alertas">
+                        <i class="bi bi-arrow-clockwise"></i>
                     </button>
                 </div>
             </div>
+
             <div id="alerta-notificaciones" class="alert d-none small py-2"></div>
+
+            <!-- Cuadrícula de 6 Recuadros KPI Clicables (estilo Libre + Fiix) -->
             <div class="row g-3 mb-4">
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <div class="text-muted small fw-medium mb-1">Alertas de Garantía (30 días)</div>
-                        <div class="d-flex align-items-center justify-content-between">
-                            <h3 class="fw-bold mb-0" id="kpi-garantias">-</h3>
-                            <span class="badge-soft-warning"><i class="bi bi-shield-exclamation"></i> Revisar</span>
+                <!-- KPI 1: Total de Equipos -->
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="kpi-card-cmms acento-verde" onclick="irAEquiposConFiltro({})" title="Ver catálogo completo de equipos">
+                        <div class="kpi-card-top">
+                            <span class="kpi-card-label">Equipos Registrados</span>
+                            <span class="kpi-icon-badge kpi-icon-verde"><i class="bi bi-cpu"></i></span>
+                        </div>
+                        <div class="kpi-card-value-row">
+                            <span class="kpi-number" id="kpi-total-equipos">-</span>
+                        </div>
+                        <p class="kpi-subtext" id="kpi-sub-equipos">Catálogo maestro</p>
+                    </div>
+                </div>
+
+                <!-- KPI 2: Disponibilidad Operativa con Aro SVG Offline (estilo Fiix) -->
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="kpi-card-cmms acento-exito" onclick="irAEquiposConFiltro({ estatus: 'true' })" title="Filtrar equipos funcionales">
+                        <div class="kpi-card-top">
+                            <span class="kpi-card-label">Disponibilidad</span>
+                        </div>
+                        <div class="kpi-card-value-row">
+                            <div>
+                                <span class="kpi-number" id="kpi-disponibilidad-pct">-%</span>
+                                <p class="kpi-subtext mt-1" id="kpi-sub-disponibilidad">Funcionales</p>
+                            </div>
+                            <div class="kpi-ring-wrap" aria-hidden="true">
+                                <svg viewBox="0 0 44 44">
+                                    <circle class="kpi-ring-bg" cx="22" cy="22" r="18"></circle>
+                                    <circle id="kpi-ring-progreso" class="kpi-ring-fill" cx="22" cy="22" r="18"
+                                            stroke-dasharray="113.1" stroke-dashoffset="113.1"></circle>
+                                </svg>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <div class="text-muted small fw-medium mb-1">Mantenimientos Próximos</div>
-                        <div class="d-flex align-items-center justify-content-between">
-                            <h3 class="fw-bold mb-0" id="kpi-mantenimientos">-</h3>
-                            <span class="badge-soft-danger"><i class="bi bi-calendar-event"></i> Programados</span>
+
+                <!-- KPI 3: Equipos Fuera de Servicio -->
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="kpi-card-cmms acento-peligro" onclick="irAEquiposConFiltro({ estatus: 'false' })" title="Ver equipos fuera de servicio">
+                        <div class="kpi-card-top">
+                            <span class="kpi-card-label">Fuera de Servicio</span>
+                            <span class="kpi-icon-badge kpi-icon-peligro"><i class="bi bi-exclamation-octagon"></i></span>
+                        </div>
+                        <div class="kpi-card-value-row">
+                            <span class="kpi-number text-danger" id="kpi-fuera-servicio">-</span>
+                        </div>
+                        <p class="kpi-subtext">Requieren atención</p>
+                    </div>
+                </div>
+
+                <!-- KPI 4: Garantías (30 días) -->
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="kpi-card-cmms acento-dorado" onclick="irADetalleAlertas('tab-detalle-gar')" title="Ver detalle de garantías">
+                        <div class="kpi-card-top">
+                            <span class="kpi-card-label">Garantías (30d)</span>
+                            <span class="kpi-icon-badge kpi-icon-dorado"><i class="bi bi-shield-exclamation"></i></span>
+                        </div>
+                        <div class="kpi-card-value-row">
+                            <span class="kpi-number" id="kpi-garantias">-</span>
+                        </div>
+                        <p class="kpi-subtext" id="kpi-sub-garantias">Próximas / vencidas</p>
+                    </div>
+                </div>
+
+                <!-- KPI 5: Mantenimientos (30 días) -->
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="kpi-card-cmms acento-peligro" onclick="irADetalleAlertas('tab-detalle-mant')" title="Ver detalle de mantenimientos">
+                        <div class="kpi-card-top">
+                            <span class="kpi-card-label">Mantenimientos</span>
+                            <span class="kpi-icon-badge kpi-icon-peligro"><i class="bi bi-calendar-event"></i></span>
+                        </div>
+                        <div class="kpi-card-value-row">
+                            <span class="kpi-number" id="kpi-mantenimientos">-</span>
+                        </div>
+                        <p class="kpi-subtext" id="kpi-sub-mantenimientos">Programados / atrasados</p>
+                    </div>
+                </div>
+
+                <!-- KPI 6: Unidades Médicas -->
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="kpi-card-cmms acento-verde" onclick="cambiarVista('vista-inventarios', document.querySelectorAll('.nav-item-btn')[1])" title="Ir al módulo de Inventarios">
+                        <div class="kpi-card-top">
+                            <span class="kpi-card-label">Unidades Médicas</span>
+                            <span class="kpi-icon-badge kpi-icon-verde"><i class="bi bi-hospital"></i></span>
+                        </div>
+                        <div class="kpi-card-value-row">
+                            <span class="kpi-number" id="kpi-total-hospitales">-</span>
+                        </div>
+                        <p class="kpi-subtext" id="kpi-sub-hospitales">Hospitales activos</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bloque Principal a 2 Columnas: Estado por Hospital (Izq) + Agenda de Alertas (Der) -->
+            <div class="row g-3 mb-4">
+                <!-- Columna Izquierda: Estado por Unidad Médica (estilo Limble) -->
+                <div class="col-lg-7">
+                    <div class="card-clean h-100 mb-0">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                            <div>
+                                <h6 class="fw-bold mb-0"><i class="bi bi-hospital me-2" style="color: var(--verde-imss);"></i>Estado por Unidad Médica</h6>
+                                <small class="text-muted">Haz clic en cualquier hospital para abrir su catálogo filtrado</small>
+                            </div>
+                            <span class="badge-soft-neutral" id="badge-resumen-unidades">0 unidades</span>
+                        </div>
+                        <div id="grid-estado-hospitales" class="hospital-grid-list">
+                            <div class="text-muted small py-3">Cargando resumen por unidad médica...</div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <div class="text-muted small fw-medium mb-1">Nivel de Acceso Actual</div>
-                        <div class="d-flex align-items-center justify-content-between">
-                            <h4 class="fw-bold mb-0" id="kpi-rol">-</h4>
-                            <span class="badge-soft-success"><i class="bi bi-check-circle"></i> Activo</span>
+
+                <!-- Columna Derecha: Agenda de Alertas Urgentes (estilo Fiix) -->
+                <div class="col-lg-5">
+                    <div class="card-clean h-100 mb-0">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                            <div>
+                                <h6 class="fw-bold mb-0"><i class="bi bi-bell-fill me-2" style="color: var(--dorado-sutil);"></i>Agenda de Alertas</h6>
+                                <small class="text-muted">Prioridad por vencimiento (30 días)</small>
+                            </div>
+                            <div class="pill-filter-group" id="filtros-agenda-inicio">
+                                <button type="button" class="pill-filter-btn activo" onclick="seleccionarFiltroAgenda('todas', this)">Todas</button>
+                                <button type="button" class="pill-filter-btn" onclick="seleccionarFiltroAgenda('garantias', this)">Garantías</button>
+                                <button type="button" class="pill-filter-btn" onclick="seleccionarFiltroAgenda('mantenimientos', this)">Mant.</button>
+                            </div>
+                        </div>
+                        <div id="lista-agenda-alertas" class="alert-feed-scroll">
+                            <div class="text-center text-muted small py-4">Cargando agenda de alertas...</div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="card-clean">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="fw-bold mb-0"><i class="bi bi-shield-exclamation text-warning me-2"></i>Garantías Vencidas o Próximas a Expirar</h6>
-                    <button class="btn btn-secundario btn-sm" onclick="cargarAlertas(false)">
-                        <i class="bi bi-arrow-clockwise"></i> Actualizar
-                    </button>
+
+            <!-- Recuadro de Detalle Tabular Completo con Pestañas (Conserva tus 2 tablas de 6 columnas) -->
+            <div class="card-clean" id="bloque-detalle-alertas">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-table me-2" style="color: var(--verde-imss);"></i>Detalle Completo de Alertas (30 días)</h6>
+                    <ul class="nav nav-tabs border-0 small fw-semibold" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active py-1 px-3" id="tab-detalle-gar" data-bs-toggle="tab" data-bs-target="#panel-tab-garantias" type="button" role="tab">
+                                <i class="bi bi-shield-exclamation text-warning me-1"></i>Garantías
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link py-1 px-3" id="tab-detalle-mant" data-bs-toggle="tab" data-bs-target="#panel-tab-mantenimientos" type="button" role="tab">
+                                <i class="bi bi-wrench text-danger me-1"></i>Mantenimientos
+                            </button>
+                        </li>
+                    </ul>
                 </div>
-                <div class="table-responsive">
-                    <table class="table-clean">
-                        <thead>
-                            <tr>
-                                <th>Equipo</th>
-                                <th>NNI / SN</th>
-                                <th>Hospital</th>
-                                <th>Fecha Expiración</th>
-                                <th>Días</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-alertas-garantia">
-                            <tr><td colspan="6" class="text-center text-muted py-3">Cargando alertas...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="card-clean">
-                <h6 class="fw-bold mb-3"><i class="bi bi-wrench text-danger me-2"></i>Mantenimientos Próximos o Atrasados</h6>
-                <div class="table-responsive">
-                    <table class="table-clean">
-                        <thead>
-                            <tr>
-                                <th>Equipo</th>
-                                <th>NNI / SN</th>
-                                <th>Tipo</th>
-                                <th>Próxima Fecha</th>
-                                <th>Días</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-alertas-mantenimiento">
-                            <tr><td colspan="6" class="text-center text-muted py-3">Cargando mantenimientos...</td></tr>
-                        </tbody>
-                    </table>
+
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="panel-tab-garantias" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table-clean">
+                                <thead>
+                                    <tr>
+                                        <th>Equipo</th>
+                                        <th>NNI / SN</th>
+                                        <th>Hospital</th>
+                                        <th>Fecha Expiración</th>
+                                        <th>Días</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-alertas-garantia">
+                                    <tr><td colspan="6" class="text-center text-muted py-3">Cargando alertas...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="panel-tab-mantenimientos" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table-clean">
+                                <thead>
+                                    <tr>
+                                        <th>Equipo</th>
+                                        <th>NNI / SN</th>
+                                        <th>Tipo</th>
+                                        <th>Próxima Fecha</th>
+                                        <th>Días</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-alertas-mantenimiento">
+                                    <tr><td colspan="6" class="text-center text-muted py-3">Cargando mantenimientos...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -1578,9 +1704,11 @@
         let listaDocumentosActuales = [];
         let idInventarioActivo = null;
 
-        // Estado del Centro de Notificaciones (Campanita)
+        // Estado del Centro de Notificaciones (Campanita) y Agenda del Panel
         let listaNotificacionesGlobal = [];
         let tabNotificacionesActual = "todas";
+        let filtroAgendaInicio = "todas";
+        let mapaConteoEquiposInventario = {};
 
         // Instancias de Modales Bootstrap
         let modalCrearEqIndInstancia = null;
@@ -1659,7 +1787,15 @@
             const nombreCompleto = `${usuarioActual.primernombre} ${usuarioActual.primerapellido}`;
             document.getElementById("sidebar-nombre").textContent = usuarioActual.username || nombreCompleto;
             document.getElementById("sidebar-rol").textContent = usuarioActual.rol;
-            document.getElementById("kpi-rol").textContent = usuarioActual.rol;
+            const kpiRolEl = document.getElementById("kpi-rol");
+            if (kpiRolEl) kpiRolEl.textContent = usuarioActual.rol;
+            const fechaEl = document.getElementById("fecha-hoy-dashboard");
+            if (fechaEl) {
+                const fechaTexto = new Date().toLocaleDateString("es-MX", {
+                    weekday: "long", year: "numeric", month: "long", day: "numeric"
+                });
+                fechaEl.textContent = fechaTexto.charAt(0).toUpperCase() + fechaTexto.slice(1);
+            }
             const avatarUrl = usuarioActual.foto_perfil 
                 ? `${usuarioActual.foto_perfil}?t=${new Date().getTime()}` 
                 : `https://ui-avatars.com/api/?name=${encodeURIComponent(nombreCompleto)}&background=13322B&color=fff`;
@@ -1690,7 +1826,10 @@
             modalDocInstancia = new bootstrap.Modal(document.getElementById("modalEditarDocumento"));
 
             await cargarCatalogosBase();
-            await cargarAlertas(true);
+            await Promise.all([
+                cargarResumenDashboard(),
+                cargarAlertas(true)
+            ]);
             await verificarAlertasHitosCorreo();
         }
 
@@ -1982,7 +2121,197 @@
             }).join("");
         }
 
-        // ================= MÓDULO 1: ALERTAS Y CORREO ÚNICO (7D Y VENCIDOS) =================
+        // ================= MÓDULO 1: PANEL CMMS, RESUMEN EJECUTIVO Y ALERTAS =================
+        async function refrescarPanelCompleto() {
+            await cargarCatalogosBase();
+            await Promise.all([
+                cargarResumenDashboard(),
+                cargarAlertas(false)
+            ]);
+        }
+
+        function ejecutarBusquedaGlobal() {
+            const input = document.getElementById("buscador-global-sigem");
+            const texto = input ? input.value.trim() : "";
+            irAEquiposConFiltro({ texto });
+        }
+
+        function irAEquiposConFiltro({ idHospital = "", estatus = "", texto = "" } = {}) {
+            document.getElementById("filtro-eq-texto").value = texto;
+            document.getElementById("filtro-eq-inventario").value = "";
+            document.getElementById("filtro-eq-hospital").value = idHospital ? String(idHospital) : "";
+            document.getElementById("filtro-eq-proveedor").value = "";
+            document.getElementById("filtro-eq-area").value = "";
+            document.getElementById("filtro-eq-marca").value = "";
+            document.getElementById("filtro-eq-garantia").value = "";
+            document.getElementById("filtro-eq-estatus").value = estatus ? String(estatus) : "";
+            const btnEquipos = document.querySelectorAll(".nav-item-btn")[2];
+            cambiarVista("vista-equipos", btnEquipos);
+        }
+
+        function accesoRapidoNuevoEquipo() {
+            const btnEquipos = document.querySelectorAll(".nav-item-btn")[2];
+            cambiarVista("vista-equipos", btnEquipos);
+            abrirModalNuevoEquipoIndividual();
+        }
+
+        function accesoRapidoNuevoInventario() {
+            const btnInv = document.querySelectorAll(".nav-item-btn")[1];
+            cambiarVista("vista-inventarios", btnInv);
+            const panel = document.getElementById("panel-crear-inventario");
+            if (panel.classList.contains("d-none")) toggleNuevoInventario();
+        }
+
+        function accesoRapidoNuevoMantenimiento() {
+            const btnMant = document.querySelectorAll(".nav-item-btn")[3];
+            cambiarVista("vista-mantenimientos", btnMant);
+            const panel = document.getElementById("panel-crear-mant");
+            if (panel.classList.contains("d-none")) toggleFormMantenimiento();
+        }
+
+        function irADetalleAlertas(tabBtnId) {
+            const tabEl = document.getElementById(tabBtnId);
+            if (tabEl) {
+                const tab = new bootstrap.Tab(tabEl);
+                tab.show();
+            }
+            const bloque = document.getElementById("bloque-detalle-alertas");
+            if (bloque) bloque.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+
+        async function cargarResumenDashboard() {
+            try {
+                const res = await fetch("/dashboard/resumen?dias_anticipacion=30");
+                if (!res.ok) return;
+                const data = await res.json();
+                const k = data.kpis || {};
+                mapaConteoEquiposInventario = data.equipos_por_inventario || {};
+
+                // 1. Poblar los 6 Recuadros KPI
+                document.getElementById("kpi-total-equipos").textContent = k.total_equipos ?? 0;
+                document.getElementById("kpi-sub-equipos").textContent = `${k.equipos_funcionales ?? 0} operando`;
+
+                const pct = Number(k.porcentaje_disponibilidad ?? 0);
+                document.getElementById("kpi-disponibilidad-pct").textContent = `${pct}%`;
+                document.getElementById("kpi-sub-disponibilidad").textContent = `${k.equipos_funcionales ?? 0} de ${k.total_equipos ?? 0}`;
+
+                // Actualizar aro SVG (circunferencia = 2 * PI * 18 = 113.1)
+                const circ = 113.1;
+                const offset = circ - (circ * Math.min(Math.max(pct, 0), 100) / 100);
+                const ring = document.getElementById("kpi-ring-progreso");
+                if (ring) {
+                    ring.style.strokeDashoffset = offset.toFixed(1);
+                    ring.style.stroke = pct >= 85 ? "#059669" : (pct >= 65 ? "#D97706" : "#DC2626");
+                }
+
+                document.getElementById("kpi-fuera-servicio").textContent = k.equipos_fuera_servicio ?? 0;
+                document.getElementById("kpi-garantias").textContent = k.garantias_alerta ?? 0;
+                document.getElementById("kpi-sub-garantias").textContent = k.garantias_vencidas > 0
+                    ? `${k.garantias_vencidas} vencida(s)`
+                    : "Sin vencidas";
+
+                document.getElementById("kpi-mantenimientos").textContent = k.mantenimientos_alerta ?? 0;
+                document.getElementById("kpi-sub-mantenimientos").textContent = k.mantenimientos_atrasados > 0
+                    ? `${k.mantenimientos_atrasados} atrasado(s)`
+                    : "Al corriente";
+
+                document.getElementById("kpi-total-hospitales").textContent = k.total_hospitales ?? 0;
+                document.getElementById("kpi-sub-hospitales").textContent = k.inventarios_en_proceso > 0
+                    ? `${k.inventarios_en_proceso} inv. en proceso`
+                    : "Sin censos abiertos";
+
+                // 2. Poblar Recuadros de Estado por Unidad Médica
+                const hospitales = data.estado_por_hospital || [];
+                document.getElementById("badge-resumen-unidades").textContent = `${hospitales.length} unidad(es)`;
+                const grid = document.getElementById("grid-estado-hospitales");
+
+                if (hospitales.length === 0) {
+                    grid.innerHTML = `<div class="text-muted small py-3">Aún no hay unidades médicas registradas.</div>`;
+                    return;
+                }
+
+                grid.innerHTML = hospitales.map(h => {
+                    const pFunc = Number(h.porcentaje_funcional || 0);
+                    const claseBar = pFunc >= 85 ? "" : (pFunc >= 65 ? "media" : "baja");
+                    const badgeAlertas = h.total_alertas > 0
+                        ? `<span class="badge-soft-warning"><i class="bi bi-exclamation-triangle"></i> ${h.total_alertas}</span>`
+                        : `<span class="badge-soft-success"><i class="bi bi-check2"></i> Al día</span>`;
+
+                    return `
+                        <div class="hospital-tile" onclick="irAEquiposConFiltro({ idHospital: ${h.id_hospital} })" title="Ver equipos de ${h.nombre}">
+                            <div class="hospital-tile-header">
+                                <div class="overflow-hidden">
+                                    <div class="hospital-tile-name text-truncate">${h.nombre}</div>
+                                    <div class="hospital-tile-city text-truncate">${h.ciudad || "Chihuahua"}</div>
+                                </div>
+                                ${badgeAlertas}
+                            </div>
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center small mb-1">
+                                    <span class="text-muted">${h.total_equipos} equipo(s)</span>
+                                    <strong style="color: var(--verde-imss);">${pFunc}% op.</strong>
+                                </div>
+                                <div class="hospital-progress-track">
+                                    <div class="hospital-progress-fill ${claseBar}" style="width: ${pFunc}%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join("");
+            } catch (err) {
+                console.error("Error cargando resumen dashboard:", err);
+            }
+        }
+
+        function seleccionarFiltroAgenda(filtro, btnEl) {
+            filtroAgendaInicio = filtro;
+            document.querySelectorAll("#filtros-agenda-inicio .pill-filter-btn").forEach(b => b.classList.remove("activo"));
+            if (btnEl) btnEl.classList.add("activo");
+            renderizarAgendaAlertasInicio();
+        }
+
+        function renderizarAgendaAlertasInicio() {
+            const contenedor = document.getElementById("lista-agenda-alertas");
+            if (!contenedor) return;
+
+            const filtradas = listaNotificacionesGlobal.filter(it => {
+                if (filtroAgendaInicio === "todas") return true;
+                return it.categoria === filtroAgendaInicio;
+            });
+
+            if (filtradas.length === 0) {
+                contenedor.innerHTML = `
+                    <div class="text-center py-4 px-3">
+                        <i class="bi bi-check2-circle text-success d-block mb-1" style="font-size: 1.7rem;"></i>
+                        <div class="fw-semibold small text-dark">Sin alertas pendientes</div>
+                        <small class="text-muted">No hay vencimientos en esta categoría dentro de los próximos 30 días.</small>
+                    </div>`;
+                return;
+            }
+
+            contenedor.innerHTML = filtradas.slice(0, 15).map(item => {
+                const claseBorde = item.esCritica ? "critica" : "proxima";
+                const badgeTiempo = item.esCritica
+                    ? `<span class="badge-soft-danger">${item.tiempoTexto}</span>`
+                    : `<span class="badge-soft-warning">${item.tiempoTexto}</span>`;
+                const icono = item.categoria === "garantias" ? "bi-shield-exclamation" : "bi-wrench-adjustable";
+
+                return `
+                    <div class="alert-feed-item ${claseBorde}"
+                         onclick="marcarNotificacionComoLeida('${item.uid}', '${item.destinoVista}', ${item.indexNav})">
+                        <div class="alert-feed-top">
+                            <div class="alert-feed-title text-truncate" title="${item.titulo}">
+                                <i class="bi ${icono} me-1 text-muted"></i>${item.titulo}
+                            </div>
+                            ${badgeTiempo}
+                        </div>
+                        <div class="small text-secondary mb-1">${item.descripcion}</div>
+                        <div class="alert-feed-meta">${item.meta}</div>
+                    </div>
+                `;
+            }).join("");
+        }
+
         async function cargarAlertas(dispararNotificacionPC = false) {
             const res = await fetch("/alertas/?dias_anticipacion=30");
             const data = await res.json();
@@ -1992,6 +2321,10 @@
             document.getElementById("kpi-mantenimientos").textContent = data.total_alertas_mantenimiento;
 
             construirListaNotificacionesCampana(data);
+            renderizarAgendaAlertasInicio();
+            if (!dispararNotificacionPC) {
+                cargarResumenDashboard();
+            }
 
             const tbodyGarantia = document.getElementById("tabla-alertas-garantia");
             tbodyGarantia.innerHTML = data.alertas_garantias.length === 0

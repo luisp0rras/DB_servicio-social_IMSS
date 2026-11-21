@@ -1338,6 +1338,122 @@ def ver_o_descargar_documento(id_documento: int, db: Session = Depends(get_db)):
 # ==========================================================
 # 9. MOTOR DE ALERTAS (CAMPANITA 30 DÍAS + CORREO ÚNICO 7D Y VENCIDOS)
 # ==========================================================
+
+@app.get("/dashboard/resumen", tags=["Alertas"])
+def obtener_resumen_dashboard(
+    dias_anticipacion: int = Query(30),
+    db: Session = Depends(get_db)
+):
+    """
+    Entrega en una sola consulta los indicadores ejecutivos (KPIs) para los recuadros
+    del Panel de Control, el estado operativo agrupado por unidad médica (hospital)
+    y el conteo de equipos por inventario para las vistas de tarjetas.
+    """
+    hoy = date.today()
+    fecha_limite = hoy + timedelta(days=dias_anticipacion)
+
+    hospitales = db.query(models.Hospital).order_by(models.Hospital.nombre).all()
+    equipos = db.query(models.Equipo).all()
+    mantenimientos = db.query(models.Mantenimiento).filter(
+        models.Mantenimiento.prox_fecha != None,
+        models.Mantenimiento.prox_fecha <= fecha_limite
+    ).all()
+    inventarios_en_proceso = db.query(models.Inventario).filter(
+        models.Inventario.estado == "EN_PROCESO"
+    ).count()
+    total_proveedores = db.query(models.Proveedor).count()
+
+    # Mapa rápido de hospital por equipo para asignar alertas de mantenimiento a su hospital
+    hosp_por_equipo = {e.id_equipo: e.id_hospital for e in equipos}
+
+    # Acumuladores globales
+    total_equipos = len(equipos)
+    equipos_funcionales = sum(1 for e in equipos if e.estatusfuncional)
+    equipos_fuera_servicio = total_equipos - equipos_funcionales
+    porcentaje_disponibilidad = round((equipos_funcionales / total_equipos) * 100, 1) if total_equipos > 0 else 0.0
+
+    garantias_alerta = 0
+    garantias_vencidas = 0
+
+    # Acumuladores por hospital
+    resumen_hosp = {
+        h.id_hospital: {
+            "id_hospital": h.id_hospital,
+            "nombre": h.nombre,
+            "ciudad": h.ciudad,
+            "total_equipos": 0,
+            "funcionales": 0,
+            "fuera_servicio": 0,
+            "porcentaje_funcional": 0.0,
+            "alertas_garantia": 0,
+            "alertas_mantenimiento": 0,
+            "total_alertas": 0
+        }
+        for h in hospitales
+    }
+
+    for eq in equipos:
+        tiene_alerta_gar = bool(eq.garantia and eq.fecha_expgarantia and eq.fecha_expgarantia <= fecha_limite)
+        if tiene_alerta_gar:
+            garantias_alerta += 1
+            if eq.fecha_expgarantia < hoy:
+                garantias_vencidas += 1
+
+        if eq.id_hospital in resumen_hosp:
+            item = resumen_hosp[eq.id_hospital]
+            item["total_equipos"] += 1
+            if eq.estatusfuncional:
+                item["funcionales"] += 1
+            else:
+                item["fuera_servicio"] += 1
+            if tiene_alerta_gar:
+                item["alertas_garantia"] += 1
+
+    mantenimientos_alerta = len(mantenimientos)
+    mantenimientos_atrasados = 0
+    for m in mantenimientos:
+        if m.prox_fecha < hoy:
+            mantenimientos_atrasados += 1
+        id_h = hosp_por_equipo.get(m.id_equipo)
+        if id_h in resumen_hosp:
+            resumen_hosp[id_h]["alertas_mantenimiento"] += 1
+
+    estado_por_hospital = []
+    for item in resumen_hosp.values():
+        if item["total_equipos"] > 0:
+            item["porcentaje_funcional"] = round((item["funcionales"] / item["total_equipos"]) * 100, 1)
+        item["total_alertas"] = item["alertas_garantia"] + item["alertas_mantenimiento"]
+        estado_por_hospital.append(item)
+
+    # Ordenar hospitales: primero los que tienen equipos registrados, luego alfabéticamente
+    estado_por_hospital.sort(key=lambda x: (-x["total_equipos"], x["nombre"] or ""))
+
+    # Conteo de equipos por inventario para enriquecer las tarjetas de Inventarios
+    vinculos_inv = db.query(models.InventarioEquipo.id_inventario).all()
+    equipos_por_inventario = {}
+    for (id_inv,) in vinculos_inv:
+        equipos_por_inventario[str(id_inv)] = equipos_por_inventario.get(str(id_inv), 0) + 1
+
+    return {
+        "fecha_consulta": hoy,
+        "dias_anticipacion": dias_anticipacion,
+        "kpis": {
+            "total_equipos": total_equipos,
+            "equipos_funcionales": equipos_funcionales,
+            "equipos_fuera_servicio": equipos_fuera_servicio,
+            "porcentaje_disponibilidad": porcentaje_disponibilidad,
+            "garantias_alerta": garantias_alerta,
+            "garantias_vencidas": garantias_vencidas,
+            "mantenimientos_alerta": mantenimientos_alerta,
+            "mantenimientos_atrasados": mantenimientos_atrasados,
+            "total_hospitales": len(hospitales),
+            "inventarios_en_proceso": inventarios_en_proceso,
+            "total_proveedores": total_proveedores
+        },
+        "estado_por_hospital": estado_por_hospital,
+        "equipos_por_inventario": equipos_por_inventario
+    }
+
 @app.get("/alertas/", tags=["Alertas"])
 def obtener_alertas_proximas(
     dias_anticipacion: int = Query(30),
