@@ -887,7 +887,7 @@ def exportar_equipos_excel(
         top=Side(style="thin", color="CBD5E1"),
         bottom=Side(style="thin", color="CBD5E1")
     )
-    ws.merge_cells("A1:L1")
+    ws.merge_cells("A1:M1")
     ws["A1"] = "INSTITUTO MEXICANO DEL SEGURO SOCIAL - REPORTE DE EQUIPO BIOMÉDICO"
     ws["A1"].fill = relleno_verde
     ws["A1"].font = fuente_titulo
@@ -915,7 +915,7 @@ def exportar_equipos_excel(
     if buscar_texto:
         resumen_filtros.append(f"Búsqueda: '{buscar_texto}'")
     texto_criterios = " | ".join(resumen_filtros) if resumen_filtros else "Catálogo General"
-    ws.merge_cells("A2:L2")
+    ws.merge_cells("A2:M2")
     ws["A2"] = f"Fecha de emisión: {date.today()}   —   Criterios aplicados: {texto_criterios}   —   Total de equipos: {len(equipos)}"
     ws["A2"].fill = relleno_subtitulo
     ws["A2"].font = fuente_subtitulo
@@ -924,7 +924,7 @@ def exportar_equipos_excel(
     encabezados = [
         "ID", "Nombre del Equipo", "Hospital", "Área", "Subárea",
         "Marca", "Modelo", "NNI", "Número de Serie (SN)", "Proveedor",
-        "Garantía / Vigencia", "Estatus Funcional"
+        "Garantía / Vigencia", "Estatus Funcional", "Observaciones"
     ]
     ws.append([])
     ws.append(encabezados)
@@ -942,14 +942,15 @@ def exportar_equipos_excel(
             eq.nombre_equipo or "Sin información",
             hospitales.get(eq.id_hospital, "Sin hospital"),
             eq.area or "Sin información",
-            eq.subarea or "-",
+            eq.subarea or "Sin información",
             eq.marca or "Sin información",
-            eq.modelo or "-",
+            eq.modelo or "Sin información",
             eq.nni or "Sin información",
             eq.sn or "Sin información",
             proveedores.get(eq.id_proveedor, "Sin proveedor asignado"),
             vigencia,
-            estatus
+            estatus,
+            eq.observaciones or "Sin información"
         ]
         ws.append(fila)
         fila_actual = ws.max_row
@@ -961,7 +962,7 @@ def exportar_equipos_excel(
         for celda in col:
             if celda.row >= 4 and celda.value:
                 max_len = max(max_len, len(str(celda.value)))
-        ws.column_dimensions[letra_col].width = max(max_len + 4, 12)
+        ws.column_dimensions[letra_col].width = min(max(max_len + 4, 12), 45)
     flujo = io.BytesIO()
     wb.save(flujo)
     flujo.seek(0)

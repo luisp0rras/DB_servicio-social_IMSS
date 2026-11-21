@@ -479,8 +479,8 @@
                     <button type="button" class="btn-quick-action" onclick="window.location.href='/exportar/equipos-excel'">
                         <i class="bi bi-file-earmark-excel text-success"></i> Exportar Excel
                     </button>
-                    <button type="button" class="btn-quick-action" onclick="refrescarPanelCompleto()" title="Actualizar indicadores y alertas">
-                        <i class="bi bi-arrow-clockwise"></i>
+                    <button type="button" id="btn-refrescar-panel" class="btn-quick-action" onclick="refrescarPanelCompleto()" title="Actualizar indicadores y alertas">
+                        <i id="icono-refrescar-panel" class="bi bi-arrow-clockwise"></i>
                     </button>
                 </div>
             </div>
@@ -694,64 +694,7 @@
                     <i class="bi bi-plus-lg me-1"></i> Iniciar Nuevo Inventario
                 </button>
             </div>
-            <!-- Asistente Paso 1, 2 y 3: Crear nuevo inventario -->
-            <div id="panel-crear-inventario" class="card-clean d-none" style="border-left: 4px solid var(--verde-imss);">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="fw-bold mb-0">Nuevo Levantamiento de Inventario</h6>
-                    <button type="button" class="btn-close" onclick="toggleNuevoInventario()"></button>
-                </div>
-                <form id="form-iniciar-inventario">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold">1. Seleccionar Hospital *</label>
-                            <div class="dropdown-buscador">
-                                <input type="text" class="form-control" id="buscador-hospital-input" 
-                                       placeholder="Escribe el nombre o ciudad (ej. UMF 33, Delicias)..." autocomplete="off">
-                                <input type="hidden" id="hospital-seleccionado-id" required>
-                                <div id="lista-hospitales-dropdown" class="lista-resultados-buscador d-none"></div>
-                            </div>
-                            <div id="hospital-elegido-badge" class="mt-2 small text-success fw-medium d-none"></div>
-                            <button type="button" class="btn btn-link btn-sm p-0 mt-1 text-decoration-none" 
-                                    style="color: var(--verde-acento);" onclick="toggleNuevoHospital()">
-                                + ¿No aparece el hospital? Registrarlo aquí
-                            </button>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold">2. Fecha del Inventario *</label>
-                            <input type="date" class="form-control" id="inventario-fecha" required>
-                        </div>
-                        <div id="subpanel-nuevo-hospital" class="col-12 d-none">
-                            <div class="p-3 rounded" style="background-color: var(--bg-fondo); border: 1px dashed var(--borde-fino);">
-                                <div class="fw-semibold small mb-2">Registrar Unidad Médica Nueva</div>
-                                <div class="row g-2">
-                                    <div class="col-md-4">
-                                        <input type="text" class="form-control form-control-sm" id="nuevo-hosp-nombre" placeholder="Nombre (ej. HGR 66)">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <input type="text" class="form-control form-control-sm" id="nuevo-hosp-ciudad" placeholder="Ciudad">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <input type="text" class="form-control form-control-sm" id="nuevo-hosp-estado" value="Chihuahua">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <button type="button" class="btn btn-primario btn-sm w-100" onclick="guardarNuevoHospital()">Guardar</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-semibold">3. Participantes Adicionales (Tú te agregas automáticamente como Administrador)</label>
-                            <div id="lista-checkbox-usuarios" class="row g-2 p-2 rounded" style="background-color: var(--bg-fondo); max-height: 140px; overflow-y: auto;"></div>
-                        </div>
-                        <div class="col-12 text-end d-flex justify-content-end gap-2">
-                            <button type="button" class="btn btn-secundario" onclick="toggleNuevoInventario()">Cancelar</button>
-                            <button type="submit" class="btn btn-primario">
-                                Crear Inventario y Comenzar Captura <i class="bi bi-arrow-right ms-1"></i>
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
+            <!-- El asistente de Nuevo Inventario ahora se abre en el Modal #modalCrearInventario -->
             <!-- Panel Paso 4 y 5: Captura de equipos, Finalización o Cancelación de Inventario -->
             <div id="panel-captura-inventario" class="card-clean d-none" style="border-left: 4px solid var(--dorado-sutil);">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom">
@@ -891,10 +834,20 @@
                     </div>
                 </div>
                 <h6 class="fw-bold small text-muted text-uppercase mb-2">Equipos Censados en este Inventario</h6>
-                <div class="table-responsive">
+                <div class="table-scroll-cmms">
                     <table class="table-clean">
                         <thead>
-                            <tr><th>Equipo</th><th>Área</th><th>Marca / Modelo</th><th>NNI</th><th>SN</th><th>Estatus</th></tr>
+                            <tr>
+                                <th>Equipo</th>
+                                <th>Área</th>
+                                <th>Marca / Modelo</th>
+                                <th>NNI</th>
+                                <th>SN</th>
+                                <th>Proveedor</th>
+                                <th>Garantía</th>
+                                <th>Estatus</th>
+                                <th>Observaciones</th>
+                            </tr>
                         </thead>
                         <tbody id="tabla-equipos-inventario-activo"></tbody>
                     </table>
@@ -993,7 +946,7 @@
                 </div>
             </div>
             <div class="card-clean">
-                <div class="table-responsive">
+                <div class="table-scroll-cmms">
                     <table class="table-clean">
                         <thead>
                             <tr>
@@ -1027,42 +980,7 @@
                     <i class="bi bi-plus-lg me-1"></i> Registrar Mantenimiento
                 </button>
             </div>
-            <div id="panel-crear-mant" class="card-clean d-none" style="border-left: 4px solid var(--verde-imss);">
-                <h6 class="fw-bold mb-3">Nuevo Registro de Mantenimiento</h6>
-                <form id="form-registrar-mant" class="row g-3">
-                    <div class="col-md-5">
-                        <label class="form-label small fw-semibold">Seleccionar Equipo Médico *</label>
-                        <select class="form-select form-select-sm" id="mant-id-equipo" required></select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small fw-semibold">Seleccionar Proveedor *</label>
-                        <select class="form-select form-select-sm" id="mant-id-proveedor" required></select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label small fw-semibold">Tipo de Mantenimiento *</label>
-                        <select class="form-select form-select-sm" id="mant-tipo">
-                            <option value="PREVENTIVO">PREVENTIVO</option>
-                            <option value="CORRECTIVO">CORRECTIVO</option>
-                            <option value="OTRO">OTRO</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small fw-semibold">Fecha de Realización *</label>
-                        <input type="date" class="form-control form-control-sm" id="mant-fecha" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small fw-semibold">Próxima Fecha Programada</label>
-                        <input type="date" class="form-control form-control-sm" id="mant-prox-fecha">
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label small fw-semibold">Observaciones</label>
-                        <input type="text" class="form-control form-control-sm" id="mant-obs" placeholder="Detalles de la intervención técnica...">
-                    </div>
-                    <div class="col-12 text-end">
-                        <button type="submit" class="btn btn-primario btn-sm">Guardar Mantenimiento</button>
-                    </div>
-                </form>
-            </div>
+            <!-- El formulario de Nuevo Mantenimiento ahora se abre en el Modal #modalCrearMantenimiento -->
             <div class="card-clean">
                 <div class="table-responsive">
                     <table class="table-clean">
@@ -1098,30 +1016,7 @@
                     <i class="bi bi-plus-lg me-1"></i> Agregar Proveedor
                 </button>
             </div>
-            <div id="panel-crear-prov" class="card-clean d-none" style="border-left: 4px solid var(--verde-imss);">
-                <h6 class="fw-bold mb-3">Registrar Nuevo Proveedor</h6>
-                <form id="form-registrar-prov" class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label small fw-semibold">Nombre de la Empresa / Proveedor *</label>
-                        <input type="text" class="form-control form-control-sm" id="prov-nombre" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small fw-semibold">Correo Electrónico</label>
-                        <input type="email" class="form-control form-control-sm" id="prov-correo">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small fw-semibold">Teléfono</label>
-                        <input type="text" class="form-control form-control-sm" id="prov-tel" placeholder="+52 (614)...">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small fw-semibold">Nombre del Contacto</label>
-                        <input type="text" class="form-control form-control-sm" id="prov-contacto">
-                    </div>
-                    <div class="col-12 text-end">
-                        <button type="submit" class="btn btn-primario btn-sm">Guardar Proveedor</button>
-                    </div>
-                </form>
-            </div>
+            <!-- El formulario de Nuevo Proveedor ahora se abre en el Modal #modalCrearProveedor -->
             <div class="card-clean">
                 <div class="table-responsive">
                     <table class="table-clean">
@@ -1155,34 +1050,7 @@
                     <i class="bi bi-upload me-1"></i> Subir Documento
                 </button>
             </div>
-            <div id="panel-subir-doc" class="card-clean d-none" style="border-left: 4px solid var(--verde-imss);">
-                <h6 class="fw-bold mb-3">Subir Archivo al Servidor</h6>
-                <form id="form-subir-documento" class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label small fw-semibold">Título del Documento *</label>
-                        <input type="text" class="form-control form-control-sm" id="doc-titulo" placeholder="ej. Minuta Supervisión HGR 66" required>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small fw-semibold">¿A qué pertenece este documento? *</label>
-                        <select class="form-select form-select-sm" id="doc-tipo-asociacion" onchange="cambiarOpcionesAsociacionDoc()">
-                            <option value="inventario">A un Inventario Hospitalario</option>
-                            <option value="equipo">A un Equipo Médico</option>
-                            <option value="mantenimiento">A un Mantenimiento</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small fw-semibold">Seleccionar Registro *</label>
-                        <select class="form-select form-select-sm" id="doc-id-destino" required></select>
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label small fw-semibold">Seleccionar Archivo (PDF o Imagen) *</label>
-                        <input type="file" class="form-control form-control-sm" id="doc-archivo" required>
-                    </div>
-                    <div class="col-12 text-end">
-                        <button type="submit" class="btn btn-primario btn-sm">Subir y Registrar</button>
-                    </div>
-                </form>
-            </div>
+            <!-- El formulario de Subir Documento ahora se abre en el Modal #modalSubirDocumento -->
             <div class="card-clean">
                 <div class="table-responsive">
                     <table class="table-clean">
@@ -1301,6 +1169,264 @@
             </div>
         </section>
     </main>
+
+    <!-- ==========================================================
+         MODAL ALTA 1: INICIAR NUEVO INVENTARIO (SOLO ADMIN)
+         ========================================================== -->
+    <div class="modal fade" id="modalCrearInventario" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 12px; border: 1px solid var(--borde-fino);">
+                <div class="modal-header border-bottom" style="background-color: var(--bg-fondo);">
+                    <h6 class="modal-title fw-bold">
+                        <i class="bi bi-clipboard2-plus me-2" style="color: var(--verde-imss);"></i>Nuevo Levantamiento de Inventario
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <form id="form-iniciar-inventario">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">1. Seleccionar Hospital *</label>
+                                <div class="dropdown-buscador">
+                                    <input type="text" class="form-control form-control-sm" id="buscador-hospital-input" 
+                                           placeholder="Escribe el nombre o ciudad (ej. UMF 33, Delicias)..." autocomplete="off">
+                                    <input type="hidden" id="hospital-seleccionado-id" required>
+                                    <div id="lista-hospitales-dropdown" class="lista-resultados-buscador d-none"></div>
+                                </div>
+                                <div id="hospital-elegido-badge" class="mt-2 small text-success fw-medium d-none"></div>
+                                <button type="button" class="btn btn-link btn-sm p-0 mt-1 text-decoration-none" 
+                                        style="color: var(--verde-acento);" onclick="toggleNuevoHospital()">
+                                    + ¿No aparece el hospital? Registrarlo aquí
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">2. Fecha del Inventario *</label>
+                                <input type="date" class="form-control form-control-sm" id="inventario-fecha" required>
+                            </div>
+                            <div id="subpanel-nuevo-hospital" class="col-12 d-none">
+                                <div class="p-3 rounded" style="background-color: var(--bg-fondo); border: 1px dashed var(--borde-fino);">
+                                    <div class="fw-semibold small mb-2">Registrar Unidad Médica Nueva</div>
+                                    <div class="row g-2">
+                                        <div class="col-md-4">
+                                            <input type="text" class="form-control form-control-sm" id="nuevo-hosp-nombre" placeholder="Nombre (ej. HGR 66)">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <input type="text" class="form-control form-control-sm" id="nuevo-hosp-ciudad" placeholder="Ciudad">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <input type="text" class="form-control form-control-sm" id="nuevo-hosp-estado" value="Chihuahua">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-primario btn-sm w-100" onclick="guardarNuevoHospital()">Guardar</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold">3. Participantes Adicionales (Tú te agregas automáticamente como Administrador)</label>
+                                <div id="lista-checkbox-usuarios" class="row g-2 p-2 rounded" style="background-color: var(--bg-fondo); max-height: 150px; overflow-y: auto;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top">
+                        <button type="button" class="btn btn-secundario btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primario btn-sm">
+                            Crear Inventario y Comenzar Captura <i class="bi bi-arrow-right ms-1"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================
+         MODAL ALTA 2: REGISTRAR MANTENIMIENTO CON FILTRO INTELIGENTE
+         ========================================================== -->
+    <div class="modal fade" id="modalCrearMantenimiento" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 12px; border: 1px solid var(--borde-fino);">
+                <div class="modal-header border-bottom" style="background-color: var(--bg-fondo);">
+                    <h6 class="modal-title fw-bold">
+                        <i class="bi bi-wrench-adjustable me-2" style="color: var(--verde-imss);"></i>Nuevo Registro de Mantenimiento
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <form id="form-registrar-mant">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <!-- Paso 1: Seleccionar Hospital -->
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">1. Unidad Médica / Hospital *</label>
+                                <select class="form-select form-select-sm" id="mant-id-hospital" onchange="filtrarEquiposParaMantenimiento()" required>
+                                    <option value="">Selecciona un hospital...</option>
+                                </select>
+                            </div>
+                            <!-- Paso 2: Buscador rápido por NNI, SN o Nombre -->
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">2. Buscar Equipo por NNI, SN o Nombre</label>
+                                <input type="text" class="form-control form-control-sm" id="mant-buscar-equipo" 
+                                       placeholder="Escribe NNI, SN o nombre para filtrar..." oninput="filtrarEquiposParaMantenimiento()" autocomplete="off">
+                            </div>
+                            <!-- Paso 3: Selector de Equipo filtrado -->
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label small fw-semibold mb-0">3. Seleccionar Equipo Médico *</label>
+                                    <span id="mant-contador-equipos" class="badge-soft-neutral" style="font-size: 0.7rem;">Selecciona un hospital</span>
+                                </div>
+                                <select class="form-select form-select-sm" id="mant-id-equipo" onchange="actualizarPreviewEquipoMantenimiento()" required>
+                                    <option value="">Primero selecciona un hospital...</option>
+                                </select>
+                            </div>
+                            <!-- Ficha de Confirmación del Equipo Seleccionado -->
+                            <div class="col-12 d-none" id="mant-equipo-preview-wrap">
+                                <div class="mant-equipo-preview-card">
+                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
+                                        <span class="fw-bold" style="color: var(--verde-imss);" id="mant-prev-nombre">-</span>
+                                        <span class="badge-soft-neutral" id="mant-prev-area">Área: -</span>
+                                    </div>
+                                    <div class="mant-equipo-preview-grid">
+                                        <div>
+                                            <span class="mant-equipo-preview-label">Marca</span>
+                                            <span class="mant-equipo-preview-value" id="mant-prev-marca">Sin información</span>
+                                        </div>
+                                        <div>
+                                            <span class="mant-equipo-preview-label">Modelo</span>
+                                            <span class="mant-equipo-preview-value" id="mant-prev-modelo">Sin información</span>
+                                        </div>
+                                        <div>
+                                            <span class="mant-equipo-preview-label">NNI</span>
+                                            <span class="mant-equipo-preview-value" id="mant-prev-nni">Sin información</span>
+                                        </div>
+                                        <div>
+                                            <span class="mant-equipo-preview-label">Número de Serie (SN)</span>
+                                            <span class="mant-equipo-preview-value" id="mant-prev-sn">Sin información</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Datos de la intervención -->
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Proveedor Asignado</label>
+                                <select class="form-select form-select-sm" id="mant-id-proveedor"></select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Tipo de Mantenimiento *</label>
+                                <select class="form-select form-select-sm" id="mant-tipo">
+                                    <option value="PREVENTIVO">PREVENTIVO</option>
+                                    <option value="CORRECTIVO">CORRECTIVO</option>
+                                    <option value="OTRO">OTRO</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Fecha de Realización *</label>
+                                <input type="date" class="form-control form-control-sm" id="mant-fecha" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Próxima Fecha Programada</label>
+                                <input type="date" class="form-control form-control-sm" id="mant-prox-fecha">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold">Observaciones</label>
+                                <input type="text" class="form-control form-control-sm" id="mant-obs" placeholder="Detalles de la intervención técnica...">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top">
+                        <button type="button" class="btn btn-secundario btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primario btn-sm">Guardar Mantenimiento</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================
+         MODAL ALTA 3: REGISTRAR NUEVO PROVEEDOR (SOLO ADMIN)
+         ========================================================== -->
+    <div class="modal fade" id="modalCrearProveedor" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 12px; border: 1px solid var(--borde-fino);">
+                <div class="modal-header border-bottom" style="background-color: var(--bg-fondo);">
+                    <h6 class="modal-title fw-bold">
+                        <i class="bi bi-building-add me-2" style="color: var(--verde-imss);"></i>Registrar Nuevo Proveedor
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <form id="form-registrar-prov">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold">Nombre de la Empresa / Proveedor *</label>
+                                <input type="text" class="form-control form-control-sm" id="prov-nombre" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold">Nombre del Contacto</label>
+                                <input type="text" class="form-control form-control-sm" id="prov-contacto">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Correo Electrónico</label>
+                                <input type="email" class="form-control form-control-sm" id="prov-correo">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Teléfono</label>
+                                <input type="text" class="form-control form-control-sm" id="prov-tel" placeholder="+52 (614)...">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top">
+                        <button type="button" class="btn btn-secundario btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primario btn-sm">Guardar Proveedor</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================
+         MODAL ALTA 4: SUBIR DOCUMENTO AL REPOSITORIO (SOLO ADMIN)
+         ========================================================== -->
+    <div class="modal fade" id="modalSubirDocumento" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 12px; border: 1px solid var(--borde-fino);">
+                <div class="modal-header border-bottom" style="background-color: var(--bg-fondo);">
+                    <h6 class="modal-title fw-bold">
+                        <i class="bi bi-cloud-arrow-up me-2" style="color: var(--verde-imss);"></i>Subir Archivo al Servidor
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <form id="form-subir-documento">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Título del Documento *</label>
+                                <input type="text" class="form-control form-control-sm" id="doc-titulo" placeholder="ej. Minuta Supervisión HGR 66" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">¿A qué pertenece este documento? *</label>
+                                <select class="form-select form-select-sm" id="doc-tipo-asociacion" onchange="cambiarOpcionesAsociacionDoc()">
+                                    <option value="inventario">A un Inventario Hospitalario</option>
+                                    <option value="equipo">A un Equipo Médico</option>
+                                    <option value="mantenimiento">A un Mantenimiento</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Seleccionar Registro *</label>
+                                <select class="form-select form-select-sm" id="doc-id-destino" required></select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold">Seleccionar Archivo (PDF o Imagen) *</label>
+                                <input type="file" class="form-control form-control-sm" id="doc-archivo" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top">
+                        <button type="button" class="btn btn-secundario btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primario btn-sm">Subir y Registrar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- ==========================================================
          MODAL NUEVO 1: ALTA INDIVIDUAL DE EQUIPO MÉDICO (NUEVAS ADQUISICIONES)
@@ -1698,6 +1824,7 @@
         let mapaEquipos = {};
         let mapaProveedores = {};
         let mapaInventarios = {};
+        let catalogoEquiposCompleto = [];
         let listaEquiposActuales = [];
         let listaMantenimientosActuales = [];
         let listaProveedoresActuales = [];
@@ -1710,7 +1837,11 @@
         let filtroAgendaInicio = "todas";
         let mapaConteoEquiposInventario = {};
 
-        // Instancias de Modales Bootstrap
+        // Instancias de Modales Bootstrap (Altas y Ediciones)
+        let modalCrearInvInstancia = null;
+        let modalCrearMantInstancia = null;
+        let modalCrearProvInstancia = null;
+        let modalSubirDocInstancia = null;
         let modalCrearEqIndInstancia = null;
         let modalTransferirEqInstancia = null;
         let modalEditarInstancia = null;
@@ -1817,7 +1948,11 @@
                 }
             });
 
-            // Inicializar modales
+            // Inicializar modales de Alta y Edición
+            modalCrearInvInstancia = new bootstrap.Modal(document.getElementById("modalCrearInventario"));
+            modalCrearMantInstancia = new bootstrap.Modal(document.getElementById("modalCrearMantenimiento"));
+            modalCrearProvInstancia = new bootstrap.Modal(document.getElementById("modalCrearProveedor"));
+            modalSubirDocInstancia = new bootstrap.Modal(document.getElementById("modalSubirDocumento"));
             modalCrearEqIndInstancia = new bootstrap.Modal(document.getElementById("modalCrearEquipoIndividual"));
             modalTransferirEqInstancia = new bootstrap.Modal(document.getElementById("modalTransferirEquipo"));
             modalEditarInstancia = new bootstrap.Modal(document.getElementById("modalEditarEquipo"));
@@ -1926,11 +2061,10 @@
                 });
             }
 
-            if (Array.isArray(equipos)) {
-                equipos.forEach(e => {
-                    mapaEquipos[e.id_equipo] = `${e.nombre_equipo || 'Equipo #' + e.id_equipo} (NNI: ${e.nni || 'S/N'})`;
-                });
-            }
+            catalogoEquiposCompleto = Array.isArray(equipos) ? equipos : [];
+            catalogoEquiposCompleto.forEach(e => {
+                mapaEquipos[e.id_equipo] = `${e.nombre_equipo || 'Equipo #' + e.id_equipo} (NNI: ${e.nni || 'S/N'})`;
+            });
         }
 
         // ================= CENTRO DE NOTIFICACIONES (CAMPANITA HOVER + PESTANAS) =================
@@ -2123,11 +2257,25 @@
 
         // ================= MÓDULO 1: PANEL CMMS, RESUMEN EJECUTIVO Y ALERTAS =================
         async function refrescarPanelCompleto() {
-            await cargarCatalogosBase();
-            await Promise.all([
-                cargarResumenDashboard(),
-                cargarAlertas(false)
-            ]);
+            const btn = document.getElementById("btn-refrescar-panel");
+            const icono = document.getElementById("icono-refrescar-panel");
+            if (btn) btn.disabled = true;
+            if (icono) icono.classList.add("icono-girando");
+            try {
+                await Promise.all([
+                    (async () => {
+                        await cargarCatalogosBase();
+                        await Promise.all([
+                            cargarResumenDashboard(),
+                            cargarAlertas(false)
+                        ]);
+                    })(),
+                    new Promise(resolve => setTimeout(resolve, 650))
+                ]);
+            } finally {
+                if (icono) icono.classList.remove("icono-girando");
+                if (btn) btn.disabled = false;
+            }
         }
 
         function ejecutarBusquedaGlobal() {
@@ -2158,15 +2306,13 @@
         function accesoRapidoNuevoInventario() {
             const btnInv = document.querySelectorAll(".nav-item-btn")[1];
             cambiarVista("vista-inventarios", btnInv);
-            const panel = document.getElementById("panel-crear-inventario");
-            if (panel.classList.contains("d-none")) toggleNuevoInventario();
+            toggleNuevoInventario();
         }
 
         function accesoRapidoNuevoMantenimiento() {
             const btnMant = document.querySelectorAll(".nav-item-btn")[3];
             cambiarVista("vista-mantenimientos", btnMant);
-            const panel = document.getElementById("panel-crear-mant");
-            if (panel.classList.contains("d-none")) toggleFormMantenimiento();
+            toggleFormMantenimiento();
         }
 
         function irADetalleAlertas(tabBtnId) {
@@ -2403,12 +2549,14 @@
 
         // ================= MÓDULO 2: INVENTARIOS (CON ACCESO GLOBAL Y CANCELACIÓN) =================
         function toggleNuevoInventario() {
-            const panel = document.getElementById("panel-crear-inventario");
-            panel.classList.toggle("d-none");
-            if (!panel.classList.contains("d-none")) {
-                document.getElementById("inventario-fecha").valueAsDate = new Date();
-                cargarCheckboxesParticipantes();
-            }
+            document.getElementById("form-iniciar-inventario").reset();
+            document.getElementById("hospital-seleccionado-id").value = "";
+            document.getElementById("hospital-elegido-badge").classList.add("d-none");
+            document.getElementById("lista-hospitales-dropdown").classList.add("d-none");
+            document.getElementById("subpanel-nuevo-hospital").classList.add("d-none");
+            document.getElementById("inventario-fecha").valueAsDate = new Date();
+            cargarCheckboxesParticipantes();
+            modalCrearInvInstancia.show();
         }
         const inputBuscadorHosp = document.getElementById("buscador-hospital-input");
         const dropdownHosp = document.getElementById("lista-hospitales-dropdown");
@@ -2461,7 +2609,7 @@
             });
             const data = await res.json();
             if (res.ok) {
-                document.getElementById("panel-crear-inventario").classList.add("d-none");
+                modalCrearInvInstancia.hide();
                 await cargarCatalogosBase();
                 cargarInventarios();
                 abrirCapturaInventario(data.id_inventario, data.id_hospital, data.fecha, data.estado);
@@ -2596,15 +2744,26 @@
             const res = await fetch(`/equipos/?id_inventario=${idInventarioActivo}`);
             const equipos = await res.json();
             document.getElementById("tabla-equipos-inventario-activo").innerHTML = equipos.length === 0 
-                ? `<tr><td colspan="6" class="text-center text-muted py-3">Sin equipos registrados en este inventario.</td></tr>` 
-                : equipos.map(eq => `<tr>
-                    <td class="fw-medium">${limpiarTexto(eq.nombre_equipo)}</td>
-                    <td>${limpiarTexto(eq.area)}</td>
-                    <td>${limpiarTexto(eq.marca)} ${eq.modelo ? '/ ' + eq.modelo : ''}</td>
-                    <td>${limpiarTexto(eq.nni, true)}</td>
-                    <td>${limpiarTexto(eq.sn)}</td>
-                    <td><span class="${eq.estatusfuncional ? 'badge-soft-success' : 'badge-soft-danger'}">${eq.estatusfuncional ? 'Funcional' : 'Inactivo'}</span></td>
-                </tr>`).join("");
+                ? `<tr><td colspan="9" class="text-center text-muted py-3">Sin equipos registrados en este inventario.</td></tr>` 
+                : equipos.map(eq => {
+                    const provTexto = eq.id_proveedor
+                        ? (mapaProveedores[eq.id_proveedor] || `Proveedor #${eq.id_proveedor}`)
+                        : `<span class="text-muted small">Sin proveedor</span>`;
+                    const garantiaHtml = eq.garantia
+                        ? `<span class="badge-soft-success">Vence: ${limpiarTexto(eq.fecha_expgarantia)}</span>`
+                        : `<span class="badge-soft-neutral">Sin garantía</span>`;
+                    return `<tr>
+                        <td class="fw-medium">${limpiarTexto(eq.nombre_equipo)}</td>
+                        <td>${limpiarTexto(eq.area)}${eq.subarea ? '<br><small class="text-muted">' + eq.subarea + '</small>' : ''}</td>
+                        <td>${limpiarTexto(eq.marca)} ${eq.modelo ? '/ ' + eq.modelo : ''}</td>
+                        <td>${limpiarTexto(eq.nni, true)}</td>
+                        <td>${limpiarTexto(eq.sn)}</td>
+                        <td>${provTexto}</td>
+                        <td>${garantiaHtml}</td>
+                        <td><span class="${eq.estatusfuncional ? 'badge-soft-success' : 'badge-soft-danger'}">${eq.estatusfuncional ? 'Funcional' : 'Inactivo'}</span></td>
+                        <td>${limpiarTexto(eq.observaciones)}</td>
+                    </tr>`;
+                }).join("");
         }
         async function finalizarInventarioActual() {
             if (!confirm("¿Finalizar inventario?")) return;
@@ -2936,17 +3095,94 @@
 
         // ================= MÓDULO 4: MANTENIMIENTOS (ALTA, EDICIÓN Y BAJA) =================
         async function toggleFormMantenimiento() {
-            const panel = document.getElementById("panel-crear-mant");
-            panel.classList.toggle("d-none");
-            if (!panel.classList.contains("d-none")) {
-                await cargarCatalogosBase();
-                document.getElementById("mant-fecha").valueAsDate = new Date();
-                
-                const selEq = document.getElementById("mant-id-equipo");
-                selEq.innerHTML = Object.entries(mapaEquipos).map(([id, texto]) => `<option value="${id}">${texto}</option>`).join("");
-                const selProv = document.getElementById("mant-id-proveedor");
-                selProv.innerHTML = Object.entries(mapaProveedores).map(([id, texto]) => `<option value="${id}">${texto}</option>`).join("");
+            await cargarCatalogosBase();
+            document.getElementById("form-registrar-mant").reset();
+            document.getElementById("mant-fecha").valueAsDate = new Date();
+
+            // Poblar selector de hospitales
+            const selHosp = document.getElementById("mant-id-hospital");
+            const opcionesHosp = Object.entries(mapaHospitales)
+                .map(([id, nombre]) => `<option value="${id}">${nombre}</option>`)
+                .join("");
+            selHosp.innerHTML = `<option value="">Selecciona un hospital...</option><option value="ALL">Todos los hospitales</option>` + opcionesHosp;
+
+            // Poblar selector de proveedores
+            const selProv = document.getElementById("mant-id-proveedor");
+            selProv.innerHTML = `<option value="">Sin proveedor asignado</option>` +
+                Object.entries(mapaProveedores).map(([id, texto]) => `<option value="${id}">${texto}</option>`).join("");
+
+            // Reiniciar buscador y lista de equipos
+            document.getElementById("mant-buscar-equipo").value = "";
+            filtrarEquiposParaMantenimiento();
+            modalCrearMantInstancia.show();
+        }
+
+        function filtrarEquiposParaMantenimiento() {
+            const hospVal = document.getElementById("mant-id-hospital").value;
+            const textoBusq = document.getElementById("mant-buscar-equipo").value.trim().toLowerCase();
+            const selEq = document.getElementById("mant-id-equipo");
+            const badgeCount = document.getElementById("mant-contador-equipos");
+
+            if (!hospVal && !textoBusq) {
+                selEq.innerHTML = `<option value="">Primero selecciona un hospital o escribe NNI / SN...</option>`;
+                badgeCount.textContent = "Selecciona un hospital";
+                actualizarPreviewEquipoMantenimiento();
+                return;
             }
+
+            let filtrados = catalogoEquiposCompleto.filter(e => {
+                if (hospVal && hospVal !== "ALL" && String(e.id_hospital) !== String(hospVal)) {
+                    return false;
+                }
+                if (textoBusq) {
+                    const nombre = (e.nombre_equipo || "").toLowerCase();
+                    const nni = (e.nni || "").toLowerCase();
+                    const sn = (e.sn || "").toLowerCase();
+                    const marca = (e.marca || "").toLowerCase();
+                    const modelo = (e.modelo || "").toLowerCase();
+                    return nombre.includes(textoBusq) || nni.includes(textoBusq) || sn.includes(textoBusq) || marca.includes(textoBusq) || modelo.includes(textoBusq);
+                }
+                return true;
+            });
+
+            badgeCount.textContent = `${filtrados.length} equipo(s)`;
+
+            if (filtrados.length === 0) {
+                selEq.innerHTML = `<option value="">Sin equipos coincidentes</option>`;
+                actualizarPreviewEquipoMantenimiento();
+                return;
+            }
+
+            selEq.innerHTML = filtrados.map(e => {
+                const nom = e.nombre_equipo || `Equipo #${e.id_equipo}`;
+                const cod = e.nni ? `NNI: ${e.nni}` : (e.sn ? `SN: ${e.sn}` : "Sin NNI/SN");
+                const marcaMod = `${e.marca || "Sin información"} / ${e.modelo || "Sin información"}`;
+                return `<option value="${e.id_equipo}">${nom} — ${cod} (${marcaMod})</option>`;
+            }).join("");
+
+            actualizarPreviewEquipoMantenimiento();
+        }
+
+        function actualizarPreviewEquipoMantenimiento() {
+            const idEq = document.getElementById("mant-id-equipo").value;
+            const wrap = document.getElementById("mant-equipo-preview-wrap");
+            if (!idEq) {
+                wrap.classList.add("d-none");
+                return;
+            }
+            const eq = catalogoEquiposCompleto.find(e => String(e.id_equipo) === String(idEq));
+            if (!eq) {
+                wrap.classList.add("d-none");
+                return;
+            }
+            document.getElementById("mant-prev-nombre").textContent = eq.nombre_equipo || `Equipo #${eq.id_equipo}`;
+            const hospNom = mapaHospitales[eq.id_hospital] || "Sin hospital";
+            document.getElementById("mant-prev-area").textContent = `${hospNom} • ${eq.area || "Sin área"}`;
+            document.getElementById("mant-prev-marca").textContent = (eq.marca && String(eq.marca).trim()) ? eq.marca : "Sin información";
+            document.getElementById("mant-prev-modelo").textContent = (eq.modelo && String(eq.modelo).trim()) ? eq.modelo : "Sin información";
+            document.getElementById("mant-prev-nni").textContent = (eq.nni && String(eq.nni).trim()) ? eq.nni : "Sin información";
+            document.getElementById("mant-prev-sn").textContent = (eq.sn && String(eq.sn).trim()) ? eq.sn : "Sin información";
+            wrap.classList.remove("d-none");
         }
         
         async function cargarMantenimientos() {
@@ -3000,7 +3236,7 @@
             });
             if (res.ok) {
                 document.getElementById("form-registrar-mant").reset();
-                toggleFormMantenimiento();
+                modalCrearMantInstancia.hide();
                 cargarMantenimientos();
                 await cargarAlertas(false);
                 await verificarAlertasHitosCorreo();
@@ -3067,7 +3303,10 @@
         }
 
         // ================= MÓDULO 5: PROVEEDORES (ALTA, EDICIÓN Y BAJA) =================
-        function toggleFormProveedor() { document.getElementById("panel-crear-prov").classList.toggle("d-none"); }
+        function toggleFormProveedor() {
+            document.getElementById("form-registrar-prov").reset();
+            modalCrearProvInstancia.show();
+        }
         async function cargarProveedores() {
             const res = await fetch("/proveedores/");
             const lista = await res.json();
@@ -3111,7 +3350,7 @@
                     nombre_contacto: document.getElementById("prov-contacto").value.trim() || null
                 })
             });
-            if (res.ok) { document.getElementById("form-registrar-prov").reset(); toggleFormProveedor(); await cargarCatalogosBase(); cargarProveedores(); }
+            if (res.ok) { document.getElementById("form-registrar-prov").reset(); modalCrearProvInstancia.hide(); await cargarCatalogosBase(); cargarProveedores(); }
             else { const d = await res.json(); alert(d.detail); }
         });
         function abrirModalEditarProveedor(idProv) {
@@ -3163,11 +3402,9 @@
 
         // ================= MÓDULO 6: DOCUMENTOS (SUBIDA, EDICIÓN, REEMPLAZO Y BAJA) =================
         async function toggleFormDocumento() {
-            const panel = document.getElementById("panel-subir-doc");
-            panel.classList.toggle("d-none");
-            if (!panel.classList.contains("d-none")) {
-                await cambiarOpcionesAsociacionDoc();
-            }
+            document.getElementById("form-subir-documento").reset();
+            await cambiarOpcionesAsociacionDoc();
+            modalSubirDocInstancia.show();
         }
         async function poblarSelectAsociacion(idSelectTipo, idSelectDestino) {
             const tipo = document.getElementById(idSelectTipo).value;
@@ -3245,7 +3482,7 @@
             
             formData.append("archivo", document.getElementById("doc-archivo").files[0]);
             const res = await fetch("/documentos/subir", { method: "POST", body: formData });
-            if (res.ok) { document.getElementById("form-subir-documento").reset(); toggleFormDocumento(); cargarDocumentos(); alert("Documento subido con éxito."); }
+            if (res.ok) { document.getElementById("form-subir-documento").reset(); modalSubirDocInstancia.hide(); cargarDocumentos(); alert("Documento subido con éxito."); }
             else { const d = await res.json(); alert(d.detail); }
         });
         async function abrirModalEditarDocumento(idDoc) {
