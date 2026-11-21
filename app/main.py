@@ -206,6 +206,22 @@ def formatear_identificador_equipo(nni: Optional[str], sn: Optional[str]) -> str
         return f"SN: {str(sn).strip()}"
     return "Sin información"
 
+def formatear_fecha_es(fecha_val: Optional[date], corta: bool = False) -> str:
+    """Formatea una fecha a español natural (ej. '21 de noviembre de 2026' o '21 nov 2026')."""
+    if not fecha_val:
+        return "Sin fecha"
+    meses_largos = [
+        "enero", "febrero", "marzo", "abril", "mayo", "junio",
+        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+    ]
+    meses_cortos = [
+        "ene", "feb", "mar", "abr", "may", "jun",
+        "jul", "ago", "sep", "oct", "nov", "dic"
+    ]
+    if corta:
+        return f"{fecha_val.day} {meses_cortos[fecha_val.month - 1]} {fecha_val.year}"
+    return f"{fecha_val.day} de {meses_largos[fecha_val.month - 1]} de {fecha_val.year}"
+
 # ==========================================================
 # 1. RUTAS GENERALES (DIAGNÓSTICO DE BASE DE DATOS)
 # ==========================================================
@@ -418,23 +434,32 @@ def solicitar_codigo_recuperacion(datos: schemas.RecuperarPasswordSolicitud, db:
     }
     cuerpo_html = f"""
     <html>
-    <body style="font-family: Arial, sans-serif; color: #1E293B;">
-        <div style="background-color:#13322B; color:white; padding:16px; border-bottom:3px solid #A68250;">
-            <h3 style="margin:0;">Biomédica IMSS - Recuperación de Contraseña</h3>
-        </div>
-        <div style="padding: 16px;">
-            <p>Hola, <strong>{usuario.primernombre} {usuario.primerapellido}</strong>:</p>
-            <p>Recibimos una solicitud para restablecer tu contraseña. Ingresa el siguiente código de verificación en la pantalla de inicio de sesión:</p>
-            <div style="background:#F1F5F9; border:1px solid #CBD5E1; border-radius:8px; padding:14px; text-align:center; font-size:24px; font-weight:bold; letter-spacing:6px; color:#13322B; margin:20px 0;">
-                {codigo}
+    <body style="margin:0; padding:24px 12px; background-color:#F3F5F7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; color:#1E293B;">
+        <div style="max-width:560px; margin:0 auto; background-color:#FFFFFF; border:1px solid #E2E8F0; border-radius:12px; overflow:hidden;">
+            <div style="background-color:#13322B; color:#FFFFFF; padding:20px 24px; border-bottom:3px solid #A68250;">
+                <div style="font-size:16px; font-weight:700; letter-spacing:0.3px;">SIGEM · Ingeniería Biomédica</div>
+                <div style="font-size:12px; color:#CBD5E1; margin-top:2px;">Restablecimiento de acceso</div>
             </div>
-            <p style="font-size:12px; color:#64748B;">Este código expira en 15 minutos. Si tú no solicitaste este cambio, puedes ignorar este correo.</p>
+            <div style="padding:24px; line-height:1.6; font-size:14px;">
+                <p style="margin-top:0;">Hola, <strong>{usuario.primernombre}</strong>:</p>
+                <p>Nos llegó una solicitud para cambiar la contraseña de tu cuenta. Usa este código en la pantalla de inicio de sesión para continuar:</p>
+                <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:10px; padding:16px; text-align:center; font-size:26px; font-weight:700; letter-spacing:8px; color:#13322B; margin:20px 0;">
+                    {codigo}
+                </div>
+                <p style="font-size:13px; color:#475569; margin-bottom:0;">
+                    El código estará vigente durante <strong>15 minutos</strong>. Si no pediste este cambio, puedes ignorar este mensaje sin problema.
+                </p>
+                <p style="margin-top:20px; margin-bottom:0; font-size:13px; color:#64748B;">
+                    Saludos,<br>
+                    <strong style="color:#13322B;">Equipo SIGEM</strong>
+                </p>
+            </div>
         </div>
     </body>
     </html>
     """
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = "[Biomédica IMSS] Código para restablecer tu contraseña"
+    msg["Subject"] = "Tu código para restablecer tu contraseña en SIGEM"
     msg["From"] = smtp_user
     msg["To"] = usuario.correo
     msg.attach(MIMEText(cuerpo_html, "html"))
@@ -1585,51 +1610,65 @@ def procesar_envio_correo_alertas_hitos(db: Session) -> tuple[bool, str]:
     mapa_hospitales = {h.id_hospital: f"{h.nombre} ({h.ciudad})" for h in db.query(models.Hospital).all()}
     mapa_equipos_obj = {e.id_equipo: e for e in db.query(models.Equipo).all()}
 
+    fecha_larga_es = formatear_fecha_es(hoy, corta=False)
+    fecha_corta_es = formatear_fecha_es(hoy, corta=True)
+
     bloque_7d_html = ""
     if total_7d > 0:
         filas_7d = []
         for eq in garantias_7d:
             dias_rest = (eq.fecha_expgarantia - hoy).days
+            tiempo_txt = "Vence hoy" if dias_rest == 0 else ("Mañana" if dias_rest == 1 else f"En {dias_rest} días")
             ident_eq = formatear_identificador_equipo(eq.nni, eq.sn)
             filas_7d.append(
                 f"<tr>"
-                f"<td style='padding:7px;border:1px solid #ddd;'>Garantía de Equipo</td>"
-                f"<td style='padding:7px;border:1px solid #ddd;'><strong>{eq.nombre_equipo or 'Equipo #' + str(eq.id_equipo)}</strong></td>"
-                f"<td style='padding:7px;border:1px solid #ddd;'>{ident_eq}</td>"
-                f"<td style='padding:7px;border:1px solid #ddd;'>{mapa_hospitales.get(eq.id_hospital, 'Sin hospital')}</td>"
-                f"<td style='padding:7px;border:1px solid #ddd;'>{eq.fecha_expgarantia}</td>"
-                f"<td style='padding:7px;border:1px solid #ddd;color:#B45309;font-weight:bold;'>{dias_rest} día(s)</td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;color:#475569;'>Garantía</td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;'><strong style='color:#1E293B;'>{eq.nombre_equipo or 'Equipo #' + str(eq.id_equipo)}</strong></td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;font-family:monospace;font-size:12px;color:#13322B;'>{ident_eq}</td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;color:#475569;'>{mapa_hospitales.get(eq.id_hospital, 'Sin hospital')}</td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;white-space:nowrap;color:#475569;'>{formatear_fecha_es(eq.fecha_expgarantia, corta=True)}</td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;white-space:nowrap;'><span style='background:#FFFBEB;color:#B45309;border:1px solid #FDE68A;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;'>{tiempo_txt}</span></td>"
                 f"</tr>"
             )
         for m in mantenimientos_7d:
             dias_rest = (m.prox_fecha - hoy).days
+            tiempo_txt = "Es hoy" if dias_rest == 0 else ("Mañana" if dias_rest == 1 else f"En {dias_rest} días")
             eq_obj = mapa_equipos_obj.get(m.id_equipo)
             nombre_eq = (eq_obj.nombre_equipo if (eq_obj and eq_obj.nombre_equipo) else f"Equipo #{m.id_equipo}")
             ident_eq = formatear_identificador_equipo(eq_obj.nni if eq_obj else None, eq_obj.sn if eq_obj else None)
             hosp_txt = mapa_hospitales.get(eq_obj.id_hospital, "Sin hospital") if eq_obj else "Sin hospital"
+            tipo_limpio = str(m.tipo_mantenimiento or "Mantenimiento").capitalize()
             filas_7d.append(
                 f"<tr>"
-                f"<td style='padding:7px;border:1px solid #ddd;'>Mantenimiento ({m.tipo_mantenimiento})</td>"
-                f"<td style='padding:7px;border:1px solid #ddd;'><strong>{nombre_eq}</strong></td>"
-                f"<td style='padding:7px;border:1px solid #ddd;'>{ident_eq}</td>"
-                f"<td style='padding:7px;border:1px solid #ddd;'>{hosp_txt}</td>"
-                f"<td style='padding:7px;border:1px solid #ddd;'>{m.prox_fecha}</td>"
-                f"<td style='padding:7px;border:1px solid #ddd;color:#B45309;font-weight:bold;'>{dias_rest} día(s)</td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;color:#475569;'>Mant. {tipo_limpio}</td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;'><strong style='color:#1E293B;'>{nombre_eq}</strong></td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;font-family:monospace;font-size:12px;color:#13322B;'>{ident_eq}</td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;color:#475569;'>{hosp_txt}</td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;white-space:nowrap;color:#475569;'>{formatear_fecha_es(m.prox_fecha, corta=True)}</td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;white-space:nowrap;'><span style='background:#FFFBEB;color:#B45309;border:1px solid #FDE68A;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;'>{tiempo_txt}</span></td>"
                 f"</tr>"
             )
         bloque_7d_html = f"""
-        <h4 style="color:#B45309; margin-top:18px;">Aviso Preventivo — Vencen en 7 Días o Menos ({total_7d})</h4>
-        <table style="border-collapse:collapse; width:100%; font-size:13px;">
-            <tr style="background:#FEF3C7;">
-                <th style="padding:7px;border:1px solid #ddd;text-align:left;">Concepto</th>
-                <th style="padding:7px;border:1px solid #ddd;text-align:left;">Equipo</th>
-                <th style="padding:7px;border:1px solid #ddd;text-align:left;">NNI / SN</th>
-                <th style="padding:7px;border:1px solid #ddd;text-align:left;">Hospital</th>
-                <th style="padding:7px;border:1px solid #ddd;text-align:left;">Fecha Límite</th>
-                <th style="padding:7px;border:1px solid #ddd;text-align:left;">Restante</th>
-            </tr>
-            {''.join(filas_7d)}
-        </table>
+        <div style="margin-top:20px;">
+            <div style="font-size:14px; font-weight:700; color:#92400E; margin-bottom:8px;">
+                Próximos para esta semana ({total_7d})
+            </div>
+            <table style="border-collapse:collapse; width:100%; font-size:13px; border:1px solid #E2E8F0; border-radius:8px; overflow:hidden;">
+                <thead>
+                    <tr style="background-color:#FFFBEB; color:#92400E; font-size:11px; text-transform:uppercase; letter-spacing:0.4px;">
+                        <th style="padding:9px 12px;text-align:left;border-bottom:1px solid #FDE68A;">Tipo</th>
+                        <th style="padding:9px 12px;text-align:left;border-bottom:1px solid #FDE68A;">Equipo</th>
+                        <th style="padding:9px 12px;text-align:left;border-bottom:1px solid #FDE68A;">NNI / SN</th>
+                        <th style="padding:9px 12px;text-align:left;border-bottom:1px solid #FDE68A;">Unidad</th>
+                        <th style="padding:9px 12px;text-align:left;border-bottom:1px solid #FDE68A;">Fecha</th>
+                        <th style="padding:9px 12px;text-align:left;border-bottom:1px solid #FDE68A;">Cuándo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {''.join(filas_7d)}
+                </tbody>
+            </table>
+        </div>
         """
 
     bloque_vencidos_html = ""
@@ -1637,70 +1676,109 @@ def procesar_envio_correo_alertas_hitos(db: Session) -> tuple[bool, str]:
         filas_venc = []
         for eq in garantias_vencidas:
             dias_venc = abs((eq.fecha_expgarantia - hoy).days)
+            tiempo_txt = "Venció ayer" if dias_venc == 1 else f"Hace {dias_venc} días"
             ident_eq = formatear_identificador_equipo(eq.nni, eq.sn)
             filas_venc.append(
                 f"<tr>"
-                f"<td style='padding:7px;border:1px solid #ddd;'>Garantía de Equipo</td>"
-                f"<td style='padding:7px;border:1px solid #ddd;'><strong>{eq.nombre_equipo or 'Equipo #' + str(eq.id_equipo)}</strong></td>"
-                f"<td style='padding:7px;border:1px solid #ddd;'>{ident_eq}</td>"
-                f"<td style='padding:7px;border:1px solid #ddd;'>{mapa_hospitales.get(eq.id_hospital, 'Sin hospital')}</td>"
-                f"<td style='padding:7px;border:1px solid #ddd;'>{eq.fecha_expgarantia}</td>"
-                f"<td style='padding:7px;border:1px solid #ddd;color:#B91C1C;font-weight:bold;'>Venció hace {dias_venc} d</td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;color:#475569;'>Garantía</td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;'><strong style='color:#1E293B;'>{eq.nombre_equipo or 'Equipo #' + str(eq.id_equipo)}</strong></td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;font-family:monospace;font-size:12px;color:#13322B;'>{ident_eq}</td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;color:#475569;'>{mapa_hospitales.get(eq.id_hospital, 'Sin hospital')}</td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;white-space:nowrap;color:#475569;'>{formatear_fecha_es(eq.fecha_expgarantia, corta=True)}</td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;white-space:nowrap;'><span style='background:#FEF2F2;color:#B91C1C;border:1px solid #FECACA;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;'>{tiempo_txt}</span></td>"
                 f"</tr>"
             )
         for m in mantenimientos_vencidos:
             dias_venc = abs((m.prox_fecha - hoy).days)
+            tiempo_txt = "Atrasado 1 día" if dias_venc == 1 else f"Hace {dias_venc} días"
             eq_obj = mapa_equipos_obj.get(m.id_equipo)
             nombre_eq = (eq_obj.nombre_equipo if (eq_obj and eq_obj.nombre_equipo) else f"Equipo #{m.id_equipo}")
             ident_eq = formatear_identificador_equipo(eq_obj.nni if eq_obj else None, eq_obj.sn if eq_obj else None)
             hosp_txt = mapa_hospitales.get(eq_obj.id_hospital, "Sin hospital") if eq_obj else "Sin hospital"
+            tipo_limpio = str(m.tipo_mantenimiento or "Mantenimiento").capitalize()
             filas_venc.append(
                 f"<tr>"
-                f"<td style='padding:7px;border:1px solid #ddd;'>Mantenimiento ({m.tipo_mantenimiento})</td>"
-                f"<td style='padding:7px;border:1px solid #ddd;'><strong>{nombre_eq}</strong></td>"
-                f"<td style='padding:7px;border:1px solid #ddd;'>{ident_eq}</td>"
-                f"<td style='padding:7px;border:1px solid #ddd;'>{hosp_txt}</td>"
-                f"<td style='padding:7px;border:1px solid #ddd;'>{m.prox_fecha}</td>"
-                f"<td style='padding:7px;border:1px solid #ddd;color:#B91C1C;font-weight:bold;'>Venció hace {dias_venc} d</td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;color:#475569;'>Mant. {tipo_limpio}</td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;'><strong style='color:#1E293B;'>{nombre_eq}</strong></td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;font-family:monospace;font-size:12px;color:#13322B;'>{ident_eq}</td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;color:#475569;'>{hosp_txt}</td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;white-space:nowrap;color:#475569;'>{formatear_fecha_es(m.prox_fecha, corta=True)}</td>"
+                f"<td style='padding:10px 12px;border-bottom:1px solid #F1F5F9;white-space:nowrap;'><span style='background:#FEF2F2;color:#B91C1C;border:1px solid #FECACA;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;'>{tiempo_txt}</span></td>"
                 f"</tr>"
             )
         bloque_vencidos_html = f"""
-        <h4 style="color:#B91C1C; margin-top:20px;">Registros Vencidos / Atrasados ({total_vencidos})</h4>
-        <table style="border-collapse:collapse; width:100%; font-size:13px;">
-            <tr style="background:#FEE2E2;">
-                <th style="padding:7px;border:1px solid #ddd;text-align:left;">Concepto</th>
-                <th style="padding:7px;border:1px solid #ddd;text-align:left;">Equipo</th>
-                <th style="padding:7px;border:1px solid #ddd;text-align:left;">NNI / SN</th>
-                <th style="padding:7px;border:1px solid #ddd;text-align:left;">Hospital</th>
-                <th style="padding:7px;border:1px solid #ddd;text-align:left;">Fecha Límite</th>
-                <th style="padding:7px;border:1px solid #ddd;text-align:left;">Estatus</th>
-            </tr>
-            {''.join(filas_venc)}
-        </table>
+        <div style="margin-top:22px;">
+            <div style="font-size:14px; font-weight:700; color:#991B1B; margin-bottom:8px;">
+                Ya vencidos o atrasados ({total_vencidos})
+            </div>
+            <table style="border-collapse:collapse; width:100%; font-size:13px; border:1px solid #E2E8F0; border-radius:8px; overflow:hidden;">
+                <thead>
+                    <tr style="background-color:#FEF2F2; color:#991B1B; font-size:11px; text-transform:uppercase; letter-spacing:0.4px;">
+                        <th style="padding:9px 12px;text-align:left;border-bottom:1px solid #FECACA;">Tipo</th>
+                        <th style="padding:9px 12px;text-align:left;border-bottom:1px solid #FECACA;">Equipo</th>
+                        <th style="padding:9px 12px;text-align:left;border-bottom:1px solid #FECACA;">NNI / SN</th>
+                        <th style="padding:9px 12px;text-align:left;border-bottom:1px solid #FECACA;">Unidad</th>
+                        <th style="padding:9px 12px;text-align:left;border-bottom:1px solid #FECACA;">Fecha</th>
+                        <th style="padding:9px 12px;text-align:left;border-bottom:1px solid #FECACA;">Estatus</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {''.join(filas_venc)}
+                </tbody>
+            </table>
+        </div>
         """
+
+    if total_7d > 0 and total_vencidos > 0:
+        intro_texto = (
+            f"Les compartimos el resumen de equipo médico al <strong>{fecha_larga_es}</strong>. "
+            f"Hay <strong>{total_7d}</strong> pendiente(s) por vencer en los próximos días y "
+            f"<strong>{total_vencidos}</strong> registro(s) que ya pasaron su fecha para darles seguimiento:"
+        )
+        asunto_correo = f"Seguimiento de equipo médico: {total_7d} próximo(s) y {total_vencidos} vencido(s) ({fecha_corta_es})"
+    elif total_7d > 0:
+        intro_texto = (
+            f"Les compartimos el aviso preventivo al <strong>{fecha_larga_es}</strong>. "
+            f"Estos <strong>{total_7d}</strong> registro(s) vencen en los próximos 7 días para que puedan programarlos con tiempo:"
+        )
+        asunto_correo = f"Seguimiento de equipo médico: {total_7d} pendiente(s) para esta semana ({fecha_corta_es})"
+    else:
+        intro_texto = (
+            f"Les avisamos que al <strong>{fecha_larga_es}</strong> se detectaron "
+            f"<strong>{total_vencidos}</strong> registro(s) con fecha vencida que requieren revisión:"
+        )
+        asunto_correo = f"Atención en equipo médico: {total_vencidos} registro(s) vencido(s) ({fecha_corta_es})"
 
     cuerpo_html = f"""
     <html>
-    <body style="font-family: Arial, sans-serif; color: #1E293B;">
-        <div style="background-color:#13322B; color:white; padding:16px; border-bottom:3px solid #A68250;">
-            <h3 style="margin:0;">SIGEM - Notificación Única de Hitos y Vencimientos</h3>
-            <small>Fecha de revisión: {hoy}</small>
-        </div>
-        <div style="padding: 14px 4px;">
-            <p>Se notifica por única ocasión sobre los siguientes hitos de 7 días o vencimientos detectados:</p>
-            {bloque_7d_html}
-            {bloque_vencidos_html}
-            <p style="font-size:12px; color:#64748B; margin-top:20px;">
-                Cada aviso se envía una sola vez por hito (7 días antes y al vencer) para evitar saturación en tu correo.
-                Consulta la campanita de notificaciones dentro de SIGEM para el seguimiento general a 30 días.
-            </p>
+    <body style="margin:0; padding:24px 12px; background-color:#F3F5F7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; color:#1E293B;">
+        <div style="max-width:720px; margin:0 auto; background-color:#FFFFFF; border:1px solid #E2E8F0; border-radius:12px; overflow:hidden;">
+            <div style="background-color:#13322B; color:#FFFFFF; padding:20px 24px; border-bottom:3px solid #A68250;">
+                <div style="font-size:17px; font-weight:700; letter-spacing:0.2px;">SIGEM · Seguimiento de Equipo Médico</div>
+                <div style="font-size:12px; color:#CBD5E1; margin-top:3px;">{fecha_larga_es}</div>
+            </div>
+            <div style="padding:24px; line-height:1.55; font-size:14px;">
+                <p style="margin-top:0;">Hola, equipo:</p>
+                <p style="color:#334155;">{intro_texto}</p>
+                {bloque_7d_html}
+                {bloque_vencidos_html}
+                <div style="margin-top:24px; padding-top:16px; border-top:1px solid #E2E8F0; font-size:13px; color:#64748B;">
+                    <p style="margin:0 0 8px 0;">
+                        Pueden revisar el expediente completo y actualizar fechas directamente en el panel de SIGEM.
+                    </p>
+                    <p style="margin:0;">
+                        Un saludo,<br>
+                        <strong style="color:#13322B;">Ingeniería Biomédica · SIGEM</strong>
+                    </p>
+                </div>
+            </div>
         </div>
     </body>
     </html>
     """
 
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"[SIGEM] Alertas: {total_7d} próximo(s) a 7 días y {total_vencidos} vencido(s) ({hoy})"
+    msg["Subject"] = asunto_correo
     msg["From"] = smtp_user
     msg["To"] = ", ".join(correos_destino)
     msg.attach(MIMEText(cuerpo_html, "html"))

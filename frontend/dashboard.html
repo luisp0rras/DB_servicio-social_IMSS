@@ -351,7 +351,7 @@
         </nav>
         <div class="sidebar-footer">
             <div class="d-flex align-items-center gap-2 mb-2">
-                <img id="sidebar-avatar" src="https://ui-avatars.com/api/?name=User&background=1F5143&color=fff" 
+                <img id="sidebar-avatar" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='100%25' height='100%25' rx='32' fill='%231F5143'/%3E%3Ctext x='50%25' y='54%25' font-family='system-ui,sans-serif' font-size='24' font-weight='700' fill='%23FFFFFF' text-anchor='middle' dominant-baseline='middle'%3EU%3C/text%3E%3C/svg%3E" 
                      alt="Avatar" class="rounded-circle flex-shrink-0 border border-light border-opacity-25" width="38" height="38" style="object-fit: cover;">
                 <div class="overflow-hidden">
                     <div id="sidebar-nombre" class="sidebar-user-name text-truncate">Cargando...</div>
@@ -682,189 +682,226 @@
             </div>
         </section>
         <!-- ======================================================
-             VISTA 2: INVENTARIOS (ACCESO GLOBAL + OPCIÓN CANCELAR)
+             VISTA 2: INVENTARIOS (TARJETAS/LISTA + SECCIÓN DEDICADA DE CAPTURA)
              ====================================================== -->
         <section id="vista-inventarios" class="vista-panel d-none">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h4 class="fw-bold mb-1">Levantamiento e Historial de Inventarios</h4>
-                    <p class="text-muted small mb-0">Consulta todos los inventarios hospitalarios, descarga su reporte en Excel o inicia un nuevo censo</p>
-                </div>
-                <button class="btn btn-primario solo-admin d-none" onclick="toggleNuevoInventario()">
-                    <i class="bi bi-plus-lg me-1"></i> Iniciar Nuevo Inventario
-                </button>
-            </div>
-            <!-- El asistente de Nuevo Inventario ahora se abre en el Modal #modalCrearInventario -->
-            <!-- Panel Paso 4 y 5: Captura de equipos, Finalización o Cancelación de Inventario -->
-            <div id="panel-captura-inventario" class="card-clean d-none" style="border-left: 4px solid var(--dorado-sutil);">
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom">
+            <!-- Subvista A: Listado general de inventarios (se oculta al abrir un inventario) -->
+            <div id="vista-inventarios-listado">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
                     <div>
-                        <span class="badge-soft-warning me-2" id="badge-estado-inv-activo">EN PROCESO</span>
-                        <span class="fw-bold" id="titulo-inventario-activo">Inventario #</span>
+                        <h4 class="fw-bold mb-1" style="color: var(--verde-imss);">Levantamiento e Historial de Inventarios</h4>
+                        <p class="text-muted small mb-0">Consulta todos los inventarios hospitalarios, descarga su reporte en Excel o inicia un nuevo censo</p>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <div class="pill-filter-group" id="toggle-vista-inventarios" title="Cambiar modo de visualización">
+                            <button type="button" class="pill-filter-btn activo" onclick="cambiarModoVistaInventarios('tarjetas', this)">
+                                <i class="bi bi-grid me-1"></i>Tarjetas
+                            </button>
+                            <button type="button" class="pill-filter-btn" onclick="cambiarModoVistaInventarios('lista', this)">
+                                <i class="bi bi-list-ul me-1"></i>Lista
+                            </button>
+                        </div>
+                        <button class="btn btn-primario btn-sm solo-admin d-none" onclick="toggleNuevoInventario()">
+                            <i class="bi bi-plus-lg me-1"></i> Iniciar Nuevo Inventario
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Vista en Tarjetas (por defecto) -->
+                <div id="contenedor-tarjetas-inventarios" class="cmms-cards-grid mb-3">
+                    <div class="text-muted small py-3">Cargando inventarios...</div>
+                </div>
+
+                <!-- Vista en Tabla (alternable) -->
+                <div id="contenedor-tabla-inventarios" class="card-clean d-none">
+                    <h6 class="fw-bold mb-3">Inventarios Registrados en Unidades Médicas</h6>
+                    <div class="table-responsive">
+                        <table class="table-clean">
+                            <thead>
+                                <tr><th>ID</th><th>Hospital</th><th>Fecha</th><th>Equipos</th><th>Estado</th><th>Acciones</th></tr>
+                            </thead>
+                            <tbody id="tabla-lista-inventarios">
+                                <tr><td colspan="6" class="text-center text-muted py-3">Cargando inventarios...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subvista B: Sección dedicada para captura y consulta del inventario activo -->
+            <div id="panel-captura-inventario" class="d-none">
+                <div class="inv-captura-header">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <button type="button" class="btn btn-secundario btn-sm" onclick="cerrarPanelCaptura()">
+                            <i class="bi bi-arrow-left me-1"></i> Volver a Inventarios
+                        </button>
+                        <span class="badge-soft-warning" id="badge-estado-inv-activo">EN PROCESO</span>
+                        <h5 class="fw-bold mb-0" style="color: var(--verde-imss);" id="titulo-inventario-activo">Inventario #</h5>
+                        <span class="badge-soft-neutral" id="badge-conteo-eq-inv-activo">0 equipo(s)</span>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
                         <button class="btn btn-secundario btn-sm" onclick="descargarExcelInventario(idInventarioActivo)">
                             <i class="bi bi-file-earmark-excel text-success me-1"></i> Exportar (.xlsx)
                         </button>
                         <button id="btn-finalizar-inv" class="btn btn-primario btn-sm solo-admin d-none" onclick="finalizarInventarioActual()">
-                            <i class="bi bi-check2-circle me-1"></i> 5. Finalizar Inventario
+                            <i class="bi bi-check2-circle me-1"></i> Finalizar Inventario
                         </button>
                         <button id="btn-cancelar-inv" class="btn btn-secundario btn-sm text-danger solo-admin d-none" onclick="cancelarInventarioActual()" title="Cancelar y eliminar este levantamiento de inventario">
                             <i class="bi bi-x-circle me-1"></i> Cancelar Inventario
                         </button>
-                        <button class="btn btn-secundario btn-sm" onclick="cerrarPanelCaptura()">Cerrar vista</button>
                     </div>
                 </div>
-                <ul class="nav nav-tabs mb-3 small fw-semibold" id="tabs-captura-equipos">
-                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-eq-manual">4A. Registro Manual</button></li>
-                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-eq-csv">4B. Importación Masiva desde Excel / CSV</button></li>
-                </ul>
-                <div class="tab-content mb-4" id="contenido-captura-equipos">
-                    <!-- Pestaña 4A: Captura Manual -->
-                    <div class="tab-pane fade show active" id="tab-eq-manual">
-                        <form id="form-agregar-equipo" class="row g-2">
-                            <div class="col-md-4">
-                                <label class="form-label small text-muted">Nombre del Equipo *</label>
-                                <input type="text" class="form-control form-control-sm" id="eq-nombre" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label small text-muted">Área *</label>
-                                <input type="text" class="form-control form-control-sm" id="eq-area" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label small text-muted">Subárea</label>
-                                <input type="text" class="form-control form-control-sm" id="eq-subarea">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small text-muted">Marca *</label>
-                                <input type="text" class="form-control form-control-sm" id="eq-marca" required>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small text-muted">Modelo</label>
-                                <input type="text" class="form-control form-control-sm" id="eq-modelo">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small text-muted">Número de Serie (SN)</label>
-                                <input type="text" class="form-control form-control-sm" id="eq-sn" placeholder="Opcional">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small text-muted">NNI</label>
-                                <input type="text" class="form-control form-control-sm" id="eq-nni" placeholder="Opcional">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small text-muted">Proveedor</label>
-                                <select class="form-select form-select-sm" id="eq-proveedor">
-                                    <option value="">Sin proveedor</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small text-muted">¿Tiene Garantía?</label>
-                                <select class="form-select form-select-sm" id="eq-garantia" onchange="toggleFechaGarantia()">
-                                    <option value="false">No</option>
-                                    <option value="true">Sí</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small text-muted">Expiración Garantía</label>
-                                <input type="date" class="form-control form-control-sm" id="eq-fecha-garantia" disabled>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small text-muted">Estatus Funcional</label>
-                                <select class="form-select form-select-sm" id="eq-estatus">
-                                    <option value="true">Funcional</option>
-                                    <option value="false">Fuera de servicio</option>
-                                </select>
-                            </div>
-                            <div class="col-md-9">
-                                <label class="form-label small text-muted">Observaciones</label>
-                                <input type="text" class="form-control form-control-sm" id="eq-obs">
-                            </div>
-                            <div class="col-md-3 text-end d-flex align-items-end">
-                                <button type="submit" class="btn btn-primario btn-sm w-100">+ Agregar Equipo</button>
-                            </div>
-                        </form>
-                    </div>
-                    <!-- Pestaña 4B: Subida masiva por CSV con Instrucciones y Plantilla Descargable -->
-                    <div class="tab-pane fade" id="tab-eq-csv">
-                        <div class="guia-csv-box">
-                            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
-                                <div>
-                                    <div class="fw-semibold small" style="color: var(--verde-imss);">
-                                        <i class="bi bi-info-circle me-1"></i> Instrucciones para preparar tu Excel / CSV
-                                    </div>
-                                    <p class="text-muted small mb-2">
-                                        Si ya tienes un inventario en Excel, asegúrate de que la <strong>primera fila (encabezados)</strong> tenga exactamente estos nombres de columna y guárdalo como <strong>CSV UTF-8 (delimitado por comas) (*.csv)</strong>:
-                                    </p>
+
+                <!-- Recuadro de Captura Manual / CSV (Visible cuando el inventario está EN_PROCESO y es ADMIN) -->
+                <div id="card-captura-formularios" class="card-clean" style="border-left: 4px solid var(--dorado-sutil);">
+                    <ul class="nav nav-tabs mb-3 small fw-semibold" id="tabs-captura-equipos">
+                        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-eq-manual">Registro Manual</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-eq-csv">Importación Masiva desde Excel / CSV</button></li>
+                    </ul>
+                    <div class="tab-content" id="contenido-captura-equipos">
+                        <!-- Pestaña 4A: Captura Manual -->
+                        <div class="tab-pane fade show active" id="tab-eq-manual">
+                            <form id="form-agregar-equipo" class="row g-2">
+                                <div class="col-md-4">
+                                    <label class="form-label small text-muted">Nombre del Equipo *</label>
+                                    <input type="text" class="form-control form-control-sm" id="eq-nombre" required>
                                 </div>
-                                <button type="button" class="btn btn-secundario btn-sm" onclick="descargarPlantillaCSV()">
-                                    <i class="bi bi-download me-1"></i> Descargar Plantilla CSV de Ejemplo
-                                </button>
-                            </div>
-                            <div class="mb-2 d-flex flex-wrap gap-1">
-                                <code>nombre_equipo</code>
-                                <code>area</code>
-                                <code>subarea</code>
-                                <code>marca</code>
-                                <code>modelo</code>
-                                <code>sn</code>
-                                <code>nni</code>
-                                <code>garantia</code>
-                                <code>fecha_expgarantia</code>
-                                <code>estatusfuncional</code>
-                                <code>observaciones</code>
-                            </div>
-                            <ul class="text-muted mb-0 ps-3" style="font-size: 0.78rem;">
-                                <li><strong>sn / nni:</strong> Son opcionales; si un equipo no cuenta con ninguno, deja las celdas vacías (los equipos con SN o NNI duplicado se omiten automáticamente y no se permite subir el mismo archivo CSV dos veces).</li>
-                                <li><strong>garantia:</strong> Escribe <code>SI</code> o <code>TRUE</code> si tiene garantía vigente, o <code>NO</code> / <code>FALSE</code> si no tiene.</li>
-                                <li><strong>fecha_expgarantia:</strong> Formato <code>AAAA-MM-DD</code> (ej. <code>2027-06-30</code>) solo cuando <code>garantia</code> sea <code>SI</code>.</li>
-                                <li><strong>estatusfuncional:</strong> Escribe <code>SI</code> / <code>FUNCIONAL</code> si opera correctamente, o <code>NO</code> si está fuera de servicio.</li>
-                            </ul>
+                                <div class="col-md-4">
+                                    <label class="form-label small text-muted">Área *</label>
+                                    <input type="text" class="form-control form-control-sm" id="eq-area" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small text-muted">Subárea</label>
+                                    <input type="text" class="form-control form-control-sm" id="eq-subarea">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small text-muted">Marca *</label>
+                                    <input type="text" class="form-control form-control-sm" id="eq-marca" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small text-muted">Modelo</label>
+                                    <input type="text" class="form-control form-control-sm" id="eq-modelo">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small text-muted">Número de Serie (SN)</label>
+                                    <input type="text" class="form-control form-control-sm" id="eq-sn" placeholder="Opcional">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small text-muted">NNI</label>
+                                    <input type="text" class="form-control form-control-sm" id="eq-nni" placeholder="Opcional">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small text-muted">Proveedor</label>
+                                    <select class="form-select form-select-sm" id="eq-proveedor">
+                                        <option value="">Sin proveedor</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small text-muted">¿Tiene Garantía?</label>
+                                    <select class="form-select form-select-sm" id="eq-garantia" onchange="toggleFechaGarantia()">
+                                        <option value="false">No</option>
+                                        <option value="true">Sí</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small text-muted">Expiración Garantía</label>
+                                    <input type="date" class="form-control form-control-sm" id="eq-fecha-garantia" disabled>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small text-muted">Estatus Funcional</label>
+                                    <select class="form-select form-select-sm" id="eq-estatus">
+                                        <option value="true">Funcional</option>
+                                        <option value="false">Fuera de servicio</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-9">
+                                    <label class="form-label small text-muted">Observaciones</label>
+                                    <input type="text" class="form-control form-control-sm" id="eq-obs">
+                                </div>
+                                <div class="col-md-3 text-end d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primario btn-sm w-100">+ Agregar Equipo</button>
+                                </div>
+                            </form>
                         </div>
-                        <form id="form-subir-csv" class="row g-2 align-items-end">
-                            <div class="col-md-8">
-                                <label class="form-label small text-muted">Selecciona tu archivo .csv preparado</label>
-                                <input type="file" class="form-control form-control-sm" id="archivo-csv-input" accept=".csv" required>
+                        <!-- Pestaña 4B: Subida masiva por CSV con Zona Arrastra y Suelta -->
+                        <div class="tab-pane fade" id="tab-eq-csv">
+                            <div class="guia-csv-box">
+                                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                                    <div>
+                                        <div class="fw-semibold small" style="color: var(--verde-imss);">
+                                            <i class="bi bi-info-circle me-1"></i> Instrucciones para preparar tu Excel / CSV
+                                        </div>
+                                        <p class="text-muted small mb-2">
+                                            Si ya tienes un inventario en Excel, asegúrate de que la <strong>primera fila (encabezados)</strong> tenga exactamente estos nombres de columna y guárdalo como <strong>CSV UTF-8 (delimitado por comas) (*.csv)</strong>:
+                                        </p>
+                                    </div>
+                                    <button type="button" class="btn btn-secundario btn-sm" onclick="descargarPlantillaCSV()">
+                                        <i class="bi bi-download me-1"></i> Descargar Plantilla CSV de Ejemplo
+                                    </button>
+                                </div>
+                                <div class="mb-2 d-flex flex-wrap gap-1">
+                                    <code>nombre_equipo</code>
+                                    <code>area</code>
+                                    <code>subarea</code>
+                                    <code>marca</code>
+                                    <code>modelo</code>
+                                    <code>sn</code>
+                                    <code>nni</code>
+                                    <code>garantia</code>
+                                    <code>fecha_expgarantia</code>
+                                    <code>estatusfuncional</code>
+                                    <code>observaciones</code>
+                                </div>
+                                <ul class="text-muted mb-0 ps-3" style="font-size: 0.78rem;">
+                                    <li><strong>sn / nni:</strong> Son opcionales; si un equipo no cuenta con ninguno, deja las celdas vacías (los equipos con SN o NNI duplicado se omiten automáticamente y no se permite subir el mismo archivo CSV dos veces).</li>
+                                    <li><strong>garantia:</strong> Escribe <code>SI</code> o <code>TRUE</code> si tiene garantía vigente, o <code>NO</code> / <code>FALSE</code> si no tiene.</li>
+                                    <li><strong>fecha_expgarantia:</strong> Formato <code>AAAA-MM-DD</code> (ej. <code>2027-06-30</code>) solo cuando <code>garantia</code> sea <code>SI</code>.</li>
+                                    <li><strong>estatusfuncional:</strong> Escribe <code>SI</code> / <code>FUNCIONAL</code> si opera correctamente, o <code>NO</code> si está fuera de servicio.</li>
+                                </ul>
                             </div>
-                            <div class="col-md-4">
-                                <button type="submit" class="btn btn-primario btn-sm w-100">
-                                    <i class="bi bi-cloud-arrow-up me-1"></i> Importar Equipos desde CSV
-                                </button>
-                            </div>
-                        </form>
+                            <form id="form-subir-csv" class="row g-3 align-items-center">
+                                <div class="col-md-9">
+                                    <div id="dropzone-csv" class="dropzone-sigem" tabindex="0" role="button" aria-label="Arrastrar o seleccionar archivo CSV">
+                                        <input type="file" class="dropzone-input-hidden" id="archivo-csv-input" accept=".csv">
+                                        <div class="dropzone-icon"><i class="bi bi-filetype-csv"></i></div>
+                                        <div class="dropzone-title">Arrastra y suelta tu archivo .csv aquí</div>
+                                        <div class="dropzone-subtitle">o haz clic en este recuadro para buscarlo en tu computadora</div>
+                                        <div id="dropzone-csv-estado" class="d-none"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <button type="submit" class="btn btn-primario w-100 py-2">
+                                        <i class="bi bi-cloud-arrow-up me-1"></i> Importar CSV
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
-                <h6 class="fw-bold small text-muted text-uppercase mb-2">Equipos Censados en este Inventario</h6>
-                <div class="table-scroll-cmms">
-                    <table class="table-clean">
-                        <thead>
-                            <tr>
-                                <th>Equipo</th>
-                                <th>Área</th>
-                                <th>Marca / Modelo</th>
-                                <th>NNI</th>
-                                <th>SN</th>
-                                <th>Proveedor</th>
-                                <th>Garantía</th>
-                                <th>Estatus</th>
-                                <th>Observaciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-equipos-inventario-activo"></tbody>
-                    </table>
-                </div>
-            </div>
-            <!-- Tabla histórica de inventarios (Visible para todos los usuarios) -->
-            <div class="card-clean">
-                <h6 class="fw-bold mb-3">Inventarios Registrados en Unidades Médicas</h6>
-                <div class="table-responsive">
-                    <table class="table-clean">
-                        <thead>
-                            <tr><th>ID</th><th>Hospital</th><th>Fecha</th><th>Estado</th><th>Acciones</th></tr>
-                        </thead>
-                        <tbody id="tabla-lista-inventarios">
-                            <tr><td colspan="5" class="text-center text-muted py-3">Cargando inventarios...</td></tr>
-                        </tbody>
-                    </table>
+
+                <!-- Recuadro dedicado de Equipos Censados en este Inventario -->
+                <div class="card-clean">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold small text-muted text-uppercase mb-0">Equipos Censados en este Inventario</h6>
+                    </div>
+                    <div class="table-scroll-cmms">
+                        <table class="table-clean">
+                            <thead>
+                                <tr>
+                                    <th>Equipo</th>
+                                    <th>Área</th>
+                                    <th>Marca / Modelo</th>
+                                    <th>NNI</th>
+                                    <th>SN</th>
+                                    <th>Proveedor</th>
+                                    <th>Garantía</th>
+                                    <th>Estatus</th>
+                                    <th>Observaciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-equipos-inventario-activo"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </section>
@@ -1004,20 +1041,33 @@
             </div>
         </section>
         <!-- ======================================================
-             VISTA 5: PROVEEDORES (ALTA, EDICIÓN Y BAJA)
+             VISTA 5: PROVEEDORES (TARJETAS / LISTA + ALTA, EDICIÓN Y BAJA)
              ====================================================== -->
         <section id="vista-proveedores" class="vista-panel d-none">
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
                 <div>
-                    <h4 class="fw-bold mb-1">Directorio de Proveedores</h4>
+                    <h4 class="fw-bold mb-1" style="color: var(--verde-imss);">Directorio de Proveedores</h4>
                     <p class="text-muted small mb-0">Gestión de empresas y contactos externos de soporte biomédico</p>
                 </div>
-                <button class="btn btn-primario solo-admin d-none" onclick="toggleFormProveedor()">
-                    <i class="bi bi-plus-lg me-1"></i> Agregar Proveedor
-                </button>
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <div class="pill-filter-group" id="toggle-vista-proveedores" title="Cambiar modo de visualización">
+                        <button type="button" class="pill-filter-btn activo" onclick="cambiarModoVistaProveedores('tarjetas', this)">
+                            <i class="bi bi-grid me-1"></i>Tarjetas
+                        </button>
+                        <button type="button" class="pill-filter-btn" onclick="cambiarModoVistaProveedores('lista', this)">
+                            <i class="bi bi-list-ul me-1"></i>Lista
+                        </button>
+                    </div>
+                    <button class="btn btn-primario btn-sm solo-admin d-none" onclick="toggleFormProveedor()">
+                        <i class="bi bi-plus-lg me-1"></i> Agregar Proveedor
+                    </button>
+                </div>
             </div>
-            <!-- El formulario de Nuevo Proveedor ahora se abre en el Modal #modalCrearProveedor -->
-            <div class="card-clean">
+            <!-- El formulario de Nuevo Proveedor se abre en el Modal #modalCrearProveedor -->
+            <div id="contenedor-tarjetas-proveedores" class="cmms-cards-grid mb-3">
+                <div class="text-muted small py-3">Cargando proveedores...</div>
+            </div>
+            <div id="contenedor-tabla-proveedores" class="card-clean d-none">
                 <div class="table-responsive">
                     <table class="table-clean">
                         <thead>
@@ -1084,7 +1134,7 @@
                         <h6 class="fw-bold mb-3">Información de Usuario</h6>
                         
                         <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
-                            <img id="perfil-preview-avatar" src="https://ui-avatars.com/api/?name=User&background=13322B&color=fff" 
+                            <img id="perfil-preview-avatar" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='100%25' height='100%25' rx='32' fill='%231F5143'/%3E%3Ctext x='50%25' y='54%25' font-family='system-ui,sans-serif' font-size='24' font-weight='700' fill='%23FFFFFF' text-anchor='middle' dominant-baseline='middle'%3EU%3C/text%3E%3C/svg%3E" 
                                  class="rounded-circle border" width="68" height="68" style="object-fit: cover;">
                             <div class="flex-grow-1">
                                 <label class="form-label small fw-medium mb-1">Foto de Perfil</label>
@@ -1397,25 +1447,96 @@
                 <form id="form-subir-documento">
                     <div class="modal-body">
                         <div class="row g-3">
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label class="form-label small fw-semibold">Título del Documento *</label>
                                 <input type="text" class="form-control form-control-sm" id="doc-titulo" placeholder="ej. Minuta Supervisión HGR 66" required>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label class="form-label small fw-semibold">¿A qué pertenece este documento? *</label>
                                 <select class="form-select form-select-sm" id="doc-tipo-asociacion" onchange="cambiarOpcionesAsociacionDoc()">
                                     <option value="inventario">A un Inventario Hospitalario</option>
-                                    <option value="equipo">A un Equipo Médico</option>
                                     <option value="mantenimiento">A un Mantenimiento</option>
+                                    <option value="equipo">A un Equipo Médico</option>
                                 </select>
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label small fw-semibold">Seleccionar Registro *</label>
-                                <select class="form-select form-select-sm" id="doc-id-destino" required></select>
+
+                            <!-- Filtros dinámicos: INVENTARIO -->
+                            <div id="doc-filtros-inventario" class="col-12">
+                                <div class="row g-2">
+                                    <div class="col-md-7">
+                                        <label class="form-label small text-muted">Filtrar por Hospital del Inventario</label>
+                                        <select class="form-select form-select-sm" id="doc-filtro-inv-hospital" onchange="filtrarRegistrosDestinoDoc()">
+                                            <option value="">Todos los hospitales</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="form-label small text-muted">Filtrar por Fecha de Realización</label>
+                                        <input type="date" class="form-control form-control-sm" id="doc-filtro-inv-fecha" onchange="filtrarRegistrosDestinoDoc()">
+                                    </div>
+                                </div>
                             </div>
+
+                            <!-- Filtros dinámicos: MANTENIMIENTO -->
+                            <div id="doc-filtros-mantenimiento" class="col-12 d-none">
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <label class="form-label small text-muted">Filtrar por Proveedor</label>
+                                        <select class="form-select form-select-sm" id="doc-filtro-mant-proveedor" onchange="filtrarRegistrosDestinoDoc()">
+                                            <option value="">Todos los proveedores</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small text-muted">Fecha de Realización</label>
+                                        <input type="date" class="form-control form-control-sm" id="doc-filtro-mant-fecha" onchange="filtrarRegistrosDestinoDoc()">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small text-muted">Buscar NNI, SN o Equipo</label>
+                                        <input type="text" class="form-control form-control-sm" id="doc-filtro-mant-equipo"
+                                               placeholder="Ej. NNI, SN o nombre..." oninput="filtrarRegistrosDestinoDoc()" autocomplete="off">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Filtros dinámicos: EQUIPO MÉDICO -->
+                            <div id="doc-filtros-equipo" class="col-12 d-none">
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">Filtrar por Hospital</label>
+                                        <select class="form-select form-select-sm" id="doc-filtro-eq-hospital" onchange="filtrarRegistrosDestinoDoc()">
+                                            <option value="">Todos los hospitales</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">Buscar por NNI, SN o Nombre del Equipo</label>
+                                        <input type="text" class="form-control form-control-sm" id="doc-filtro-eq-texto"
+                                               placeholder="Escribe NNI, SN o nombre..." oninput="filtrarRegistrosDestinoDoc()" autocomplete="off">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Selector de registro destino filtrado -->
                             <div class="col-12">
-                                <label class="form-label small fw-semibold">Seleccionar Archivo (PDF o Imagen) *</label>
-                                <input type="file" class="form-control form-control-sm" id="doc-archivo" required>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label small fw-semibold mb-0">Seleccionar Registro *</label>
+                                    <span id="doc-contador-registros" class="badge-soft-neutral" style="font-size: 0.7rem;">0 coincidencia(s)</span>
+                                </div>
+                                <select class="form-select form-select-sm" id="doc-id-destino" onchange="actualizarPreviewDestinoDocumento()" required></select>
+                            </div>
+
+                            <!-- Tarjeta de detalles del registro seleccionado -->
+                            <div class="col-12 d-none" id="doc-preview-wrap">
+                                <div class="mant-equipo-preview-card" id="doc-preview-contenido"></div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold">Archivo del Documento (PDF o Imagen) *</label>
+                                <div id="dropzone-doc" class="dropzone-sigem" tabindex="0" role="button" aria-label="Arrastrar o seleccionar documento">
+                                    <input type="file" class="dropzone-input-hidden" id="doc-archivo" accept=".pdf,image/*">
+                                    <div class="dropzone-icon"><i class="bi bi-cloud-arrow-up"></i></div>
+                                    <div class="dropzone-title">Arrastra y suelta el PDF o imagen aquí</div>
+                                    <div class="dropzone-subtitle">o haz clic para seleccionarlo desde tu computadora</div>
+                                    <div id="dropzone-doc-estado" class="d-none"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1424,6 +1545,134 @@
                         <button type="submit" class="btn btn-primario btn-sm">Subir y Registrar</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================
+         MODAL FASE 2.2: EXPEDIENTE UNIFICADO DEL EQUIPO (4 PESTAÑAS)
+         ========================================================== -->
+    <div class="modal fade" id="modalExpedienteEquipo" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content" style="border-radius: 14px; border: 1px solid var(--borde-fino); overflow: hidden;">
+                <div class="exp-header-bar">
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+                        <div class="overflow-hidden">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                <span class="badge-soft-neutral" id="exp-badge-id">#-</span>
+                                <span id="exp-badge-estatus" class="badge-soft-success">Funcional</span>
+                                <span class="badge-soft-neutral" id="exp-badge-hospital"><i class="bi bi-hospital"></i> -</span>
+                            </div>
+                            <h5 class="fw-bold mb-1 text-truncate" style="color: var(--verde-imss);" id="exp-titulo-equipo">Expediente del Equipo</h5>
+                            <div class="small text-muted" id="exp-subtitulo-codigos">NNI: - • SN: -</div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+
+                    <!-- Accesos rápidos del expediente (Solo Admin para mutaciones) -->
+                    <div class="exp-quick-actions solo-admin d-none" id="exp-barra-acciones">
+                        <button type="button" class="btn btn-primario btn-sm" onclick="expedienteIrAEditar()">
+                            <i class="bi bi-pencil me-1"></i> Editar Equipo
+                        </button>
+                        <button type="button" class="btn btn-secundario btn-sm" onclick="expedienteIrATransferir()">
+                            <i class="bi bi-arrow-left-right me-1"></i> Transferir Hospital
+                        </button>
+                        <button type="button" class="btn btn-secundario btn-sm" onclick="expedienteIrAMantenimiento()">
+                            <i class="bi bi-wrench-adjustable me-1"></i> + Mantenimiento
+                        </button>
+                        <button type="button" class="btn btn-secundario btn-sm" onclick="expedienteIrADocumento()">
+                            <i class="bi bi-cloud-arrow-up me-1"></i> + Documento
+                        </button>
+                    </div>
+                </div>
+
+                <div class="modal-body pt-3">
+                    <!-- 4 Pestañas del Expediente -->
+                    <ul class="nav nav-tabs mb-3 small fw-semibold" id="tabs-expediente-equipo" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="btn-tab-exp-general" data-bs-toggle="tab" data-bs-target="#tab-exp-general" type="button" role="tab">
+                                <i class="bi bi-info-circle me-1"></i> General
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="btn-tab-exp-mant" data-bs-toggle="tab" data-bs-target="#tab-exp-mantenimientos" type="button" role="tab">
+                                <i class="bi bi-wrench-adjustable me-1"></i> Mantenimientos
+                                <span id="badge-exp-mants" class="exp-tab-count">0</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="btn-tab-exp-transf" data-bs-toggle="tab" data-bs-target="#tab-exp-transferencias" type="button" role="tab">
+                                <i class="bi bi-arrow-left-right me-1"></i> Transferencias
+                                <span id="badge-exp-transfs" class="exp-tab-count">0</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="btn-tab-exp-docs" data-bs-toggle="tab" data-bs-target="#tab-exp-documentos" type="button" role="tab">
+                                <i class="bi bi-folder2-open me-1"></i> Documentos
+                                <span id="badge-exp-docs" class="exp-tab-count">0</span>
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <!-- Pestaña 1: General -->
+                        <div class="tab-pane fade show active" id="tab-exp-general" role="tabpanel">
+                            <div id="exp-contenido-general" class="exp-spec-grid"></div>
+                        </div>
+
+                        <!-- Pestaña 2: Mantenimientos -->
+                        <div class="tab-pane fade" id="tab-exp-mantenimientos" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table-clean">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Tipo</th>
+                                            <th>Proveedor</th>
+                                            <th>Fecha</th>
+                                            <th>Próxima Fecha</th>
+                                            <th>Observaciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="exp-tabla-mantenimientos">
+                                        <tr><td colspan="6" class="text-center text-muted py-3">Cargando historial de mantenimientos...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Pestaña 3: Transferencias -->
+                        <div class="tab-pane fade" id="tab-exp-transferencias" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table-clean">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha y Hora</th>
+                                            <th>Hospital Origen</th>
+                                            <th>Hospital Destino</th>
+                                            <th>Motivo / Oficio</th>
+                                            <th>Autorizó</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="exp-tabla-transferencias">
+                                        <tr><td colspan="5" class="text-center text-muted py-3">Cargando bitácora de transferencias...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Pestaña 4: Documentos -->
+                        <div class="tab-pane fade" id="tab-exp-documentos" role="tabpanel">
+                            <div id="exp-lista-documentos" class="exp-doc-list">
+                                <div class="text-center text-muted small py-3">Cargando documentos vinculados...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-secundario btn-sm" data-bs-dismiss="modal">Cerrar Expediente</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1825,6 +2074,9 @@
         let mapaProveedores = {};
         let mapaInventarios = {};
         let catalogoEquiposCompleto = [];
+        let catalogoProveedoresCompleto = [];
+        let catalogoInventariosCompleto = [];
+        let catalogoMantenimientosCompleto = [];
         let listaEquiposActuales = [];
         let listaMantenimientosActuales = [];
         let listaProveedoresActuales = [];
@@ -1837,11 +2089,18 @@
         let filtroAgendaInicio = "todas";
         let mapaConteoEquiposInventario = {};
 
+        // Estado de vistas Tarjetas / Lista (Fase 2.1)
+        let listaInventariosActuales = [];
+        let modoVistaInventarios = "tarjetas";
+        let modoVistaProveedores = "tarjetas";
+
         // Instancias de Modales Bootstrap (Altas y Ediciones)
         let modalCrearInvInstancia = null;
         let modalCrearMantInstancia = null;
         let modalCrearProvInstancia = null;
         let modalSubirDocInstancia = null;
+        let modalExpedienteEqInstancia = null;
+        let idEquipoExpedienteActivo = null;
         let modalCrearEqIndInstancia = null;
         let modalTransferirEqInstancia = null;
         let modalEditarInstancia = null;
@@ -1850,6 +2109,18 @@
         let modalDocInstancia = null;
 
         let resumenAlertasActual = { garantias: 0, mantenimientos: 0 };
+
+        function generarAvatarOfflineSVG(nombreCompleto, colorFondo = "#13322B") {
+            const partes = String(nombreCompleto || "U").trim().split(/\s+/).filter(Boolean);
+            const iniciales = partes.length >= 2
+                ? (partes[0][0] + partes[1][0]).toUpperCase()
+                : (partes[0] ? partes[0].slice(0, 2).toUpperCase() : "US");
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">` +
+                `<rect width="96" height="96" rx="48" fill="${colorFondo}"/>` +
+                `<text x="50%" y="53%" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="36" font-weight="700" fill="#FFFFFF" text-anchor="middle" dominant-baseline="middle">${iniciales}</text>` +
+                `</svg>`;
+            return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+        }
 
         function limpiarTexto(valor, esCodigo = false) {
             if (valor === null || valor === undefined || valor === "" || valor === "null") {
@@ -1909,6 +2180,111 @@
             URL.revokeObjectURL(url);
         }
 
+        // ================= COMPONENTE REUTILIZABLE DE ARRASTRA Y SUELTA (DRAG & DROP) =================
+        function formatearTamanoArchivo(bytes) {
+            if (!bytes && bytes !== 0) return "";
+            if (bytes < 1024) return `${bytes} B`;
+            if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+            return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+        }
+
+        function actualizarEstadoDropzone(idZona, idInput, idEstado) {
+            const zona = document.getElementById(idZona);
+            const input = document.getElementById(idInput);
+            const estadoEl = document.getElementById(idEstado);
+            if (!zona || !input || !estadoEl) return;
+
+            const archivo = input.files && input.files[0] ? input.files[0] : null;
+            if (archivo) {
+                zona.classList.add("has-file");
+                estadoEl.className = "dropzone-file-pill";
+                estadoEl.innerHTML = `
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span class="text-truncate" style="max-width: 260px;" title="${archivo.name}">${archivo.name}</span>
+                    <span class="text-muted fw-normal">(${formatearTamanoArchivo(archivo.size)})</span>
+                    <button type="button" class="btn-close" style="font-size: 0.62rem;" aria-label="Quitar archivo"
+                            onclick="limpiarDropzone(event, '${idZona}', '${idInput}', '${idEstado}')"></button>
+                `;
+            } else {
+                zona.classList.remove("has-file");
+                estadoEl.className = "d-none";
+                estadoEl.innerHTML = "";
+            }
+        }
+
+        function limpiarDropzone(event, idZona, idInput, idEstado) {
+            if (event) event.stopPropagation();
+            const input = document.getElementById(idInput);
+            if (input) input.value = "";
+            actualizarEstadoDropzone(idZona, idInput, idEstado);
+        }
+
+        function inicializarDropzone(idZona, idInput, idEstado, opciones = {}) {
+            const zona = document.getElementById(idZona);
+            const input = document.getElementById(idInput);
+            if (!zona || !input) return;
+
+            zona.addEventListener("click", (e) => {
+                if (e.target.closest(".btn-close")) return;
+                input.click();
+            });
+
+            zona.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    input.click();
+                }
+            });
+
+            input.addEventListener("change", () => {
+                const archivo = input.files && input.files[0];
+                if (archivo && opciones.extensionRequerida && !archivo.name.toLowerCase().endsWith(opciones.extensionRequerida)) {
+                    alert(opciones.mensajeExtension || `El archivo debe ser ${opciones.extensionRequerida}.`);
+                    input.value = "";
+                }
+                actualizarEstadoDropzone(idZona, idInput, idEstado);
+            });
+
+            ["dragenter", "dragover"].forEach(ev => {
+                zona.addEventListener(ev, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    zona.classList.add("dragover");
+                });
+            });
+
+            ["dragleave", "dragend"].forEach(ev => {
+                zona.addEventListener(ev, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    zona.classList.remove("dragover");
+                });
+            });
+
+            zona.addEventListener("drop", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                zona.classList.remove("dragover");
+                const archivos = e.dataTransfer ? e.dataTransfer.files : null;
+                if (!archivos || archivos.length === 0) return;
+
+                const archivo = archivos[0];
+                if (opciones.extensionRequerida && !archivo.name.toLowerCase().endsWith(opciones.extensionRequerida)) {
+                    alert(opciones.mensajeExtension || `El archivo debe ser ${opciones.extensionRequerida}.`);
+                    return;
+                }
+
+                try {
+                    const dt = new DataTransfer();
+                    dt.items.add(archivo);
+                    input.files = dt.files;
+                } catch (err) {
+                    console.warn("No se pudo asignar el archivo vía DataTransfer:", err);
+                }
+                actualizarEstadoDropzone(idZona, idInput, idEstado);
+            });
+        }
+
         async function inicializarInterfaz() {
             if (window.innerWidth <= 992) {
                 document.getElementById("sidebar-menu").classList.add("colapsado");
@@ -1927,11 +2303,20 @@
                 });
                 fechaEl.textContent = fechaTexto.charAt(0).toUpperCase() + fechaTexto.slice(1);
             }
-            const avatarUrl = usuarioActual.foto_perfil 
-                ? `${usuarioActual.foto_perfil}?t=${new Date().getTime()}` 
-                : `https://ui-avatars.com/api/?name=${encodeURIComponent(nombreCompleto)}&background=13322B&color=fff`;
-            document.getElementById("sidebar-avatar").src = avatarUrl;
-            document.getElementById("perfil-preview-avatar").src = avatarUrl;
+            const avatarFallbackSidebar = generarAvatarOfflineSVG(nombreCompleto, "#1F5143");
+            const avatarFallbackPerfil = generarAvatarOfflineSVG(nombreCompleto, "#13322B");
+            const sidebarAvatarEl = document.getElementById("sidebar-avatar");
+            const perfilAvatarEl = document.getElementById("perfil-preview-avatar");
+            if (usuarioActual.foto_perfil) {
+                const fotoUrl = `${usuarioActual.foto_perfil}?t=${new Date().getTime()}`;
+                sidebarAvatarEl.onerror = () => { sidebarAvatarEl.onerror = null; sidebarAvatarEl.src = avatarFallbackSidebar; };
+                perfilAvatarEl.onerror = () => { perfilAvatarEl.onerror = null; perfilAvatarEl.src = avatarFallbackPerfil; };
+                sidebarAvatarEl.src = fotoUrl;
+                perfilAvatarEl.src = fotoUrl;
+            } else {
+                sidebarAvatarEl.src = avatarFallbackSidebar;
+                perfilAvatarEl.src = avatarFallbackPerfil;
+            }
             document.getElementById("perfil-nombre-completo").value = nombreCompleto;
             document.getElementById("perfil-correo").value = usuarioActual.correo;
             document.getElementById("perfil-username").value = usuarioActual.username || "";
@@ -1953,12 +2338,20 @@
             modalCrearMantInstancia = new bootstrap.Modal(document.getElementById("modalCrearMantenimiento"));
             modalCrearProvInstancia = new bootstrap.Modal(document.getElementById("modalCrearProveedor"));
             modalSubirDocInstancia = new bootstrap.Modal(document.getElementById("modalSubirDocumento"));
+            modalExpedienteEqInstancia = new bootstrap.Modal(document.getElementById("modalExpedienteEquipo"));
             modalCrearEqIndInstancia = new bootstrap.Modal(document.getElementById("modalCrearEquipoIndividual"));
             modalTransferirEqInstancia = new bootstrap.Modal(document.getElementById("modalTransferirEquipo"));
             modalEditarInstancia = new bootstrap.Modal(document.getElementById("modalEditarEquipo"));
             modalMantInstancia = new bootstrap.Modal(document.getElementById("modalEditarMantenimiento"));
             modalProvInstancia = new bootstrap.Modal(document.getElementById("modalEditarProveedor"));
             modalDocInstancia = new bootstrap.Modal(document.getElementById("modalEditarDocumento"));
+
+            // Inicializar zonas interactivas de Arrastra y Suelta (CSV y Documentos)
+            inicializarDropzone("dropzone-csv", "archivo-csv-input", "dropzone-csv-estado", {
+                extensionRequerida: ".csv",
+                mensajeExtension: "Por favor selecciona o arrastra únicamente un archivo con extensión .csv."
+            });
+            inicializarDropzone("dropzone-doc", "doc-archivo", "dropzone-doc-estado", {});
 
             await cargarCatalogosBase();
             await Promise.all([
@@ -1987,7 +2380,12 @@
             if (window.innerWidth <= 992 && !document.getElementById("sidebar-menu").classList.contains("colapsado")) {
                 alternarMenuLateral();
             }
-            if (idVista === "vista-inventarios") cargarInventarios();
+            if (idVista === "vista-inventarios") {
+                document.getElementById("panel-captura-inventario").classList.add("d-none");
+                document.getElementById("vista-inventarios-listado").classList.remove("d-none");
+                idInventarioActivo = null;
+                cargarInventarios();
+            }
             if (idVista === "vista-equipos") cargarEquiposFiltrados();
             if (idVista === "vista-mantenimientos") cargarMantenimientos();
             if (idVista === "vista-proveedores") cargarProveedores();
@@ -2040,6 +2438,7 @@
             selectAltaEqProv.innerHTML = `<option value="">Sin proveedor</option>`;
             selectIndProv.innerHTML = `<option value="">Sin proveedor asignado</option>`;
 
+            catalogoProveedoresCompleto = Array.isArray(proveedores) ? proveedores : [];
             if (Array.isArray(proveedores)) {
                 proveedores.forEach(p => {
                     mapaProveedores[p.id_proveedor] = p.nombre_proveedor;
@@ -2053,6 +2452,7 @@
 
             const selectFiltroInv = document.getElementById("filtro-eq-inventario");
             selectFiltroInv.innerHTML = `<option value="">Cualquier inventario</option>`;
+            catalogoInventariosCompleto = Array.isArray(inventarios) ? inventarios : [];
             if (Array.isArray(inventarios)) {
                 inventarios.forEach(inv => {
                     const nombreHosp = mapaHospitales[inv.id_hospital] || `Hospital #${inv.id_hospital}`;
@@ -2478,7 +2878,12 @@
                 : data.alertas_garantias.map(eq => {
                     const badge = eq.semaforo === "VENCIDA" ? `<span class="badge-soft-danger">Vencida</span>` : `<span class="badge-soft-warning">Por vencer</span>`;
                     return `<tr>
-                        <td class="fw-medium">${limpiarTexto(eq.nombre_equipo)}</td>
+                        <td>
+                            <button type="button" class="equipo-link-ficha" onclick="abrirExpedienteEquipo(${eq.id_equipo})" title="Abrir expediente completo del equipo">
+                                <i class="bi bi-file-earmark-medical small"></i>
+                                <span>${eq.nombre_equipo || ('Equipo #' + eq.id_equipo)}</span>
+                            </button>
+                        </td>
                         <td>${formatearCodigoNNI_SN(eq.nni, eq.sn)}</td>
                         <td>${mapaHospitales[eq.id_hospital] || 'Hospital #' + eq.id_hospital}</td>
                         <td>${limpiarTexto(eq.fecha_expiracion)}</td>
@@ -2615,55 +3020,147 @@
                 abrirCapturaInventario(data.id_inventario, data.id_hospital, data.fecha, data.estado);
             } else { alert(data.detail); }
         });
-        async function cargarInventarios() {
-            const res = await fetch(`/inventarios/?id_usuario_consulta=${usuarioActual.id_usuario}`);
-            const lista = await res.json();
-            const esAdmin = usuarioActual.rol === "ADMIN";
-            document.getElementById("tabla-lista-inventarios").innerHTML = lista.length === 0 
-                ? `<tr><td colspan="5" class="text-center text-muted py-3">No hay inventarios registrados aún.</td></tr>` 
-                : lista.map(inv => {
-                    const btnCancelar = esAdmin
-                        ? `<button class="btn btn-secundario btn-sm text-danger" onclick="eliminarInventarioDirecto(${inv.id_inventario})" title="Cancelar / Eliminar este inventario">
-                               <i class="bi bi-trash"></i>
-                           </button>`
-                        : "";
-                    return `<tr>
-                        <td class="fw-semibold">#${inv.id_inventario}</td>
-                        <td>${mapaHospitales[inv.id_hospital] || 'Hospital #' + inv.id_hospital}</td>
-                        <td>${inv.fecha}</td>
-                        <td><span class="${inv.estado === 'EN_PROCESO' ? 'badge-soft-warning' : 'badge-soft-success'}">${inv.estado}</span></td>
-                        <td class="d-flex flex-wrap gap-2">
-                            <button class="btn btn-secundario btn-sm" onclick="abrirCapturaInventario(${inv.id_inventario}, ${inv.id_hospital}, '${inv.fecha}', '${inv.estado}')">
-                                <i class="bi bi-eye me-1"></i> Ver Equipos
-                            </button>
-                            <button class="btn btn-secundario btn-sm" onclick="descargarExcelInventario(${inv.id_inventario})" title="Descargar Excel de este inventario">
-                                <i class="bi bi-file-earmark-excel text-success me-1"></i> Excel
-                            </button>
-                            ${btnCancelar}
-                        </td>
-                    </tr>`;
-                }).join("");
+        function cambiarModoVistaInventarios(modo, btnEl) {
+            modoVistaInventarios = modo;
+            document.querySelectorAll("#toggle-vista-inventarios .pill-filter-btn").forEach(b => b.classList.remove("activo"));
+            if (btnEl) btnEl.classList.add("activo");
+            document.getElementById("contenedor-tarjetas-inventarios").classList.toggle("d-none", modo !== "tarjetas");
+            document.getElementById("contenedor-tabla-inventarios").classList.toggle("d-none", modo !== "lista");
+            renderizarInventarios();
         }
+
+        async function cargarInventarios() {
+            const [resInv, resRes] = await Promise.all([
+                fetch(`/inventarios/?id_usuario_consulta=${usuarioActual.id_usuario}`),
+                fetch("/dashboard/resumen?dias_anticipacion=30")
+            ]);
+            const lista = await resInv.json();
+            if (resRes.ok) {
+                const resumen = await resRes.json();
+                mapaConteoEquiposInventario = resumen.equipos_por_inventario || {};
+            }
+            listaInventariosActuales = Array.isArray(lista) ? lista : [];
+            renderizarInventarios();
+        }
+
+        function renderizarInventarios() {
+            const esAdmin = usuarioActual.rol === "ADMIN";
+            const grid = document.getElementById("contenedor-tarjetas-inventarios");
+            const tbody = document.getElementById("tabla-lista-inventarios");
+
+            if (listaInventariosActuales.length === 0) {
+                grid.innerHTML = `<div class="card-clean text-center text-muted py-4" style="grid-column: 1 / -1;">No hay inventarios registrados aún.</div>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No hay inventarios registrados aún.</td></tr>`;
+                return;
+            }
+
+            // 1. Renderizar Tarjetas (Recuadros)
+            grid.innerHTML = listaInventariosActuales.map(inv => {
+                const nombreHosp = mapaHospitales[inv.id_hospital] || `Hospital #${inv.id_hospital}`;
+                const totalEq = mapaConteoEquiposInventario[String(inv.id_inventario)] ?? 0;
+                const esProceso = inv.estado === "EN_PROCESO";
+                const claseEstadoCard = esProceso ? "estado-proceso" : "estado-finalizado";
+                const badgeEstado = esProceso
+                    ? `<span class="badge-soft-warning">EN PROCESO</span>`
+                    : `<span class="badge-soft-success">FINALIZADO</span>`;
+                const btnEliminar = esAdmin
+                    ? `<button class="btn btn-secundario btn-sm text-danger" onclick="eliminarInventarioDirecto(${inv.id_inventario})" title="Cancelar / Eliminar inventario">
+                           <i class="bi bi-trash"></i>
+                       </button>`
+                    : "";
+
+                return `
+                    <div class="entity-card-cmms ${claseEstadoCard}">
+                        <div>
+                            <div class="entity-card-header mb-2">
+                                <span class="badge-soft-neutral">Inventario #${inv.id_inventario}</span>
+                                ${badgeEstado}
+                            </div>
+                            <div class="entity-card-title mb-2">${nombreHosp}</div>
+                            <div class="entity-card-meta-list">
+                                <div class="entity-card-meta-item">
+                                    <i class="bi bi-calendar3"></i>
+                                    <span>Fecha: <strong class="text-dark">${inv.fecha}</strong></span>
+                                </div>
+                                <div class="entity-card-meta-item">
+                                    <i class="bi bi-cpu"></i>
+                                    <span><strong class="text-dark">${totalEq}</strong> equipo(s) censado(s)</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="entity-card-footer">
+                            <button class="btn btn-primario btn-sm flex-grow-1" onclick="abrirCapturaInventario(${inv.id_inventario}, ${inv.id_hospital}, '${inv.fecha}', '${inv.estado}')">
+                                <i class="bi ${esProceso && esAdmin ? 'bi-pencil-square' : 'bi-eye'} me-1"></i> ${esProceso && esAdmin ? 'Continuar Captura' : 'Ver Equipos'}
+                            </button>
+                            <button class="btn btn-secundario btn-sm" onclick="descargarExcelInventario(${inv.id_inventario})" title="Descargar Excel">
+                                <i class="bi bi-file-earmark-excel text-success"></i>
+                            </button>
+                            ${btnEliminar}
+                        </div>
+                    </div>
+                `;
+            }).join("");
+
+            // 2. Renderizar Tabla (Lista)
+            tbody.innerHTML = listaInventariosActuales.map(inv => {
+                const totalEq = mapaConteoEquiposInventario[String(inv.id_inventario)] ?? 0;
+                const btnCancelar = esAdmin
+                    ? `<button class="btn btn-secundario btn-sm text-danger" onclick="eliminarInventarioDirecto(${inv.id_inventario})" title="Cancelar / Eliminar este inventario">
+                           <i class="bi bi-trash"></i>
+                       </button>`
+                    : "";
+                return `<tr>
+                    <td class="fw-semibold">#${inv.id_inventario}</td>
+                    <td>${mapaHospitales[inv.id_hospital] || 'Hospital #' + inv.id_hospital}</td>
+                    <td>${inv.fecha}</td>
+                    <td><span class="badge-soft-neutral">${totalEq} equipo(s)</span></td>
+                    <td><span class="${inv.estado === 'EN_PROCESO' ? 'badge-soft-warning' : 'badge-soft-success'}">${inv.estado}</span></td>
+                    <td class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-secundario btn-sm" onclick="abrirCapturaInventario(${inv.id_inventario}, ${inv.id_hospital}, '${inv.fecha}', '${inv.estado}')">
+                            <i class="bi bi-eye me-1"></i> Ver Equipos
+                        </button>
+                        <button class="btn btn-secundario btn-sm" onclick="descargarExcelInventario(${inv.id_inventario})" title="Descargar Excel de este inventario">
+                            <i class="bi bi-file-earmark-excel text-success me-1"></i> Excel
+                        </button>
+                        ${btnCancelar}
+                    </td>
+                </tr>`;
+            }).join("");
+        }
+
         function descargarExcelInventario(idInv) {
             window.location.href = `/exportar/equipos-excel?id_inventario=${idInv}`;
         }
+
         function abrirCapturaInventario(idInv, idHosp, fecha, estado) {
             idInventarioActivo = idInv;
+            // Ocultar el listado general de inventarios y mostrar únicamente la sección dedicada
+            document.getElementById("vista-inventarios-listado").classList.add("d-none");
             const panel = document.getElementById("panel-captura-inventario");
             panel.classList.remove("d-none");
+
             document.getElementById("titulo-inventario-activo").textContent = `Inventario #${idInv} — ${mapaHospitales[idHosp] || 'Hospital #' + idHosp} (${fecha})`;
-            
             const badgeEstado = document.getElementById("badge-estado-inv-activo");
-            badgeEstado.textContent = estado;
-            badgeEstado.className = estado === "EN_PROCESO" ? "badge-soft-warning me-2" : "badge-soft-success me-2";
+            badgeEstado.textContent = estado === "EN_PROCESO" ? "EN PROCESO" : estado;
+            badgeEstado.className = estado === "EN_PROCESO" ? "badge-soft-warning" : "badge-soft-success";
+
             const esEditable = (estado === "EN_PROCESO" && usuarioActual.rol === "ADMIN");
-            document.getElementById("tabs-captura-equipos").classList.toggle("d-none", !esEditable);
-            document.getElementById("contenido-captura-equipos").classList.toggle("d-none", !esEditable);
+            document.getElementById("card-captura-formularios").classList.toggle("d-none", !esEditable);
             document.getElementById("btn-finalizar-inv").classList.toggle("d-none", !esEditable);
             document.getElementById("btn-cancelar-inv").classList.toggle("d-none", usuarioActual.rol !== "ADMIN");
+
+            // Limpiar dropzone CSV al entrar
+            limpiarDropzone(null, "dropzone-csv", "archivo-csv-input", "dropzone-csv-estado");
             cargarEquiposDeInventarioActivo();
+            window.scrollTo({ top: 0, behavior: "smooth" });
         }
-        function cerrarPanelCaptura() { document.getElementById("panel-captura-inventario").classList.add("d-none"); idInventarioActivo = null; }
+
+        function cerrarPanelCaptura() {
+            document.getElementById("panel-captura-inventario").classList.add("d-none");
+            document.getElementById("vista-inventarios-listado").classList.remove("d-none");
+            idInventarioActivo = null;
+            cargarInventarios();
+        }
         async function cancelarInventarioActual() {
             if (!idInventarioActivo) return;
             await eliminarInventarioDirecto(idInventarioActivo);
@@ -2725,13 +3222,14 @@
         document.getElementById("form-subir-csv").addEventListener("submit", async (e) => {
             e.preventDefault();
             const archivo = document.getElementById("archivo-csv-input").files[0];
-            if (!archivo) return;
+            if (!archivo) return alert("Arrastra o selecciona primero un archivo .csv para importar.");
             const formData = new FormData(); formData.append("archivo_csv", archivo);
             const res = await fetch(`/inventarios/${idInventarioActivo}/importar-csv`, { method: "POST", body: formData });
             const data = await res.json();
             if (res.ok) {
                 alert(`Importación completada:\n• Equipos registrados: ${data.equipos_registrados}\n• Duplicados omitidos: ${data.duplicados_omitidos}`);
                 document.getElementById("form-subir-csv").reset();
+                limpiarDropzone(null, "dropzone-csv", "archivo-csv-input", "dropzone-csv-estado");
                 await cargarCatalogosBase();
                 cargarEquiposDeInventarioActivo();
                 await cargarAlertas(false);
@@ -2743,6 +3241,8 @@
         async function cargarEquiposDeInventarioActivo() {
             const res = await fetch(`/equipos/?id_inventario=${idInventarioActivo}`);
             const equipos = await res.json();
+            const badgeCount = document.getElementById("badge-conteo-eq-inv-activo");
+            if (badgeCount) badgeCount.textContent = `${Array.isArray(equipos) ? equipos.length : 0} equipo(s)`;
             document.getElementById("tabla-equipos-inventario-activo").innerHTML = equipos.length === 0 
                 ? `<tr><td colspan="9" class="text-center text-muted py-3">Sin equipos registrados en este inventario.</td></tr>` 
                 : equipos.map(eq => {
@@ -2753,7 +3253,12 @@
                         ? `<span class="badge-soft-success">Vence: ${limpiarTexto(eq.fecha_expgarantia)}</span>`
                         : `<span class="badge-soft-neutral">Sin garantía</span>`;
                     return `<tr>
-                        <td class="fw-medium">${limpiarTexto(eq.nombre_equipo)}</td>
+                        <td>
+                            <button type="button" class="equipo-link-ficha" onclick="abrirExpedienteEquipo(${eq.id_equipo})" title="Abrir expediente completo del equipo">
+                                <i class="bi bi-file-earmark-medical small"></i>
+                                <span>${eq.nombre_equipo || ('Equipo #' + eq.id_equipo)}</span>
+                            </button>
+                        </td>
                         <td>${limpiarTexto(eq.area)}${eq.subarea ? '<br><small class="text-muted">' + eq.subarea + '</small>' : ''}</td>
                         <td>${limpiarTexto(eq.marca)} ${eq.modelo ? '/ ' + eq.modelo : ''}</td>
                         <td>${limpiarTexto(eq.nni, true)}</td>
@@ -2830,7 +3335,12 @@
                         : "";
                     const textoProv = eq.id_proveedor ? (mapaProveedores[eq.id_proveedor] || `Prov #${eq.id_proveedor}`) : "Sin proveedor";
                     return `<tr>
-                        <td class="fw-medium">${limpiarTexto(eq.nombre_equipo)}</td>
+                        <td>
+                            <button type="button" class="equipo-link-ficha" onclick="abrirExpedienteEquipo(${eq.id_equipo})" title="Abrir expediente completo del equipo">
+                                <i class="bi bi-file-earmark-medical small"></i>
+                                <span>${eq.nombre_equipo || ('Equipo #' + eq.id_equipo)}</span>
+                            </button>
+                        </td>
                         <td>${mapaHospitales[eq.id_hospital] || 'Sin hospital'}<br><small class="text-muted">${textoProv}</small></td>
                         <td>${limpiarTexto(eq.area)} ${eq.subarea ? '<br><small class="text-muted">' + eq.subarea + '</small>' : ''}</td>
                         <td>${limpiarTexto(eq.marca)} ${eq.modelo ? '<br><small class="text-muted">' + eq.modelo + '</small>' : ''}</td>
@@ -2839,6 +3349,9 @@
                         <td><span class="${eq.estatusfuncional ? 'badge-soft-success' : 'badge-soft-danger'}">${eq.estatusfuncional ? 'Funcional' : 'Inactivo'}</span></td>
                         <td>
                             <div class="d-flex gap-1">
+                                <button class="btn btn-secundario btn-sm" onclick="abrirExpedienteEquipo(${eq.id_equipo})" title="Ver expediente unificado del equipo">
+                                    <i class="bi bi-file-earmark-medical"></i>
+                                </button>
                                 <button class="btn btn-secundario btn-sm" onclick="abrirModalTransferirEquipo(${eq.id_equipo})" title="${esAdmin ? 'Transferir de hospital / Ver historial' : 'Ver historial de transferencias'}">
                                     <i class="bi bi-arrow-left-right"></i>
                                 </button>
@@ -2913,9 +3426,274 @@
             }
         });
 
+        // --- Funciones para Expediente Unificado del Equipo (Fase 2.2: 4 Pestañas) ---
+        function obtenerEquipoPorId(idEquipo) {
+            return listaEquiposActuales.find(e => String(e.id_equipo) === String(idEquipo))
+                || catalogoEquiposCompleto.find(e => String(e.id_equipo) === String(idEquipo))
+                || null;
+        }
+
+        async function abrirExpedienteEquipo(idEquipo) {
+            let eq = obtenerEquipoPorId(idEquipo);
+            if (!eq) {
+                await cargarCatalogosBase();
+                eq = obtenerEquipoPorId(idEquipo);
+            }
+            if (!eq) return alert("No se encontró la información del equipo.");
+
+            idEquipoExpedienteActivo = eq.id_equipo;
+
+            // Encabezado del expediente
+            document.getElementById("exp-badge-id").textContent = `Equipo #${eq.id_equipo}`;
+            const badgeEst = document.getElementById("exp-badge-estatus");
+            badgeEst.textContent = eq.estatusfuncional ? "Funcional" : "Fuera de servicio";
+            badgeEst.className = eq.estatusfuncional ? "badge-soft-success" : "badge-soft-danger";
+            document.getElementById("exp-badge-hospital").innerHTML = `<i class="bi bi-hospital"></i> ${mapaHospitales[eq.id_hospital] || "Sin hospital"}`;
+            document.getElementById("exp-titulo-equipo").textContent = eq.nombre_equipo || `Equipo #${eq.id_equipo}`;
+            document.getElementById("exp-subtitulo-codigos").innerHTML = `NNI: ${limpiarTexto(eq.nni, true)} &nbsp;•&nbsp; SN: ${limpiarTexto(eq.sn, true)}`;
+
+            // Volver siempre a la pestaña General al abrir
+            const btnGeneral = document.getElementById("btn-tab-exp-general");
+            if (btnGeneral) new bootstrap.Tab(btnGeneral).show();
+
+            // Renderizar Pestaña 1 (General) de inmediato
+            renderizarExpedienteGeneral(eq);
+
+            // Mostrar modal y cargar en paralelo las otras 3 pestañas desde FastAPI
+            document.getElementById("exp-tabla-mantenimientos").innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">Cargando mantenimientos...</td></tr>`;
+            document.getElementById("exp-tabla-transferencias").innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">Cargando transferencias...</td></tr>`;
+            document.getElementById("exp-lista-documentos").innerHTML = `<div class="text-center text-muted small py-3">Cargando documentos...</div>`;
+            document.getElementById("badge-exp-mants").textContent = "...";
+            document.getElementById("badge-exp-transfs").textContent = "...";
+            document.getElementById("badge-exp-docs").textContent = "...";
+
+            modalExpedienteEqInstancia.show();
+
+            await Promise.all([
+                cargarExpedienteMantenimientos(eq.id_equipo),
+                cargarExpedienteTransferencias(eq.id_equipo),
+                cargarExpedienteDocumentos(eq.id_equipo)
+            ]);
+        }
+
+        function renderizarExpedienteGeneral(eq) {
+            const nombreHosp = mapaHospitales[eq.id_hospital] || "Sin hospital asignado";
+            const nombreProv = eq.id_proveedor ? (mapaProveedores[eq.id_proveedor] || `Proveedor #${eq.id_proveedor}`) : "Sin proveedor asignado";
+
+            let garantiaHtml = `<span class="badge-soft-neutral">Sin garantía</span>`;
+            if (eq.garantia) {
+                if (eq.fecha_expgarantia) {
+                    const hoy = new Date();
+                    hoy.setHours(0, 0, 0, 0);
+                    const fechaExp = new Date(eq.fecha_expgarantia + "T00:00:00");
+                    const diffDias = Math.round((fechaExp - hoy) / (1000 * 60 * 60 * 24));
+                    if (diffDias < 0) {
+                        garantiaHtml = `<span class="badge-soft-danger">Vencida (${eq.fecha_expgarantia})</span>`;
+                    } else if (diffDias <= 30) {
+                        garantiaHtml = `<span class="badge-soft-warning">Vence en ${diffDias} d (${eq.fecha_expgarantia})</span>`;
+                    } else {
+                        garantiaHtml = `<span class="badge-soft-success">Vigente hasta ${eq.fecha_expgarantia}</span>`;
+                    }
+                } else {
+                    garantiaHtml = `<span class="badge-soft-success">Con garantía (sin fecha)</span>`;
+                }
+            }
+
+            const estatusHtml = eq.estatusfuncional
+                ? `<span class="badge-soft-success"><i class="bi bi-check-circle"></i> Operativo / Funcional</span>`
+                : `<span class="badge-soft-danger"><i class="bi bi-exclamation-octagon"></i> Fuera de servicio</span>`;
+
+            document.getElementById("exp-contenido-general").innerHTML = `
+                <div class="exp-spec-card">
+                    <span class="exp-spec-label"><i class="bi bi-hospital"></i> Unidad Médica</span>
+                    <div class="exp-spec-value">${nombreHosp}</div>
+                </div>
+                <div class="exp-spec-card">
+                    <span class="exp-spec-label"><i class="bi bi-geo-alt"></i> Área / Subárea</span>
+                    <div class="exp-spec-value">${limpiarTexto(eq.area)}${eq.subarea ? ' <span class="text-muted fw-normal">/ ' + eq.subarea + '</span>' : ''}</div>
+                </div>
+                <div class="exp-spec-card">
+                    <span class="exp-spec-label"><i class="bi bi-tag"></i> Marca</span>
+                    <div class="exp-spec-value">${limpiarTexto(eq.marca)}</div>
+                </div>
+                <div class="exp-spec-card">
+                    <span class="exp-spec-label"><i class="bi bi-box"></i> Modelo</span>
+                    <div class="exp-spec-value">${limpiarTexto(eq.modelo)}</div>
+                </div>
+                <div class="exp-spec-card">
+                    <span class="exp-spec-label"><i class="bi bi-upc-scan"></i> NNI</span>
+                    <div class="exp-spec-value">${limpiarTexto(eq.nni, true)}</div>
+                </div>
+                <div class="exp-spec-card">
+                    <span class="exp-spec-label"><i class="bi bi-hash"></i> Número de Serie (SN)</span>
+                    <div class="exp-spec-value">${limpiarTexto(eq.sn, true)}</div>
+                </div>
+                <div class="exp-spec-card">
+                    <span class="exp-spec-label"><i class="bi bi-building"></i> Proveedor</span>
+                    <div class="exp-spec-value">${nombreProv}</div>
+                </div>
+                <div class="exp-spec-card">
+                    <span class="exp-spec-label"><i class="bi bi-shield-check"></i> Garantía</span>
+                    <div class="exp-spec-value">${garantiaHtml}</div>
+                </div>
+                <div class="exp-spec-card">
+                    <span class="exp-spec-label"><i class="bi bi-activity"></i> Estatus Funcional</span>
+                    <div class="exp-spec-value">${estatusHtml}</div>
+                </div>
+                <div class="exp-spec-card full-width">
+                    <span class="exp-spec-label"><i class="bi bi-card-text"></i> Observaciones</span>
+                    <div class="exp-spec-value fw-normal">${limpiarTexto(eq.observaciones)}</div>
+                </div>
+            `;
+        }
+
+        async function cargarExpedienteMantenimientos(idEquipo) {
+            const tbody = document.getElementById("exp-tabla-mantenimientos");
+            const badge = document.getElementById("badge-exp-mants");
+            try {
+                const res = await fetch(`/mantenimientos/?id_equipo=${idEquipo}`);
+                const lista = await res.json();
+                const items = Array.isArray(lista) ? lista : [];
+                badge.textContent = items.length;
+                if (items.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Este equipo aún no tiene mantenimientos registrados.</td></tr>`;
+                    return;
+                }
+                tbody.innerHTML = items.map(m => {
+                    const provNom = m.id_proveedor ? (mapaProveedores[m.id_proveedor] || `Proveedor #${m.id_proveedor}`) : `<span class="text-muted small">Sin proveedor</span>`;
+                    const badgeTipo = m.tipo_mantenimiento === "CORRECTIVO" ? "badge-soft-danger" : (m.tipo_mantenimiento === "PREVENTIVO" ? "badge-soft-success" : "badge-soft-neutral");
+                    return `<tr>
+                        <td>#${m.id_mantenimiento}</td>
+                        <td><span class="${badgeTipo}">${limpiarTexto(m.tipo_mantenimiento)}</span></td>
+                        <td>${provNom}</td>
+                        <td>${limpiarTexto(m.fecha)}</td>
+                        <td>${limpiarTexto(m.prox_fecha)}</td>
+                        <td>${limpiarTexto(m.observaciones)}</td>
+                    </tr>`;
+                }).join("");
+            } catch (err) {
+                badge.textContent = "!";
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-3">Error al consultar mantenimientos.</td></tr>`;
+            }
+        }
+
+        async function cargarExpedienteTransferencias(idEquipo) {
+            const tbody = document.getElementById("exp-tabla-transferencias");
+            const badge = document.getElementById("badge-exp-transfs");
+            try {
+                const res = await fetch(`/equipos/${idEquipo}/transferencias`);
+                const lista = await res.json();
+                const items = Array.isArray(lista) ? lista : [];
+                badge.textContent = items.length;
+                if (items.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">Este equipo no registra transferencias entre unidades médicas.</td></tr>`;
+                    return;
+                }
+                tbody.innerHTML = items.map(t => {
+                    const fechaLocal = new Date(t.fecha).toLocaleString("es-MX", {
+                        year: "numeric", month: "2-digit", day: "2-digit",
+                        hour: "2-digit", minute: "2-digit"
+                    });
+                    return `<tr>
+                        <td class="small text-nowrap">${fechaLocal}</td>
+                        <td><span class="badge-soft-neutral">${t.hospital_origen_nombre}</span></td>
+                        <td><span class="badge-soft-success"><i class="bi bi-arrow-right me-1"></i>${t.hospital_destino_nombre}</span></td>
+                        <td>${limpiarTexto(t.motivo)}</td>
+                        <td class="small text-muted">${limpiarTexto(t.usuario_nombre)}</td>
+                    </tr>`;
+                }).join("");
+            } catch (err) {
+                badge.textContent = "!";
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-3">Error al consultar transferencias.</td></tr>`;
+            }
+        }
+
+        async function cargarExpedienteDocumentos(idEquipo) {
+            const cont = document.getElementById("exp-lista-documentos");
+            const badge = document.getElementById("badge-exp-docs");
+            try {
+                const res = await fetch(`/documentos/?id_equipo=${idEquipo}`);
+                const lista = await res.json();
+                const items = Array.isArray(lista) ? lista : [];
+                badge.textContent = items.length;
+                if (items.length === 0) {
+                    cont.innerHTML = `<div class="text-center text-muted small py-4">No hay documentos (manuales, actas o fotos) vinculados a este equipo.</div>`;
+                    return;
+                }
+                cont.innerHTML = items.map(d => `
+                    <div class="exp-doc-item">
+                        <div class="d-flex align-items-center gap-3 overflow-hidden">
+                            <div class="exp-doc-icon"><i class="bi bi-file-earmark-text"></i></div>
+                            <div class="overflow-hidden">
+                                <div class="fw-semibold text-truncate">${limpiarTexto(d.nombredocumento)}</div>
+                                <small class="text-muted">Documento #${d.id_documento}</small>
+                            </div>
+                        </div>
+                        <a href="/documentos/${d.id_documento}/ver" target="_blank" class="btn btn-secundario btn-sm flex-shrink-0">
+                            <i class="bi bi-eye me-1"></i> Visualizar
+                        </a>
+                    </div>
+                `).join("");
+            } catch (err) {
+                badge.textContent = "!";
+                cont.innerHTML = `<div class="text-center text-danger small py-3">Error al consultar documentos.</div>`;
+            }
+        }
+
+        function expedienteIrAEditar() {
+            if (!idEquipoExpedienteActivo) return;
+            const idEq = idEquipoExpedienteActivo;
+            modalExpedienteEqInstancia.hide();
+            setTimeout(() => abrirModalEditarEquipo(idEq), 220);
+        }
+
+        function expedienteIrATransferir() {
+            if (!idEquipoExpedienteActivo) return;
+            const idEq = idEquipoExpedienteActivo;
+            modalExpedienteEqInstancia.hide();
+            setTimeout(() => abrirModalTransferirEquipo(idEq), 220);
+        }
+
+        function expedienteIrAMantenimiento() {
+            if (!idEquipoExpedienteActivo) return;
+            const eq = obtenerEquipoPorId(idEquipoExpedienteActivo);
+            modalExpedienteEqInstancia.hide();
+            setTimeout(async () => {
+                await toggleFormMantenimiento();
+                if (eq) {
+                    const selHosp = document.getElementById("mant-id-hospital");
+                    selHosp.value = eq.id_hospital ? String(eq.id_hospital) : "ALL";
+                    filtrarEquiposParaMantenimiento();
+                    const selEq = document.getElementById("mant-id-equipo");
+                    selEq.value = String(eq.id_equipo);
+                    actualizarPreviewEquipoMantenimiento();
+                }
+            }, 240);
+        }
+
+        function expedienteIrADocumento() {
+            if (!idEquipoExpedienteActivo) return;
+            const eq = obtenerEquipoPorId(idEquipoExpedienteActivo);
+            const idEq = idEquipoExpedienteActivo;
+            modalExpedienteEqInstancia.hide();
+            setTimeout(async () => {
+                document.getElementById("form-subir-documento").reset();
+                limpiarDropzone(null, "dropzone-doc", "doc-archivo", "dropzone-doc-estado");
+                document.getElementById("doc-tipo-asociacion").value = "equipo";
+                await cambiarOpcionesAsociacionDoc();
+                if (eq && eq.id_hospital) {
+                    document.getElementById("doc-filtro-eq-hospital").value = String(eq.id_hospital);
+                    filtrarRegistrosDestinoDoc();
+                }
+                document.getElementById("doc-id-destino").value = String(idEq);
+                actualizarPreviewDestinoDocumento();
+                modalSubirDocInstancia.show();
+            }, 240);
+        }
+
         // --- Funciones para Transferencia de Equipos entre Hospitales e Historial ---
         async function abrirModalTransferirEquipo(idEquipo) {
-            const eq = listaEquiposActuales.find(e => e.id_equipo === idEquipo);
+            const eq = obtenerEquipoPorId(idEquipo);
             if (!eq) return;
 
             document.getElementById("transf-eq-id").value = eq.id_equipo;
@@ -3035,7 +3813,7 @@
         }
 
         function abrirModalEditarEquipo(idEquipo) {
-            const eq = listaEquiposActuales.find(e => e.id_equipo === idEquipo);
+            const eq = obtenerEquipoPorId(idEquipo);
             if (!eq) return;
             document.getElementById("edit-eq-id").value = eq.id_equipo;
             document.getElementById("edit-eq-nombre").value = eq.nombre_equipo || "";
@@ -3307,37 +4085,102 @@
             document.getElementById("form-registrar-prov").reset();
             modalCrearProvInstancia.show();
         }
+        function cambiarModoVistaProveedores(modo, btnEl) {
+            modoVistaProveedores = modo;
+            document.querySelectorAll("#toggle-vista-proveedores .pill-filter-btn").forEach(b => b.classList.remove("activo"));
+            if (btnEl) btnEl.classList.add("activo");
+            document.getElementById("contenedor-tarjetas-proveedores").classList.toggle("d-none", modo !== "tarjetas");
+            document.getElementById("contenedor-tabla-proveedores").classList.toggle("d-none", modo !== "lista");
+            renderizarProveedores();
+        }
+
         async function cargarProveedores() {
             const res = await fetch("/proveedores/");
             const lista = await res.json();
             listaProveedoresActuales = Array.isArray(lista) ? lista : [];
+            renderizarProveedores();
+        }
+
+        function renderizarProveedores() {
             const esAdmin = usuarioActual.rol === "ADMIN";
             const numCols = esAdmin ? 6 : 5;
-            document.getElementById("tabla-lista-proveedores").innerHTML = listaProveedoresActuales.length === 0 
-                ? `<tr><td colspan="${numCols}" class="text-center text-muted py-3">Sin proveedores registrados.</td></tr>` 
-                : listaProveedoresActuales.map(p => {
-                    const nombreSeguro = (p.nombre_proveedor || "").replace(/'/g, "");
-                    const colAccion = esAdmin
-                        ? `<td>
-                               <div class="d-flex gap-1">
-                                   <button class="btn btn-secundario btn-sm" onclick="abrirModalEditarProveedor(${p.id_proveedor})" title="Editar proveedor">
-                                       <i class="bi bi-pencil"></i>
-                                   </button>
-                                   <button class="btn btn-secundario btn-sm text-danger" onclick="eliminarProveedor(${p.id_proveedor}, '${nombreSeguro}')" title="Eliminar proveedor">
-                                       <i class="bi bi-trash"></i>
-                                   </button>
-                               </div>
-                           </td>`
-                        : "";
-                    return `<tr>
-                        <td>#${p.id_proveedor}</td>
-                        <td class="fw-medium">${limpiarTexto(p.nombre_proveedor)}</td>
-                        <td>${limpiarTexto(p.nombre_contacto)}</td>
-                        <td>${limpiarTexto(p.correo)}</td>
-                        <td>${limpiarTexto(p.num_tel)}</td>
-                        ${colAccion}
-                    </tr>`;
-                }).join("");
+            const grid = document.getElementById("contenedor-tarjetas-proveedores");
+            const tbody = document.getElementById("tabla-lista-proveedores");
+
+            if (listaProveedoresActuales.length === 0) {
+                grid.innerHTML = `<div class="card-clean text-center text-muted py-4" style="grid-column: 1 / -1;">Sin proveedores registrados.</div>`;
+                tbody.innerHTML = `<tr><td colspan="${numCols}" class="text-center text-muted py-3">Sin proveedores registrados.</td></tr>`;
+                return;
+            }
+
+            // 1. Renderizar Tarjetas (Directorio)
+            grid.innerHTML = listaProveedoresActuales.map(p => {
+                const nombreSeguro = (p.nombre_proveedor || "").replace(/'/g, "");
+                const contactoHtml = p.nombre_contacto ? p.nombre_contacto : `<span class="text-muted">Sin contacto registrado</span>`;
+                const correoHtml = p.correo ? `<a href="mailto:${p.correo}" title="Enviar correo">${p.correo}</a>` : `<span class="text-muted">Sin correo</span>`;
+                const telHtml = p.num_tel ? `<a href="tel:${p.num_tel}" title="Llamar">${p.num_tel}</a>` : `<span class="text-muted">Sin teléfono</span>`;
+                const footerAdmin = esAdmin
+                    ? `<div class="entity-card-footer">
+                           <button class="btn btn-secundario btn-sm flex-grow-1" onclick="abrirModalEditarProveedor(${p.id_proveedor})">
+                               <i class="bi bi-pencil me-1"></i> Editar
+                           </button>
+                           <button class="btn btn-secundario btn-sm text-danger" onclick="eliminarProveedor(${p.id_proveedor}, '${nombreSeguro}')" title="Eliminar proveedor">
+                               <i class="bi bi-trash"></i>
+                           </button>
+                       </div>`
+                    : "";
+
+                return `
+                    <div class="entity-card-cmms">
+                        <div>
+                            <div class="entity-card-header mb-2">
+                                <div class="entity-card-title">${limpiarTexto(p.nombre_proveedor)}</div>
+                                <span class="badge-soft-neutral">#${p.id_proveedor}</span>
+                            </div>
+                            <div class="entity-card-meta-list">
+                                <div class="entity-card-meta-item">
+                                    <i class="bi bi-person"></i>
+                                    <span class="text-truncate">${contactoHtml}</span>
+                                </div>
+                                <div class="entity-card-meta-item">
+                                    <i class="bi bi-envelope"></i>
+                                    ${correoHtml}
+                                </div>
+                                <div class="entity-card-meta-item">
+                                    <i class="bi bi-telephone"></i>
+                                    ${telHtml}
+                                </div>
+                            </div>
+                        </div>
+                        ${footerAdmin}
+                    </div>
+                `;
+            }).join("");
+
+            // 2. Renderizar Tabla (Lista)
+            tbody.innerHTML = listaProveedoresActuales.map(p => {
+                const nombreSeguro = (p.nombre_proveedor || "").replace(/'/g, "");
+                const colAccion = esAdmin
+                    ? `<td>
+                           <div class="d-flex gap-1">
+                               <button class="btn btn-secundario btn-sm" onclick="abrirModalEditarProveedor(${p.id_proveedor})" title="Editar proveedor">
+                                   <i class="bi bi-pencil"></i>
+                               </button>
+                               <button class="btn btn-secundario btn-sm text-danger" onclick="eliminarProveedor(${p.id_proveedor}, '${nombreSeguro}')" title="Eliminar proveedor">
+                                   <i class="bi bi-trash"></i>
+                               </button>
+                           </div>
+                       </td>`
+                    : "";
+                return `<tr>
+                    <td>#${p.id_proveedor}</td>
+                    <td class="fw-medium">${limpiarTexto(p.nombre_proveedor)}</td>
+                    <td>${limpiarTexto(p.nombre_contacto)}</td>
+                    <td>${limpiarTexto(p.correo)}</td>
+                    <td>${limpiarTexto(p.num_tel)}</td>
+                    ${colAccion}
+                </tr>`;
+            }).join("");
         }
         document.getElementById("form-registrar-prov").addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -3403,6 +4246,7 @@
         // ================= MÓDULO 6: DOCUMENTOS (SUBIDA, EDICIÓN, REEMPLAZO Y BAJA) =================
         async function toggleFormDocumento() {
             document.getElementById("form-subir-documento").reset();
+            limpiarDropzone(null, "dropzone-doc", "doc-archivo", "dropzone-doc-estado");
             await cambiarOpcionesAsociacionDoc();
             modalSubirDocInstancia.show();
         }
@@ -3423,7 +4267,245 @@
             }
         }
         async function cambiarOpcionesAsociacionDoc() {
-            await poblarSelectAsociacion("doc-tipo-asociacion", "doc-id-destino");
+            const tipo = document.getElementById("doc-tipo-asociacion").value;
+
+            // Mostrar únicamente el bloque de filtros correspondiente al tipo elegido
+            document.getElementById("doc-filtros-inventario").classList.toggle("d-none", tipo !== "inventario");
+            document.getElementById("doc-filtros-mantenimiento").classList.toggle("d-none", tipo !== "mantenimiento");
+            document.getElementById("doc-filtros-equipo").classList.toggle("d-none", tipo !== "equipo");
+
+            // Actualizar catálogos base, mantenimientos y conteo de equipos por inventario
+            const [_, resMants, resRes] = await Promise.all([
+                cargarCatalogosBase(),
+                fetch("/mantenimientos/"),
+                fetch("/dashboard/resumen?dias_anticipacion=30")
+            ]);
+            const mantsData = await resMants.json();
+            catalogoMantenimientosCompleto = Array.isArray(mantsData) ? mantsData : [];
+            if (resRes.ok) {
+                const resJson = await resRes.json();
+                mapaConteoEquiposInventario = resJson.equipos_por_inventario || {};
+            }
+
+            // Poblar selectores de filtro de Hospital y Proveedor
+            const opcionesHosp = `<option value="">Todos los hospitales</option>` +
+                Object.entries(mapaHospitales).map(([id, nom]) => `<option value="${id}">${nom}</option>`).join("");
+            document.getElementById("doc-filtro-inv-hospital").innerHTML = opcionesHosp;
+            document.getElementById("doc-filtro-eq-hospital").innerHTML = opcionesHosp;
+
+            const opcionesProv = `<option value="">Todos los proveedores</option>` +
+                Object.entries(mapaProveedores).map(([id, nom]) => `<option value="${id}">${nom}</option>`).join("");
+            document.getElementById("doc-filtro-mant-proveedor").innerHTML = opcionesProv;
+
+            // Limpiar valores de filtros previos
+            document.getElementById("doc-filtro-inv-fecha").value = "";
+            document.getElementById("doc-filtro-mant-fecha").value = "";
+            document.getElementById("doc-filtro-mant-equipo").value = "";
+            document.getElementById("doc-filtro-eq-texto").value = "";
+
+            filtrarRegistrosDestinoDoc();
+        }
+
+        function filtrarRegistrosDestinoDoc() {
+            const tipo = document.getElementById("doc-tipo-asociacion").value;
+            const selDestino = document.getElementById("doc-id-destino");
+            const badgeCount = document.getElementById("doc-contador-registros");
+
+            if (tipo === "inventario") {
+                const hospFiltro = document.getElementById("doc-filtro-inv-hospital").value;
+                const fechaFiltro = document.getElementById("doc-filtro-inv-fecha").value;
+                const filtrados = catalogoInventariosCompleto.filter(inv => {
+                    if (hospFiltro && String(inv.id_hospital) !== String(hospFiltro)) return false;
+                    if (fechaFiltro && String(inv.fecha) !== String(fechaFiltro)) return false;
+                    return true;
+                });
+                badgeCount.textContent = `${filtrados.length} inventario(s)`;
+                selDestino.innerHTML = filtrados.length === 0
+                    ? `<option value="">Sin inventarios con esos filtros</option>`
+                    : filtrados.map(inv => {
+                        const hospNom = mapaHospitales[inv.id_hospital] || `Hospital #${inv.id_hospital}`;
+                        const totalEq = mapaConteoEquiposInventario[String(inv.id_inventario)] ?? 0;
+                        return `<option value="${inv.id_inventario}">Inventario #${inv.id_inventario} — ${hospNom} (${inv.fecha} · ${totalEq} eq.)</option>`;
+                    }).join("");
+            } else if (tipo === "mantenimiento") {
+                const provFiltro = document.getElementById("doc-filtro-mant-proveedor").value;
+                const fechaFiltro = document.getElementById("doc-filtro-mant-fecha").value;
+                const textoFiltro = document.getElementById("doc-filtro-mant-equipo").value.trim().toLowerCase();
+
+                const filtrados = catalogoMantenimientosCompleto.filter(m => {
+                    if (provFiltro && String(m.id_proveedor || "") !== String(provFiltro)) return false;
+                    if (fechaFiltro && String(m.fecha) !== String(fechaFiltro)) return false;
+                    if (textoFiltro) {
+                        const eq = obtenerEquipoPorId(m.id_equipo);
+                        const nomEq = (eq && eq.nombre_equipo ? eq.nombre_equipo : "").toLowerCase();
+                        const nni = (eq && eq.nni ? eq.nni : "").toLowerCase();
+                        const sn = (eq && eq.sn ? eq.sn : "").toLowerCase();
+                        const idTxt = String(m.id_mantenimiento);
+                        return nomEq.includes(textoFiltro) || nni.includes(textoFiltro) || sn.includes(textoFiltro) || idTxt.includes(textoFiltro);
+                    }
+                    return true;
+                });
+                badgeCount.textContent = `${filtrados.length} mantenimiento(s)`;
+                selDestino.innerHTML = filtrados.length === 0
+                    ? `<option value="">Sin mantenimientos con esos filtros</option>`
+                    : filtrados.map(m => {
+                        const eq = obtenerEquipoPorId(m.id_equipo);
+                        const nomEq = eq && eq.nombre_equipo ? eq.nombre_equipo : `Equipo #${m.id_equipo}`;
+                        const cod = eq && eq.nni ? `NNI: ${eq.nni}` : (eq && eq.sn ? `SN: ${eq.sn}` : "Sin NNI/SN");
+                        const provNom = m.id_proveedor ? (mapaProveedores[m.id_proveedor] || `Prov #${m.id_proveedor}`) : "Sin proveedor";
+                        return `<option value="${m.id_mantenimiento}">Mant #${m.id_mantenimiento} (${m.fecha}) — ${nomEq} [${cod}] · ${provNom}</option>`;
+                    }).join("");
+            } else if (tipo === "equipo") {
+                const hospFiltro = document.getElementById("doc-filtro-eq-hospital").value;
+                const textoFiltro = document.getElementById("doc-filtro-eq-texto").value.trim().toLowerCase();
+
+                const filtrados = catalogoEquiposCompleto.filter(e => {
+                    if (hospFiltro && String(e.id_hospital) !== String(hospFiltro)) return false;
+                    if (textoFiltro) {
+                        const nom = (e.nombre_equipo || "").toLowerCase();
+                        const nni = (e.nni || "").toLowerCase();
+                        const sn = (e.sn || "").toLowerCase();
+                        const marca = (e.marca || "").toLowerCase();
+                        const modelo = (e.modelo || "").toLowerCase();
+                        return nom.includes(textoFiltro) || nni.includes(textoFiltro) || sn.includes(textoFiltro) || marca.includes(textoFiltro) || modelo.includes(textoFiltro);
+                    }
+                    return true;
+                });
+                badgeCount.textContent = `${filtrados.length} equipo(s)`;
+                selDestino.innerHTML = filtrados.length === 0
+                    ? `<option value="">Sin equipos con esos filtros</option>`
+                    : filtrados.map(e => {
+                        const nom = e.nombre_equipo || `Equipo #${e.id_equipo}`;
+                        const cod = e.nni ? `NNI: ${e.nni}` : (e.sn ? `SN: ${e.sn}` : "Sin NNI/SN");
+                        const hospNom = mapaHospitales[e.id_hospital] || "Sin hospital";
+                        return `<option value="${e.id_equipo}">${nom} — ${cod} (${hospNom})</option>`;
+                    }).join("");
+            }
+
+            actualizarPreviewDestinoDocumento();
+        }
+
+        function actualizarPreviewDestinoDocumento() {
+            const tipo = document.getElementById("doc-tipo-asociacion").value;
+            const idSeleccionado = document.getElementById("doc-id-destino").value;
+            const wrap = document.getElementById("doc-preview-wrap");
+            const cont = document.getElementById("doc-preview-contenido");
+
+            if (!idSeleccionado) {
+                wrap.classList.add("d-none");
+                cont.innerHTML = "";
+                return;
+            }
+
+            if (tipo === "inventario") {
+                const inv = catalogoInventariosCompleto.find(i => String(i.id_inventario) === String(idSeleccionado));
+                if (!inv) { wrap.classList.add("d-none"); return; }
+                const hospNom = mapaHospitales[inv.id_hospital] || `Hospital #${inv.id_hospital}`;
+                const totalEq = mapaConteoEquiposInventario[String(inv.id_inventario)] ?? 0;
+                const badgeEst = inv.estado === "EN_PROCESO"
+                    ? `<span class="badge-soft-warning">EN PROCESO</span>`
+                    : `<span class="badge-soft-success">FINALIZADO</span>`;
+
+                cont.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
+                        <span class="fw-bold" style="color: var(--verde-imss);"><i class="bi bi-clipboard2-check me-1"></i>Inventario #${inv.id_inventario}</span>
+                        ${badgeEst}
+                    </div>
+                    <div class="mant-equipo-preview-grid">
+                        <div>
+                            <span class="mant-equipo-preview-label">Unidad Médica / Hospital</span>
+                            <span class="mant-equipo-preview-value">${hospNom}</span>
+                        </div>
+                        <div>
+                            <span class="mant-equipo-preview-label">Fecha de Realización</span>
+                            <span class="mant-equipo-preview-value">${inv.fecha || "Sin información"}</span>
+                        </div>
+                        <div>
+                            <span class="mant-equipo-preview-label">Equipos Censados</span>
+                            <span class="mant-equipo-preview-value">${totalEq} equipo(s)</span>
+                        </div>
+                    </div>
+                `;
+                wrap.classList.remove("d-none");
+            } else if (tipo === "mantenimiento") {
+                const m = catalogoMantenimientosCompleto.find(item => String(item.id_mantenimiento) === String(idSeleccionado));
+                if (!m) { wrap.classList.add("d-none"); return; }
+                const eq = obtenerEquipoPorId(m.id_equipo);
+                const prov = catalogoProveedoresCompleto.find(p => String(p.id_proveedor) === String(m.id_proveedor));
+
+                const provNombre = prov ? prov.nombre_proveedor : (m.id_proveedor ? (mapaProveedores[m.id_proveedor] || `Proveedor #${m.id_proveedor}`) : "Sin proveedor");
+                const provContacto = prov && prov.nombre_contacto ? prov.nombre_contacto : "Sin información";
+                const provTelCorreo = prov ? ([prov.num_tel, prov.correo].filter(Boolean).join(" · ") || "Sin información") : "Sin información";
+
+                const eqNombre = eq && eq.nombre_equipo ? eq.nombre_equipo : `Equipo #${m.id_equipo}`;
+                const eqHosp = eq && eq.id_hospital ? (mapaHospitales[eq.id_hospital] || `Hospital #${eq.id_hospital}`) : "Sin hospital";
+                const eqMarcaMod = eq ? `${eq.marca || "Sin información"} / ${eq.modelo || "Sin información"}` : "Sin información";
+                const eqNniSn = eq ? `NNI: ${eq.nni || "Sin información"} · SN: ${eq.sn || "Sin información"}` : "Sin información";
+
+                cont.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-1 mb-1">
+                        <span class="fw-bold" style="color: var(--verde-imss);"><i class="bi bi-wrench-adjustable me-1"></i>Mantenimiento #${m.id_mantenimiento} (${m.tipo_mantenimiento || "N/A"})</span>
+                        <span class="badge-soft-neutral">Realizado: ${m.fecha || "Sin fecha"}</span>
+                    </div>
+                    <div class="mant-equipo-preview-grid">
+                        <div>
+                            <span class="mant-equipo-preview-label">Equipo</span>
+                            <span class="mant-equipo-preview-value">${eqNombre}</span>
+                            <div class="text-muted" style="font-size: 0.74rem;">${eqHosp}</div>
+                        </div>
+                        <div>
+                            <span class="mant-equipo-preview-label">Marca / Modelo y NNI / SN</span>
+                            <span class="mant-equipo-preview-value">${eqMarcaMod}</span>
+                            <div class="text-muted" style="font-size: 0.74rem;">${eqNniSn}</div>
+                        </div>
+                        <div>
+                            <span class="mant-equipo-preview-label">Proveedor</span>
+                            <span class="mant-equipo-preview-value">${provNombre}</span>
+                            <div class="text-muted" style="font-size: 0.74rem;">${provContacto} · ${provTelCorreo}</div>
+                        </div>
+                        <div>
+                            <span class="mant-equipo-preview-label">Próxima Fecha / Observaciones</span>
+                            <span class="mant-equipo-preview-value">${m.prox_fecha || "Sin próxima fecha"}</span>
+                            <div class="text-muted text-truncate" style="font-size: 0.74rem;" title="${m.observaciones || ''}">${m.observaciones || "Sin observaciones"}</div>
+                        </div>
+                    </div>
+                `;
+                wrap.classList.remove("d-none");
+            } else if (tipo === "equipo") {
+                const eq = obtenerEquipoPorId(idSeleccionado);
+                if (!eq) { wrap.classList.add("d-none"); return; }
+                const hospNom = mapaHospitales[eq.id_hospital] || "Sin hospital";
+                const badgeEst = eq.estatusfuncional
+                    ? `<span class="badge-soft-success">Funcional</span>`
+                    : `<span class="badge-soft-danger">Fuera de servicio</span>`;
+
+                cont.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
+                        <span class="fw-bold" style="color: var(--verde-imss);"><i class="bi bi-cpu me-1"></i>${eq.nombre_equipo || ('Equipo #' + eq.id_equipo)}</span>
+                        ${badgeEst}
+                    </div>
+                    <div class="mant-equipo-preview-grid">
+                        <div>
+                            <span class="mant-equipo-preview-label">Hospital / Área</span>
+                            <span class="mant-equipo-preview-value">${hospNom}</span>
+                            <div class="text-muted" style="font-size: 0.74rem;">${eq.area || "Sin área"}${eq.subarea ? ' / ' + eq.subarea : ''}</div>
+                        </div>
+                        <div>
+                            <span class="mant-equipo-preview-label">Marca / Modelo</span>
+                            <span class="mant-equipo-preview-value">${eq.marca || "Sin información"} / ${eq.modelo || "Sin información"}</span>
+                        </div>
+                        <div>
+                            <span class="mant-equipo-preview-label">NNI</span>
+                            <span class="mant-equipo-preview-value">${eq.nni || "Sin información"}</span>
+                        </div>
+                        <div>
+                            <span class="mant-equipo-preview-label">Número de Serie (SN)</span>
+                            <span class="mant-equipo-preview-value">${eq.sn || "Sin información"}</span>
+                        </div>
+                    </div>
+                `;
+                wrap.classList.remove("d-none");
+            }
         }
         async function cambiarOpcionesAsociacionModalDoc() {
             await poblarSelectAsociacion("edit-doc-tipo", "edit-doc-destino");
@@ -3476,14 +4558,25 @@
             
             const tipo = document.getElementById("doc-tipo-asociacion").value;
             const idDestino = document.getElementById("doc-id-destino").value;
+            if (!idDestino) return alert("Selecciona un registro válido al cual asociar el documento.");
             if (tipo === "equipo") formData.append("id_equipo", idDestino);
             if (tipo === "mantenimiento") formData.append("id_mantenimiento", idDestino);
             if (tipo === "inventario") formData.append("id_inventario", idDestino);
             
-            formData.append("archivo", document.getElementById("doc-archivo").files[0]);
+            const archivoDoc = document.getElementById("doc-archivo").files[0];
+            if (!archivoDoc) return alert("Arrastra o selecciona primero un archivo (PDF o imagen) para subir.");
+            formData.append("archivo", archivoDoc);
             const res = await fetch("/documentos/subir", { method: "POST", body: formData });
-            if (res.ok) { document.getElementById("form-subir-documento").reset(); modalSubirDocInstancia.hide(); cargarDocumentos(); alert("Documento subido con éxito."); }
-            else { const d = await res.json(); alert(d.detail); }
+            if (res.ok) {
+                document.getElementById("form-subir-documento").reset();
+                limpiarDropzone(null, "dropzone-doc", "doc-archivo", "dropzone-doc-estado");
+                modalSubirDocInstancia.hide();
+                cargarDocumentos();
+                alert("Documento subido con éxito.");
+            } else {
+                const d = await res.json();
+                alert(d.detail);
+            }
         });
         async function abrirModalEditarDocumento(idDoc) {
             const d = listaDocumentosActuales.find(item => item.id_documento === idDoc);
