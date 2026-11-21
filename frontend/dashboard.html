@@ -675,12 +675,12 @@
                                 <input type="text" class="form-control form-control-sm" id="eq-modelo">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label small text-muted">Número de Serie (SN) *</label>
-                                <input type="text" class="form-control form-control-sm" id="eq-sn" required>
+                                <label class="form-label small text-muted">Número de Serie (SN)</label>
+                                <input type="text" class="form-control form-control-sm" id="eq-sn" placeholder="Opcional">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label small text-muted">NNI *</label>
-                                <input type="text" class="form-control form-control-sm" id="eq-nni" required>
+                                <label class="form-label small text-muted">NNI</label>
+                                <input type="text" class="form-control form-control-sm" id="eq-nni" placeholder="Opcional">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label small text-muted">Proveedor</label>
@@ -745,7 +745,7 @@
                                 <code>observaciones</code>
                             </div>
                             <ul class="text-muted mb-0 ps-3" style="font-size: 0.78rem;">
-                                <li><strong>sn / nni:</strong> Al menos uno de los dos debe venir lleno por fila (los equipos duplicados se omiten automáticamente).</li>
+                                <li><strong>sn / nni:</strong> Son opcionales; si un equipo no cuenta con ninguno, deja las celdas vacías (los equipos con SN o NNI duplicado se omiten automáticamente y no se permite subir el mismo archivo CSV dos veces).</li>
                                 <li><strong>garantia:</strong> Escribe <code>SI</code> o <code>TRUE</code> si tiene garantía vigente, o <code>NO</code> / <code>FALSE</code> si no tiene.</li>
                                 <li><strong>fecha_expgarantia:</strong> Formato <code>AAAA-MM-DD</code> (ej. <code>2027-06-30</code>) solo cuando <code>garantia</code> sea <code>SI</code>.</li>
                                 <li><strong>estatusfuncional:</strong> Escribe <code>SI</code> / <code>FUNCIONAL</code> si opera correctamente, o <code>NO</code> si está fuera de servicio.</li>
@@ -1222,12 +1222,12 @@
                                 <input type="text" class="form-control form-control-sm" id="ind-eq-modelo">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label small fw-semibold">Número de Serie (SN) *</label>
-                                <input type="text" class="form-control form-control-sm" id="ind-eq-sn" required>
+                                <label class="form-label small fw-semibold">Número de Serie (SN)</label>
+                                <input type="text" class="form-control form-control-sm" id="ind-eq-sn" placeholder="Opcional">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label small fw-semibold">NNI *</label>
-                                <input type="text" class="form-control form-control-sm" id="ind-eq-nni" required>
+                                <label class="form-label small fw-semibold">NNI</label>
+                                <input type="text" class="form-control form-control-sm" id="ind-eq-nni" placeholder="Opcional">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-semibold">¿Cuenta con Garantía?</label>
@@ -2221,8 +2221,8 @@
                     subarea: document.getElementById("eq-subarea").value || null,
                     marca: document.getElementById("eq-marca").value,
                     modelo: document.getElementById("eq-modelo").value || null,
-                    sn: document.getElementById("eq-sn").value,
-                    nni: document.getElementById("eq-nni").value,
+                    sn: document.getElementById("eq-sn").value.trim() || null,
+                    nni: document.getElementById("eq-nni").value.trim() || null,
                     garantia: tieneGarantia,
                     fecha_expgarantia: tieneGarantia ? document.getElementById("eq-fecha-garantia").value : null,
                     estatusfuncional: document.getElementById("eq-estatus").value === "true",
@@ -2395,8 +2395,8 @@
                 subarea: document.getElementById("ind-eq-subarea").value.trim() || null,
                 marca: document.getElementById("ind-eq-marca").value.trim(),
                 modelo: document.getElementById("ind-eq-modelo").value.trim() || null,
-                sn: document.getElementById("ind-eq-sn").value.trim(),
-                nni: document.getElementById("ind-eq-nni").value.trim(),
+                sn: document.getElementById("ind-eq-sn").value.trim() || null,
+                nni: document.getElementById("ind-eq-nni").value.trim() || null,
                 garantia: tieneGarantia,
                 fecha_expgarantia: tieneGarantia ? document.getElementById("ind-eq-fecha-garantia").value : null,
                 estatusfuncional: document.getElementById("ind-eq-estatus").value === "true",

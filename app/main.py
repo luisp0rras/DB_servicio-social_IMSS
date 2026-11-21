@@ -1,6 +1,8 @@
 import os
 import io
 import csv
+import json
+import hashlib
 import random
 import shutil
 import smtplib
@@ -34,6 +36,48 @@ models.Base.metadata.create_all(bind=engine)
 CARPETA_DOCUMENTOS = "archivos_subidos"
 os.makedirs(os.path.join(CARPETA_DOCUMENTOS, "perfiles"), exist_ok=True)
 os.makedirs("frontend", exist_ok=True)
+
+# Archivo local de control de huellas SHA-256 para impedir la subida duplicada de un mismo CSV
+ARCHIVO_CONTROL_CSV = os.path.join(CARPETA_DOCUMENTOS, ".csv_importados.json")
+
+def leer_hashes_csv_importados() -> dict:
+    """Lee el registro persistente de archivos CSV ya importados (clave: hash SHA-256)."""
+    if os.path.exists(ARCHIVO_CONTROL_CSV):
+        try:
+            with open(ARCHIVO_CONTROL_CSV, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return data if isinstance(data, dict) else {}
+        except Exception:
+            return {}
+    return {}
+
+def guardar_hash_csv_importado(hash_csv: str, id_inventario: int, nombre_archivo: str) -> None:
+    """Registra la huella digital SHA-256 de un CSV importado exitosamente."""
+    registros = leer_hashes_csv_importados()
+    registros[hash_csv] = {
+        "id_inventario": id_inventario,
+        "archivo": nombre_archivo,
+        "fecha": datetime.now().isoformat(timespec="seconds")
+    }
+    try:
+        with open(ARCHIVO_CONTROL_CSV, "w", encoding="utf-8") as f:
+            json.dump(registros, f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
+def eliminar_hashes_csv_de_inventario(id_inventario: int) -> None:
+    """Libera las huellas SHA-256 asociadas a un inventario si este es cancelado/eliminado."""
+    registros = leer_hashes_csv_importados()
+    nuevos_registros = {
+        h: meta for h, meta in registros.items()
+        if meta.get("id_inventario") != id_inventario
+    }
+    if len(nuevos_registros) != len(registros):
+        try:
+            with open(ARCHIVO_CONTROL_CSV, "w", encoding="utf-8") as f:
+                json.dump(nuevos_registros, f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
 
 # ==========================================================
 # TAREA EN SEGUNDO PLANO (CORREO ÚNICO: 7 DÍAS ANTES Y AL VENCER)
@@ -138,6 +182,18 @@ def eliminar_archivo_fisico_seguro(ruta_archivo: Optional[str]) -> None:
             os.remove(ruta_archivo)
         except OSError:
             pass
+
+def normalizar_codigo_opcional(valor: Optional[str]) -> Optional[str]:
+    """
+    Convierte cadenas vacías, espacios en blanco o el texto literal 'null' en None (NULL en SQL),
+    evitando falsos choques con las restricciones UNIQUE de sn y nni en PostgreSQL.
+    """
+    if valor is None:
+        return None
+    limpio = str(valor).strip()
+    if not limpio or limpio.lower() == "null":
+        return None
+    return limpio
 
 def formatear_identificador_equipo(nni: Optional[str], sn: Optional[str]) -> str:
     """
@@ -481,12 +537,16 @@ def registrar_equipo_en_inventario(
         raise HTTPException(status_code=404, detail="El inventario no existe.")
     if inventario.estado == "FINALIZADO":
         raise HTTPException(status_code=400, detail="Este inventario ya fue FINALIZADO y no permite agregar más equipos.")
-    duplicado = buscar_equipo_duplicado(db, equipo.sn, equipo.nni)
+    sn_limpio = normalizar_codigo_opcional(equipo.sn)
+    nni_limpio = normalizar_codigo_opcional(equipo.nni)
+    duplicado = buscar_equipo_duplicado(db, sn_limpio, nni_limpio)
     if duplicado:
         raise HTTPException(status_code=400, detail="Ya existe un equipo registrado con ese Número de Serie (SN) o NNI.")
     
     # Se excluye id_hospital del esquema para usar siempre el hospital del inventario activo
     datos_equipo = equipo.model_dump(exclude={"id_hospital"})
+    datos_equipo["sn"] = sn_limpio
+    datos_equipo["nni"] = nni_limpio
     nuevo_equipo = models.Equipo(
         **datos_equipo,
         id_hospital=inventario.id_hospital
@@ -562,6 +622,7 @@ def cancelar_o_eliminar_inventario(
                 db.query(models.Equipo).filter(models.Equipo.id_equipo == id_eq).delete()
     db.delete(inventario)
     db.commit()
+    eliminar_hashes_csv_de_inventario(id_inventario)
     return {"mensaje": f"El Inventario #{id_inventario} fue cancelado y eliminado correctamente."}
 
 @app.get("/inventarios/", response_model=List[schemas.InventarioRespuesta], tags=["Inventarios"])
@@ -673,14 +734,19 @@ def registrar_equipo_individual(
         if not proveedor:
             raise HTTPException(status_code=404, detail="El proveedor seleccionado no existe.")
 
-    duplicado = buscar_equipo_duplicado(db, equipo.sn, equipo.nni)
+    sn_limpio = normalizar_codigo_opcional(equipo.sn)
+    nni_limpio = normalizar_codigo_opcional(equipo.nni)
+    duplicado = buscar_equipo_duplicado(db, sn_limpio, nni_limpio)
     if duplicado:
         raise HTTPException(
             status_code=400,
             detail="Ya existe un equipo registrado con ese Número de Serie (SN) o NNI."
         )
 
-    nuevo_equipo = models.Equipo(**equipo.model_dump())
+    datos_equipo = equipo.model_dump()
+    datos_equipo["sn"] = sn_limpio
+    datos_equipo["nni"] = nni_limpio
+    nuevo_equipo = models.Equipo(**datos_equipo)
     db.add(nuevo_equipo)
     db.commit()
     db.refresh(nuevo_equipo)
@@ -922,7 +988,9 @@ def actualizar_equipo(
     equipo = db.query(models.Equipo).filter(models.Equipo.id_equipo == id_equipo).first()
     if not equipo:
         raise HTTPException(status_code=404, detail="Equipo no encontrado.")
-    duplicado = buscar_equipo_duplicado(db, datos.sn, datos.nni, excluir_id_equipo=id_equipo)
+    sn_limpio = normalizar_codigo_opcional(datos.sn)
+    nni_limpio = normalizar_codigo_opcional(datos.nni)
+    duplicado = buscar_equipo_duplicado(db, sn_limpio, nni_limpio, excluir_id_equipo=id_equipo)
     if duplicado:
         raise HTTPException(status_code=400, detail="Otro equipo ya tiene registrado ese Número de Serie (SN) o NNI.")
     
@@ -936,7 +1004,10 @@ def actualizar_equipo(
     elif datos.fecha_expgarantia >= hoy:
         equipo.alerta_garantia_enviada = False
 
-    for campo, valor in datos.model_dump().items():
+    datos_actualizados = datos.model_dump()
+    datos_actualizados["sn"] = sn_limpio
+    datos_actualizados["nni"] = nni_limpio
+    for campo, valor in datos_actualizados.items():
         setattr(equipo, campo, valor)
     db.commit()
     db.refresh(equipo)
@@ -1578,38 +1649,64 @@ def importar_equipos_csv(
     archivo_csv: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    """Importa lotes de equipos desde un archivo CSV omitiendo duplicados de SN o NNI de forma segura."""
+    """
+    Importa lotes de equipos desde un archivo CSV:
+    - Bloquea la resubida de un mismo archivo CSV mediante firma SHA-256 persistente.
+    - Permite importar equipos sin NNI ni SN siempre que tengan al menos nombre_equipo.
+    - Si una fila incluye SN o NNI, valida y omite duplicados contra toda la base de datos.
+    """
     inventario = db.query(models.Inventario).filter(models.Inventario.id_inventario == id_inventario).first()
     if not inventario:
         raise HTTPException(status_code=404, detail="El inventario no existe.")
     if inventario.estado == "FINALIZADO":
         raise HTTPException(status_code=400, detail="Este inventario ya está FINALIZADO y no admite más equipos.")
+
     contenido_bytes = archivo_csv.file.read()
+    hash_archivo = hashlib.sha256(contenido_bytes).hexdigest()
+    historial_csv = leer_hashes_csv_importados()
+
+    if hash_archivo in historial_csv:
+        previo = historial_csv[hash_archivo]
+        raise HTTPException(
+            status_code=400,
+            detail=f"Este archivo CSV ya fue importado anteriormente (Inventario #{previo.get('id_inventario')} el {previo.get('fecha')}). Para evitar duplicados, no se permite subir el mismo archivo dos veces."
+        )
+
     try:
         texto_csv = contenido_bytes.decode("utf-8-sig")
     except UnicodeDecodeError:
         texto_csv = contenido_bytes.decode("latin-1")
+
     lector = csv.DictReader(io.StringIO(texto_csv))
     equipos_insertados = 0
     equipos_omitidos = []
+
     for num_fila, fila in enumerate(lector, start=2):
         fila_limpia = {k.strip().lower(): (v.strip() if v else None) for k, v in fila.items() if k}
-        sn = fila_limpia.get("sn")
-        nni = fila_limpia.get("nni")
-        if not sn and not nni:
+        nombre_equipo = fila_limpia.get("nombre_equipo")
+        sn = normalizar_codigo_opcional(fila_limpia.get("sn"))
+        nni = normalizar_codigo_opcional(fila_limpia.get("nni"))
+
+        # Ignorar únicamente filas completamente vacías (sin nombre de equipo ni identificadores)
+        if not nombre_equipo and not sn and not nni:
             continue
-        duplicado = buscar_equipo_duplicado(db, sn, nni)
-        if duplicado:
-            equipos_omitidos.append(f"Fila {num_fila}: NNI '{nni}' o SN '{sn}' ya registrado.")
-            continue
+
+        # Si el equipo tiene SN o NNI, validar que no exista ya registrado en el sistema
+        if sn or nni:
+            duplicado = buscar_equipo_duplicado(db, sn, nni)
+            if duplicado:
+                equipos_omitidos.append(f"Fila {num_fila}: NNI '{nni}' o SN '{sn}' ya registrado.")
+                continue
+
         garantia_txt = str(fila_limpia.get("garantia", "")).upper()
         tiene_garantia = garantia_txt in ["TRUE", "1", "SI", "SÍ", "T", "YES"]
         estatus_txt = str(fila_limpia.get("estatusfuncional", "TRUE")).upper()
         es_funcional = estatus_txt in ["TRUE", "1", "SI", "SÍ", "T", "YES", "FUNCIONAL"]
         fecha_garantia = fila_limpia.get("fecha_expgarantia") if tiene_garantia else None
+
         nuevo_equipo = models.Equipo(
             id_hospital=inventario.id_hospital,
-            nombre_equipo=fila_limpia.get("nombre_equipo"),
+            nombre_equipo=nombre_equipo,
             area=fila_limpia.get("area"),
             subarea=fila_limpia.get("subarea"),
             marca=fila_limpia.get("marca"),
@@ -1629,7 +1726,10 @@ def importar_equipos_csv(
         )
         db.add(vinculo)
         equipos_insertados += 1
+
     db.commit()
+    guardar_hash_csv_importado(hash_archivo, id_inventario, archivo_csv.filename or "archivo.csv")
+
     return {
         "mensaje": "Importación de CSV completada con éxito",
         "id_inventario": id_inventario,
