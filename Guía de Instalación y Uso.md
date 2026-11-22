@@ -28,8 +28,8 @@ git --version
 Abre PowerShell en la carpeta donde quieras guardar el proyecto y ejecuta:
 
 ```powershell
-git clone <https://github.com/luisp0rras/DB_servicio-social_IMSS>
-cd <backend_>
+git clone https://github.com/luisp0rras/DB_servicio-social_IMSS
+cd backend_
 ```
 
 ### 2. Crear y activar el entorno virtual
