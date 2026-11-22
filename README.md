@@ -4,7 +4,7 @@
 
 La idea principal del sistema es dejar atrás el manejo disperso de hojas de cálculo y concentrar en un solo lugar los hospitales, censos de inventario, equipos médicos, transferencias entre unidades, mantenimientos, proveedores y documentos técnicos. Además, está pensada para funcionar **sin conexión a internet** dentro de redes hospitalarias locales.
 
-> ¿Quieres instalarlo o ver cómo se usa paso a paso? Revisa la **[Guía de Instalación y Uso](GUIA_INSTALACION_Y_USO.md)**.
+> ¿Quieres instalarlo o ver cómo se usa paso a paso? Revisa la **[Guía de Instalación y Uso](https://github.com/luisp0rras/DB_servicio-social_IMSS/blob/main/Gu%C3%ADa%20de%20Instalaci%C3%B3n%20y%20Uso.md)**.
 
 ---
 
@@ -99,8 +99,8 @@ El script `sql/01_tablas.sql` crea la estructura relacional completa:
 ## Inicio Rápido
 
 ```bash
-git clone <URL_DEL_REPOSITORIO>
-cd <CARPETA_DEL_PROYECTO>
+git clone https://github.com/luisp0rras/DB_servicio-social_IMSS
+cd backend_
 python -m venv venv
 .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
@@ -109,4 +109,4 @@ uvicorn app.main:app --reload
 
 Abre en tu navegador: `http://127.0.0.1:8000` (o la documentación interactiva en `http://127.0.0.1:8000/docs`).
 
-Para ver la configuración completa de PostgreSQL, el archivo `.env`, cómo crear tu primer administrador y cómo usar cada pantalla, consulta la **[Guía de Instalación y Uso](GUIA_INSTALACION_Y_USO.md)**.
+Para ver la configuración completa de PostgreSQL, el archivo `.env`, cómo crear tu primer administrador y cómo usar cada pantalla, consulta la **[Guía de Instalación y Uso](https://github.com/luisp0rras/DB_servicio-social_IMSS/blob/main/Gu%C3%ADa%20de%20Instalaci%C3%B3n%20y%20Uso.md)**.
