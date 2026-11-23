@@ -492,30 +492,99 @@ def confirmar_recuperacion_password(datos: schemas.RecuperarPasswordConfirmacion
     return {"mensaje": "Contraseña restablecida con éxito. Ya puedes iniciar sesión."}
 
 # ==========================================================
-# 3. CATÁLOGO Y BUSCADOR DE HOSPITALES
+# 3. CATÁLOGO, EDICIÓN Y BAJA DE HOSPITALES
 # ==========================================================
 @app.get("/hospitales/", response_model=List[schemas.HospitalRespuesta], tags=["Hospitales"])
 def buscar_o_listar_hospitales(
     buscar: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
-    """Lista todos los hospitales o filtra por coincidencias en nombre o ciudad."""
+    """Lista todos los hospitales o filtra por coincidencias en nombre, ciudad o estado."""
     consulta = db.query(models.Hospital)
     if buscar:
         consulta = consulta.filter(
-            (models.Hospital.nombre.ilike(f"%{buscar}%")) | 
-            (models.Hospital.ciudad.ilike(f"%{buscar}%"))
+            (models.Hospital.nombre.ilike(f"%{buscar}%")) |
+            (models.Hospital.ciudad.ilike(f"%{buscar}%")) |
+            (models.Hospital.estado.ilike(f"%{buscar}%"))
         )
     return consulta.order_by(models.Hospital.nombre).all()
 
 @app.post("/hospitales/", response_model=schemas.HospitalRespuesta, status_code=status.HTTP_201_CREATED, tags=["Hospitales"])
 def registrar_hospital(hospital: schemas.HospitalCrear, db: Session = Depends(get_db)):
     """Registra una nueva unidad médica hospitalaria."""
-    nuevo_hospital = models.Hospital(**hospital.model_dump())
+    datos = hospital.model_dump()
+    datos["nombre"] = datos["nombre"].strip()
+    if datos.get("ciudad"):
+        datos["ciudad"] = datos["ciudad"].strip()
+    if datos.get("estado"):
+        datos["estado"] = datos["estado"].strip()
+    nuevo_hospital = models.Hospital(**datos)
     db.add(nuevo_hospital)
     db.commit()
     db.refresh(nuevo_hospital)
     return nuevo_hospital
+
+@app.put("/hospitales/{id_hospital}", response_model=schemas.HospitalRespuesta, tags=["Hospitales"])
+def actualizar_hospital(
+    id_hospital: int,
+    datos: schemas.HospitalCrear,
+    id_admin: int = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Permite a un Administrador editar el nombre, ciudad o estado de una unidad médica."""
+    verificar_es_admin(db, id_admin)
+    hospital = db.query(models.Hospital).filter(models.Hospital.id_hospital == id_hospital).first()
+    if not hospital:
+        raise HTTPException(status_code=404, detail="Hospital no encontrado.")
+    hospital.nombre = datos.nombre.strip()
+    hospital.ciudad = datos.ciudad.strip() if datos.ciudad else None
+    hospital.estado = datos.estado.strip() if datos.estado else None
+    db.commit()
+    db.refresh(hospital)
+    return hospital
+
+@app.delete("/hospitales/{id_hospital}", tags=["Hospitales"])
+def eliminar_hospital(
+    id_hospital: int,
+    id_admin: int = Query(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Elimina una unidad médica del catálogo (exclusivo para Administradores).
+    Por integridad referencial, impide borrar hospitales que aún tengan inventarios,
+    equipos o transferencias registradas.
+    """
+    verificar_es_admin(db, id_admin)
+    hospital = db.query(models.Hospital).filter(models.Hospital.id_hospital == id_hospital).first()
+    if not hospital:
+        raise HTTPException(status_code=404, detail="Hospital no encontrado.")
+
+    total_inv = db.query(models.Inventario).filter(models.Inventario.id_hospital == id_hospital).count()
+    total_eq = db.query(models.Equipo).filter(models.Equipo.id_hospital == id_hospital).count()
+    total_transf = db.query(models.TransferenciaEquipo).filter(
+        or_(
+            models.TransferenciaEquipo.id_hospital_origen == id_hospital,
+            models.TransferenciaEquipo.id_hospital_destino == id_hospital
+        )
+    ).count()
+
+    if total_inv > 0 or total_eq > 0 or total_transf > 0:
+        partes = []
+        if total_inv > 0:
+            partes.append(f"{total_inv} inventario(s)")
+        if total_eq > 0:
+            partes.append(f"{total_eq} equipo(s)")
+        if total_transf > 0:
+            partes.append(f"{total_transf} transferencia(s)")
+        raise HTTPException(
+            status_code=400,
+            detail=f"No se puede eliminar '{hospital.nombre}' porque aún tiene {', '.join(partes)} asociados. Reasigna o elimina esos registros primero."
+        )
+
+    nombre_hosp = hospital.nombre
+    db.delete(hospital)
+    db.commit()
+    return {"mensaje": f"El hospital '{nombre_hosp}' fue eliminado correctamente."}
 
 # ==========================================================
 # 4. FLUJO DE INVENTARIOS (CREACIÓN, CAPTURA, CIERRE Y CANCELACIÓN)

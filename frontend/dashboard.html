@@ -701,6 +701,9 @@
                                 <i class="bi bi-list-ul me-1"></i>Lista
                             </button>
                         </div>
+                        <button type="button" class="btn btn-secundario btn-sm" onclick="abrirModalGestionHospitales()" title="Ver, agregar, editar o eliminar unidades médicas">
+                            <i class="bi bi-hospital me-1" style="color: var(--verde-imss);"></i> Hospitales
+                        </button>
                         <button class="btn btn-primario btn-sm solo-admin d-none" onclick="toggleNuevoInventario()">
                             <i class="bi bi-plus-lg me-1"></i> Iniciar Nuevo Inventario
                         </button>
@@ -1219,6 +1222,87 @@
             </div>
         </section>
     </main>
+
+    <!-- ==========================================================
+         MODAL GESTIÓN DE HOSPITALES (VER, AGREGAR, EDITAR Y ELIMINAR)
+         ========================================================== -->
+    <div class="modal fade" id="modalGestionHospitales" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content" style="border-radius: 12px; border: 1px solid var(--borde-fino);">
+                <div class="modal-header border-bottom" style="background-color: var(--bg-fondo);">
+                    <h6 class="modal-title fw-bold">
+                        <i class="bi bi-hospital me-2" style="color: var(--verde-imss);"></i>Unidades Médicas y Hospitales Registrados
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Barra superior: Buscador + Contador + Botón Agregar Hospital -->
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <div class="flex-grow-1" style="min-width: 220px;">
+                            <input type="text" class="form-control form-control-sm" id="filtro-modal-hospitales"
+                                   placeholder="Buscar hospital por nombre, ciudad o estado..." oninput="renderizarTablaModalHospitales()" autocomplete="off">
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span id="contador-modal-hospitales" class="badge-soft-neutral">0 hospitales</span>
+                            <button type="button" class="btn btn-primario btn-sm solo-admin d-none" onclick="mostrarFormAgregarHospitalModal()">
+                                <i class="bi bi-plus-lg me-1"></i> Agregar Hospital
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Apartado integrado en la misma ventana para Agregar o Editar Hospital -->
+                    <div id="panel-form-hospital-modal" class="d-none mb-3 p-3 rounded" style="background-color: var(--bg-fondo); border: 1px solid var(--borde-fino); border-left: 4px solid var(--verde-imss);">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold small" style="color: var(--verde-imss);" id="titulo-form-hospital-modal">
+                                <i class="bi bi-plus-circle me-1"></i>Registrar Nuevo Hospital
+                            </span>
+                            <button type="button" class="btn-close" style="font-size: 0.7rem;" aria-label="Cerrar formulario" onclick="cerrarFormHospitalModal()"></button>
+                        </div>
+                        <form id="form-hospital-modal" class="row g-2 align-items-end">
+                            <input type="hidden" id="hosp-modal-id">
+                            <div class="col-md-5">
+                                <label class="form-label small fw-semibold mb-1">Nombre del Hospital *</label>
+                                <input type="text" class="form-control form-control-sm" id="hosp-modal-nombre" placeholder="Ej. HGR 66, UMF 33..." required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold mb-1">Ciudad *</label>
+                                <input type="text" class="form-control form-control-sm" id="hosp-modal-ciudad" placeholder="Ej. Delicias" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold mb-1">Estado *</label>
+                                <input type="text" class="form-control form-control-sm" id="hosp-modal-estado" value="Chihuahua" required>
+                            </div>
+                            <div class="col-12 d-flex justify-content-end gap-2 mt-2">
+                                <button type="button" class="btn btn-secundario btn-sm" onclick="cerrarFormHospitalModal()">Cancelar</button>
+                                <button type="submit" class="btn btn-primario btn-sm" id="btn-guardar-hospital-modal">Guardar Hospital</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Tabla de hospitales registrados -->
+                    <div class="table-responsive" style="max-height: 360px; overflow-y: auto; border: 1px solid var(--borde-fino); border-radius: 10px;">
+                        <table class="table-clean">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Hospital / Unidad Médica</th>
+                                    <th>Ciudad</th>
+                                    <th>Estado</th>
+                                    <th class="solo-admin d-none text-end">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-modal-hospitales">
+                                <tr><td colspan="5" class="text-center text-muted py-3">Cargando hospitales...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-secundario btn-sm" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- ==========================================================
          MODAL ALTA 1: INICIAR NUEVO INVENTARIO (SOLO ADMIN)
@@ -2073,6 +2157,7 @@
         let mapaEquipos = {};
         let mapaProveedores = {};
         let mapaInventarios = {};
+        let catalogoHospitalesCompleto = [];
         let catalogoEquiposCompleto = [];
         let catalogoProveedoresCompleto = [];
         let catalogoInventariosCompleto = [];
@@ -2095,6 +2180,7 @@
         let modoVistaProveedores = "tarjetas";
 
         // Instancias de Modales Bootstrap (Altas y Ediciones)
+        let modalGestionHospitalesInstancia = null;
         let modalCrearInvInstancia = null;
         let modalCrearMantInstancia = null;
         let modalCrearProvInstancia = null;
@@ -2334,6 +2420,7 @@
             });
 
             // Inicializar modales de Alta y Edición
+            modalGestionHospitalesInstancia = new bootstrap.Modal(document.getElementById("modalGestionHospitales"));
             modalCrearInvInstancia = new bootstrap.Modal(document.getElementById("modalCrearInventario"));
             modalCrearMantInstancia = new bootstrap.Modal(document.getElementById("modalCrearMantenimiento"));
             modalCrearProvInstancia = new bootstrap.Modal(document.getElementById("modalCrearProveedor"));
@@ -2421,7 +2508,8 @@
             selectEditHosp.innerHTML = `<option value="">Sin hospital</option>`;
             selectIndHosp.innerHTML = `<option value="">Selecciona un hospital...</option>`;
 
-            hospitales.forEach(h => {
+            catalogoHospitalesCompleto = Array.isArray(hospitales) ? hospitales : [];
+            catalogoHospitalesCompleto.forEach(h => {
                 mapaHospitales[h.id_hospital] = `${h.nombre} (${h.ciudad})`;
                 const opt = `<option value="${h.id_hospital}">${h.nombre} - ${h.ciudad}</option>`;
                 selectFiltroHosp.innerHTML += opt;
@@ -2950,6 +3038,151 @@
                     alertaBox.classList.remove("d-none");
                 }
             } catch (err) {}
+        }
+
+        // ================= GESTIÓN DE HOSPITALES (MODAL EN INVENTARIOS) =================
+        async function abrirModalGestionHospitales() {
+            await cargarCatalogosBase();
+            document.getElementById("filtro-modal-hospitales").value = "";
+            cerrarFormHospitalModal();
+            renderizarTablaModalHospitales();
+            modalGestionHospitalesInstancia.show();
+        }
+
+        function renderizarTablaModalHospitales() {
+            const tbody = document.getElementById("tabla-modal-hospitales");
+            const badge = document.getElementById("contador-modal-hospitales");
+            const filtro = (document.getElementById("filtro-modal-hospitales").value || "").trim().toLowerCase();
+            const esAdmin = usuarioActual.rol === "ADMIN";
+            const numCols = esAdmin ? 5 : 4;
+
+            const filtrados = catalogoHospitalesCompleto.filter(h => {
+                if (!filtro) return true;
+                const nom = (h.nombre || "").toLowerCase();
+                const cd = (h.ciudad || "").toLowerCase();
+                const est = (h.estado || "").toLowerCase();
+                return nom.includes(filtro) || cd.includes(filtro) || est.includes(filtro);
+            });
+
+            badge.textContent = `${filtrados.length} hospital(es)`;
+
+            if (filtrados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="${numCols}" class="text-center text-muted py-3">No se encontraron hospitales registrados.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtrados.map(h => {
+                const nombreSeguro = (h.nombre || "").replace(/'/g, "");
+                const colAcciones = esAdmin
+                    ? `<td class="text-end">
+                           <div class="d-inline-flex gap-1">
+                               <button type="button" class="btn btn-secundario btn-sm" onclick="editarHospitalDesdeModal(${h.id_hospital})" title="Editar hospital">
+                                   <i class="bi bi-pencil"></i>
+                               </button>
+                               <button type="button" class="btn btn-secundario btn-sm text-danger" onclick="eliminarHospitalDesdeModal(${h.id_hospital}, '${nombreSeguro}')" title="Eliminar hospital">
+                                   <i class="bi bi-trash"></i>
+                               </button>
+                           </div>
+                       </td>`
+                    : "";
+                return `<tr>
+                    <td class="text-muted">#${h.id_hospital}</td>
+                    <td class="fw-semibold" style="color: var(--verde-imss);">${limpiarTexto(h.nombre)}</td>
+                    <td>${limpiarTexto(h.ciudad)}</td>
+                    <td>${limpiarTexto(h.estado)}</td>
+                    ${colAcciones}
+                </tr>`;
+            }).join("");
+        }
+
+        function mostrarFormAgregarHospitalModal() {
+            const panel = document.getElementById("panel-form-hospital-modal");
+            const idActual = document.getElementById("hosp-modal-id").value;
+            // Si ya estaba abierto en modo agregar, ocultarlo; si estaba en modo editar o cerrado, abrir limpio en modo agregar
+            if (!panel.classList.contains("d-none") && !idActual) {
+                cerrarFormHospitalModal();
+                return;
+            }
+            document.getElementById("form-hospital-modal").reset();
+            document.getElementById("hosp-modal-id").value = "";
+            document.getElementById("hosp-modal-estado").value = "Chihuahua";
+            document.getElementById("titulo-form-hospital-modal").innerHTML = `<i class="bi bi-plus-circle me-1"></i>Registrar Nuevo Hospital`;
+            document.getElementById("btn-guardar-hospital-modal").textContent = "Guardar Hospital";
+            panel.classList.remove("d-none");
+            document.getElementById("hosp-modal-nombre").focus();
+        }
+
+        function editarHospitalDesdeModal(idHosp) {
+            const h = catalogoHospitalesCompleto.find(item => item.id_hospital === idHosp);
+            if (!h) return;
+            document.getElementById("hosp-modal-id").value = h.id_hospital;
+            document.getElementById("hosp-modal-nombre").value = h.nombre || "";
+            document.getElementById("hosp-modal-ciudad").value = h.ciudad || "";
+            document.getElementById("hosp-modal-estado").value = h.estado || "Chihuahua";
+            document.getElementById("titulo-form-hospital-modal").innerHTML = `<i class="bi bi-pencil-square me-1"></i>Editar Hospital #${h.id_hospital}`;
+            document.getElementById("btn-guardar-hospital-modal").textContent = "Guardar Cambios";
+            document.getElementById("panel-form-hospital-modal").classList.remove("d-none");
+            document.getElementById("hosp-modal-nombre").focus();
+        }
+
+        function cerrarFormHospitalModal() {
+            document.getElementById("panel-form-hospital-modal").classList.add("d-none");
+            document.getElementById("form-hospital-modal").reset();
+            document.getElementById("hosp-modal-id").value = "";
+        }
+
+        document.getElementById("form-hospital-modal").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const idEdit = document.getElementById("hosp-modal-id").value;
+            const datos = {
+                nombre: document.getElementById("hosp-modal-nombre").value.trim(),
+                ciudad: document.getElementById("hosp-modal-ciudad").value.trim(),
+                estado: document.getElementById("hosp-modal-estado").value.trim()
+            };
+            if (!datos.nombre || !datos.ciudad || !datos.estado) {
+                return alert("Completa nombre, ciudad y estado del hospital.");
+            }
+
+            const url = idEdit
+                ? `/hospitales/${idEdit}?id_admin=${usuarioActual.id_usuario}`
+                : "/hospitales/";
+            const metodo = idEdit ? "PUT" : "POST";
+
+            const res = await fetch(url, {
+                method: metodo,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(datos)
+            });
+
+            if (res.ok) {
+                cerrarFormHospitalModal();
+                await cargarCatalogosBase();
+                renderizarTablaModalHospitales();
+                cargarInventarios();
+                cargarResumenDashboard();
+            } else {
+                const d = await res.json();
+                alert(d.detail || "No se pudo guardar la información del hospital.");
+            }
+        });
+
+        async function eliminarHospitalDesdeModal(idHosp, nombreHosp) {
+            if (!confirm(`¿Estás seguro de eliminar la unidad médica "${nombreHosp}"?`)) return;
+            const res = await fetch(`/hospitales/${idHosp}?id_admin=${usuarioActual.id_usuario}`, {
+                method: "DELETE"
+            });
+            const data = await res.json();
+            if (res.ok) {
+                if (String(document.getElementById("hosp-modal-id").value) === String(idHosp)) {
+                    cerrarFormHospitalModal();
+                }
+                await cargarCatalogosBase();
+                renderizarTablaModalHospitales();
+                cargarInventarios();
+                cargarResumenDashboard();
+            } else {
+                alert(data.detail || "No se pudo eliminar el hospital.");
+            }
         }
 
         // ================= MÓDULO 2: INVENTARIOS (CON ACCESO GLOBAL Y CANCELACIÓN) =================
